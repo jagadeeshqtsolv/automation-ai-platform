@@ -1,0 +1,42 @@
+{
+  "name": "@automation-ai/web",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:push": "prisma db push",
+    "db:backfill": "npx tsx scripts/backfill-organizations.ts",
+    "db:reset": "npx tsx scripts/reset-all-data.ts",
+    "db:create-admin": "npx tsx scripts/create-platform-admin.ts",
+    "db:delete-user": "npx tsx scripts/delete-user.ts",
+    "db:delete-orgs": "npx tsx scripts/delete-organizations.ts",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@automation-ai/shared": "*",
+    "@prisma/client": "^6.8.2",
+    "archiver": "^7.0.1",
+    "next": "^15.3.2",
+    "openai": "^4.100.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/archiver": "^6.0.3",
+    "@types/node": "^22.15.21",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.27.0",
+    "eslint-config-next": "^15.3.2",
+    "postcss": "^8.5.3",
+    "prisma": "^6.8.2",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.8.3"
+  }
+}

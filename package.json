@@ -1,0 +1,21 @@
+{
+  "name": "automation-ai",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @automation-ai/web",
+    "build": "npm run build --workspace @automation-ai/web",
+    "lint": "npm run lint --workspace @automation-ai/web",
+    "db:push": "npm run db:push --workspace @automation-ai/web",
+    "db:reset": "npm run db:reset --workspace @automation-ai/web",
+    "db:studio": "npm run db:studio --workspace @automation-ai/web",
+    "db:create-admin": "npm run db:create-admin --workspace @automation-ai/web --",
+    "db:delete-orgs": "npm run db:delete-orgs --workspace @automation-ai/web --"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

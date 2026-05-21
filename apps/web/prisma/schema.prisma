@@ -1,0 +1,199 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(uuid())
+  email           String   @unique
+  passwordHash    String
+  name            String?
+  isPlatformAdmin Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organizationMemberships OrganizationMember[]
+  projectMemberships    ProjectMember[]
+  invitesCreated        OrganizationInvite[] @relation("InviteCreatedBy")
+}
+
+model Organization {
+  id               String   @id @default(uuid())
+  name             String
+  slug             String   @unique
+  /// When true, members cannot access org projects. New orgs are enabled (false) by default.
+  disabled         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  members  OrganizationMember[]
+  projects Project[]
+  invites  OrganizationInvite[]
+}
+
+/// Email invite for invite-only registration
+model OrganizationInvite {
+  id             String    @id @default(uuid())
+  token          String    @unique
+  organizationId String
+  email          String
+  role           String    @default("member")
+  invitedById    String
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation("InviteCreatedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+}
+
+/// owner: manage org & members; member: use org projects (subject to project membership rules)
+model OrganizationMember {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String
+  role           String   @default("member")
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model Project {
+  id                   String   @id @default(uuid())
+  organizationId       String
+  name                 String
+  /// "mobile" (Mobilewright) or "web" (Playwright browser)
+  platformType         String   @default("mobile")
+  executionConfigJson  String   @default("{}")
+  openaiApiKeyEnc      String?
+  openaiModel          String?
+  createdAt            DateTime @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      ProjectMember[]
+  requirements Requirement[]
+  environments Environment[]
+  pageObjects  PageObject[]
+  testRuns     TestRun[]
+
+  @@index([organizationId])
+}
+
+model TestRun {
+  id           String    @id @default(uuid())
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  provider     String
+  status       String
+  specPaths    String
+  environmentId String?
+  exitCode     Int?
+  command      String    @default("")
+  output       String    @default("")
+  /// Parsed Playwright JSON reporter output: stats + per-case outcomes (pass/fail/flaky/skipped).
+  resultsAnalysis Json?
+  /// Snapshot of HTML report folder after this run (under framework root), e.g. logs/reports/<runId>.
+  htmlReportRel String?
+  createdAt    DateTime  @default(now())
+  finishedAt   DateTime?
+
+  @@index([projectId])
+}
+
+/// When empty, all org members may access the project. When non-empty, only listed users (+ org owners).
+model ProjectMember {
+  id        String   @id @default(uuid())
+  projectId String
+  userId    String
+  role      String   @default("editor")
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+model Environment {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  description String?
+  configJson  String   @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  generatedCodes GeneratedCode[]
+
+  @@unique([projectId, slug])
+  @@index([projectId])
+}
+
+model PageObject {
+  id            String   @id @default(uuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  screenName    String?
+  className     String
+  modulePath    String
+  content       String
+  methodSummary String   @default("")
+  elementsJson  String   @default("[]")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([projectId, modulePath])
+  @@index([projectId])
+}
+
+model Requirement {
+  id        String     @id @default(uuid())
+  projectId String
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String?
+  content   String
+  createdAt DateTime   @default(now())
+  testPlans TestPlan[]
+
+  @@index([projectId])
+}
+
+model TestPlan {
+  id             String          @id @default(uuid())
+  requirementId  String
+  requirement    Requirement     @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  json           String
+  model          String
+  createdAt      DateTime        @default(now())
+  generatedCodes GeneratedCode[]
+
+  @@index([requirementId])
+}
+
+model GeneratedCode {
+  id            String       @id @default(uuid())
+  testPlanId    String
+  testPlan      TestPlan     @relation(fields: [testPlanId], references: [id], onDelete: Cascade)
+  environmentId String?
+  environment   Environment? @relation(fields: [environmentId], references: [id], onDelete: SetNull)
+  typescript    String
+  model         String
+  createdAt     DateTime     @default(now())
+
+  @@index([testPlanId])
+  @@index([environmentId])
+}

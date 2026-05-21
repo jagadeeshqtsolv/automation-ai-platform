@@ -1,0 +1,14 @@
+{
+  "name": "mobilewright-runner-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "mobilewright test",
+    "doctor": "mobilewright doctor"
+  },
+  "devDependencies": {
+    "@mobilewright/test": "^0.0.35",
+    "mobilewright": "^0.0.35",
+    "typescript": "^5.8.3"
+  }
+}

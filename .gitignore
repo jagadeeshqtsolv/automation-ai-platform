@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Next.js
+apps/web/.next/
+apps/web/out/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Prisma / SQLite databases
+apps/web/*.db
+apps/web/*.db-journal
+apps/web/prisma/*.db
+apps/web/prisma/*.db-journal
+
+# Runtime per-project framework instances (generated at runtime, stored on volume in prod)
+frameworks/web/*/
+frameworks/mobile/*/
+
+# Per-project shared framework deps
+frameworks/**/node_modules/
+frameworks/_shared/node_modules/
+
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Turbo / caches
+.turbo/
+*.tsbuildinfo
+

@@ -11,6 +11,7 @@ AI-powered test automation platform. Converts requirements into runnable TypeScr
 - [Repo layout](#repo-layout)
 - [Environment variables](#environment-variables)
 - [Database](#database)
+- [PostgreSQL setup](#postgresql-setup) ← switch from SQLite to PostgreSQL
 - [Security notes](#security-notes)
 
 ---
@@ -251,7 +252,215 @@ automation-ai-platform/
 
 Schema changes: edit `schema.prisma`, then run `npm run db:push` (dev) or restart the container (Docker — `prisma db push` runs automatically in `docker-entrypoint.sh`).
 
-To switch to **PostgreSQL**: change `provider = "sqlite"` to `"postgresql"` in `schema.prisma`, update `DATABASE_URL`, and run `npx prisma migrate dev`.
+---
+
+## PostgreSQL setup
+
+SQLite is the default and works well for single-server deployments. Switch to **PostgreSQL** when you need multiple app instances, managed cloud databases (Supabase, Neon, Railway, AWS RDS), or better concurrent write performance.
+
+> The schema has **no SQLite-specific types or queries** — switching is a one-line provider change plus a new `DATABASE_URL`.
+
+---
+
+### Option A — Docker Compose with PostgreSQL (recommended)
+
+Adds a `postgres` service alongside the app so everything runs in one `docker compose up`.
+
+**1. Update your `.env`**
+
+Add a strong Postgres password:
+
+```env
+SESSION_SECRET=your-random-32-char-secret
+GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+POSTGRES_PASSWORD=change-me-strong-password
+```
+
+**2. Replace `docker-compose.yml`** with the PostgreSQL variant:
+
+```yaml
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: automationai
+      POSTGRES_USER: automationai
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U automationai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        GITHUB_TOKEN: "${GITHUB_TOKEN}"
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://automationai:${POSTGRES_PASSWORD}@db:5432/automationai"
+      FRAMEWORKS_ROOT: "/data/frameworks"
+      WEB_CORE_ROOT: "/app/packages/core/web"
+      SESSION_SECRET: "${SESSION_SECRET}"
+    volumes:
+      - app-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/auth/me"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  pg-data:
+  app-data:
+```
+
+**3. Update `apps/web/prisma/schema.prisma`** — change the datasource block:
+
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+**4. Build and start**
+
+```bash
+docker compose up --build
+```
+
+On first start the app container waits for Postgres to be healthy, then `prisma db push` creates all tables automatically.
+
+**5. Create admin**
+
+```bash
+docker compose exec web npm run db:create-admin -- \
+  --email admin@example.com \
+  --password 'YourSecurePass!'
+```
+
+---
+
+### Option B — External PostgreSQL (Supabase, Neon, Railway, AWS RDS, etc.)
+
+Use this when you already have a managed PostgreSQL instance.
+
+**1. Get your connection string**
+
+| Provider | Where to find it |
+|----------|-----------------|
+| [Supabase](https://supabase.com) | Project → Settings → Database → Connection string (use **Session mode** URI) |
+| [Neon](https://neon.tech) | Dashboard → Connection details → Connection string |
+| [Railway](https://railway.app) | Project → PostgreSQL service → Variables → `DATABASE_URL` |
+| [AWS RDS](https://aws.amazon.com/rds/) | RDS console → DB instance → Connectivity → Endpoint |
+
+The connection string format:
+```
+postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
+```
+
+**2. Update `apps/web/prisma/schema.prisma`**
+
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+**3a. Docker — add to `.env`**
+
+```env
+DATABASE_URL=postgresql://user:password@your-host:5432/automationai?sslmode=require
+SESSION_SECRET=your-random-32-char-secret
+GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+```
+
+Update `docker-compose.yml` — replace the `DATABASE_URL` line:
+
+```yaml
+environment:
+  DATABASE_URL: "${DATABASE_URL}"
+  FRAMEWORKS_ROOT: "/data/frameworks"
+  WEB_CORE_ROOT: "/app/packages/core/web"
+  SESSION_SECRET: "${SESSION_SECRET}"
+```
+
+Then start normally:
+
+```bash
+docker compose up --build
+```
+
+**3b. Local dev — set in `apps/web/.env`**
+
+```env
+DATABASE_URL=postgresql://user:password@your-host:5432/automationai?sslmode=require
+SESSION_SECRET=your-random-32-char-secret
+```
+
+Apply the schema:
+
+```bash
+npm run db:push
+```
+
+---
+
+### Production migrations (PostgreSQL)
+
+`prisma db push` (used by `docker-entrypoint.sh`) is fine for getting started, but for production it is better to use **versioned migrations** so schema changes are tracked and applied safely.
+
+**Generate a migration from schema changes:**
+
+```bash
+cd apps/web
+npx prisma migrate dev --name describe-your-change
+```
+
+This creates a timestamped SQL file under `apps/web/prisma/migrations/` — commit it to git.
+
+**Apply migrations in production (instead of `db push`):**
+
+Update `docker-entrypoint.sh`:
+
+```sh
+#!/bin/sh
+set -e
+
+echo "Running database migrations..."
+node_modules/.bin/prisma migrate deploy --schema=apps/web/prisma/schema.prisma
+
+echo "Starting server..."
+exec node apps/web/server.js
+```
+
+`migrate deploy` applies only new migration files — safe to run on every container start.
+
+---
+
+### SQLite vs PostgreSQL comparison
+
+| | SQLite (default) | PostgreSQL |
+|-|-----------------|------------|
+| **Setup** | Zero — file on disk | Requires DB server or managed service |
+| **Best for** | Single server, small teams, self-hosted | Multi-instance, cloud, large teams |
+| **Concurrent writes** | Limited (file locking) | Excellent |
+| **Managed options** | — | Supabase (free tier), Neon (free tier), Railway, AWS RDS |
+| **Schema changes** | `prisma db push` | `prisma migrate deploy` (recommended) |
+| **Data volume mount** | `/data/production.db` | Managed by DB server |
 
 ---
 

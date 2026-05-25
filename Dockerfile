@@ -43,9 +43,17 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
+# OpenSSL — required by Prisma's Rust query engine on Alpine
+RUN apk add --no-cache openssl
+
 # Non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
+
+# /data is the Docker volume mount point for SQLite DB + framework files.
+# Create it here (as root, before USER switch) so nextjs user can write to it
+# on first start — Docker named volumes mount as root by default.
+RUN mkdir -p /data && chown nextjs:nodejs /data
 
 # Standalone Next.js output — includes only what's needed to run
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./

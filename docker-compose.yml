@@ -3,6 +3,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # GitHub Packages token — needed to install @jagadeeshqtsolv/core during build
+        # Add GITHUB_TOKEN=<your-pat> to your .env file
+        GITHUB_TOKEN: "${GITHUB_TOKEN}"
     ports:
       - "${PORT:-3000}:3000"
     environment:
@@ -10,11 +14,10 @@ services:
       DATABASE_URL: "file:/data/production.db"
       # Per-project framework files live on the persistent volume
       FRAMEWORKS_ROOT: "/data/frameworks"
-      # Required: set in your .env file
+      # web-support source files bundled into the image (set in Dockerfile, listed here for clarity)
+      WEB_CORE_ROOT: "/app/packages/core/web"
+      # Required: min 32 characters — used for session tokens and encrypted secrets (API keys, git tokens)
       SESSION_SECRET: "${SESSION_SECRET}"
-      # Optional: server-level fallback OpenAI key
-      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
-      OPENAI_MODEL: "${OPENAI_MODEL:-gpt-4.1}"
     volumes:
       # All runtime data (DB + framework files) on a named volume
       - app-data:/data

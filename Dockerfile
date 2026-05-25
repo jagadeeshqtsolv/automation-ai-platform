@@ -4,9 +4,18 @@ FROM node:20-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
+# GitHub Packages auth — needed to install @jagadeeshqtsolv/core
+# Pass via: docker build --build-arg GITHUB_TOKEN=<pat>
+# or set GITHUB_TOKEN in your .env and use docker-compose (see docker-compose.yml)
+ARG GITHUB_TOKEN
+RUN if [ -n "$GITHUB_TOKEN" ]; then \
+      echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> /root/.npmrc; \
+    fi
+
+COPY .npmrc ./
 COPY package*.json ./
 COPY apps/web/package.json ./apps/web/
-COPY packages/shared/package.json ./packages/shared/
+COPY packages/core/package.json ./packages/core/
 
 RUN npm ci
 
@@ -38,19 +47,24 @@ ENV HOSTNAME=0.0.0.0
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Standalone output includes only what's needed at runtime
-COPY --from=builder /app/apps/web/.next/standalone ./
+# Standalone Next.js output — includes only what's needed to run
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=builder /app/apps/web/public ./apps/web/public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
 
-# Prisma schema + binary for migrations/db push at startup
-COPY --from=builder /app/apps/web/prisma ./apps/web/prisma
-COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Prisma schema + engine binaries — needed for db push at startup
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/prisma ./apps/web/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+
+# web-support source files — read at runtime when scaffolding new web projects
+# (web-scaffold.ts calls readWebCoreFile("utils/data-utils.ts") on project creation)
+COPY --from=builder --chown=nextjs:nodejs /app/packages/core/web /app/packages/core/web
+ENV WEB_CORE_ROOT=/app/packages/core/web
 
 # Entrypoint runs db push then starts the app
-COPY docker-entrypoint.sh ./
+COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
 USER nextjs

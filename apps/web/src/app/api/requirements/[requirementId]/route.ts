@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateRequirementBodySchema } from "@automation-ai/shared";
+import { updateRequirementBodySchema } from "@automation-ai/core";
 import { z } from "zod";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
@@ -69,6 +69,7 @@ export async function PATCH(
     projectId: existing.projectId,
     projectName: existing.project.name,
     requirement,
+    userId: guard.user.id,
   });
 
   return NextResponse.json({

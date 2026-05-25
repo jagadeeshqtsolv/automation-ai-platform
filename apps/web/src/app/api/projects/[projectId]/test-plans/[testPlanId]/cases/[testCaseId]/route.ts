@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateTestCaseBodySchema } from "@automation-ai/shared";
+import { updateTestCaseBodySchema } from "@automation-ai/core";
 import { z } from "zod";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { removeTestCaseFromPlan, updateTestCaseInPlan } from "@/lib/test-plans/mutations";

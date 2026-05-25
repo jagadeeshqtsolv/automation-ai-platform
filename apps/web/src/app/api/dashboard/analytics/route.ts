@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiUser, requireOrgAccess } from "@/lib/auth/api-auth";
-import { listAccessibleProjectIds } from "@/lib/auth/access";
+import { getOrganizationMembership, listAccessibleProjectIds } from "@/lib/auth/access";
 import { sumTestCasesByProjectId } from "@/lib/count-test-cases";
 import { prisma } from "@/lib/prisma";
 
@@ -21,9 +21,15 @@ export async function GET(req: Request) {
     return orgCheck;
   }
 
-  const projectIds = await listAccessibleProjectIds(auth.id, organizationId);
+  const [projectIds, membership] = await Promise.all([
+    listAccessibleProjectIds(auth.id, organizationId),
+    getOrganizationMembership(auth.id, organizationId),
+  ]);
+  const currentUserRole = membership?.role ?? "member";
+
   if (projectIds.length === 0) {
     return NextResponse.json({
+      currentUserRole,
       totals: {
         projects: 0,
         requirements: 0,
@@ -105,6 +111,7 @@ export async function GET(req: Request) {
   );
 
   return NextResponse.json({
+    currentUserRole,
     totals: {
       projects: projects.length,
       requirements: requirementCount,

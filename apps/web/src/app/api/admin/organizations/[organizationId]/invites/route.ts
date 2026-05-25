@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createInviteBodySchema } from "@automation-ai/shared";
+import { createInviteBodySchema } from "@automation-ai/core";
 import { z } from "zod";
 import { requireApiUser, requirePlatformAdmin } from "@/lib/auth/api-auth";
 import type { OrgRole } from "@/lib/auth/access";
@@ -49,6 +49,26 @@ export async function GET(_req: Request, context: { params: Promise<{ organizati
       createdAt: i.createdAt.toISOString(),
     })),
   );
+}
+
+export async function DELETE(_req: Request, context: { params: Promise<{ organizationId: string }> }) {
+  const auth = await requireApiUser();
+  if (auth instanceof NextResponse) return auth;
+
+  const adminCheck = await requirePlatformAdmin(auth.id);
+  if (adminCheck instanceof NextResponse) return adminCheck;
+
+  const params = await context.params;
+  const parsedParams = paramsSchema.safeParse(params);
+  if (!parsedParams.success) {
+    return NextResponse.json({ error: "Invalid organization id" }, { status: 400 });
+  }
+
+  const { count } = await prisma.organizationInvite.deleteMany({
+    where: { organizationId: parsedParams.data.organizationId },
+  });
+
+  return NextResponse.json({ ok: true, deleted: count });
 }
 
 export async function POST(req: Request, context: { params: Promise<{ organizationId: string }> }) {

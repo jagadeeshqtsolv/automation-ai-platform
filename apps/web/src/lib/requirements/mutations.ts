@@ -1,4 +1,4 @@
-import type { TestCase } from "@automation-ai/shared";
+import type { TestCase } from "@automation-ai/core";
 import { prisma } from "@/lib/prisma";
 import { deleteFrameworkFile } from "@/lib/local-framework/delete-project";
 import { testSpecPathForRequirement } from "@/lib/generate-mobilewright-bundle";

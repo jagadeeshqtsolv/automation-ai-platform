@@ -1,4 +1,4 @@
-import type { TestCase } from "@automation-ai/shared";
+import type { TestCase } from "@automation-ai/core";
 import {
   buildPageObjectExpectMethodIndex,
   type PageObjectSource,

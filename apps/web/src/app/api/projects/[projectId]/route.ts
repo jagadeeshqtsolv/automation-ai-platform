@@ -74,7 +74,12 @@ export async function GET(_req: Request, context: { params: Promise<{ projectId:
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json(project);
+  const membership = await prisma.organizationMember.findUnique({
+    where: { organizationId_userId: { organizationId: project.organizationId, userId: auth.id } },
+    select: { role: true },
+  });
+
+  return NextResponse.json({ ...project, currentUserRole: membership?.role ?? "member" });
 }
 
 export async function DELETE(_req: Request, context: { params: Promise<{ projectId: string }> }) {
@@ -96,10 +101,18 @@ export async function DELETE(_req: Request, context: { params: Promise<{ project
 
   const project = await prisma.project.findUnique({
     where: { id: parsedParams.data.projectId },
-    select: { id: true },
+    select: { id: true, organizationId: true },
   });
   if (project === null) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const membership = await prisma.organizationMember.findUnique({
+    where: { organizationId_userId: { organizationId: project.organizationId, userId: auth.id } },
+    select: { role: true },
+  });
+  if (membership?.role !== "owner") {
+    return NextResponse.json({ error: "Only project owners can delete projects" }, { status: 403 });
   }
 
   const disk = await deleteProjectFrameworkDir(parsedParams.data.projectId);

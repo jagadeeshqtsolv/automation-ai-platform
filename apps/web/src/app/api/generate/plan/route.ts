@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { generatePlanBodySchema } from "@automation-ai/shared";
+import { generatePlanBodySchema } from "@automation-ai/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
 import { formatGenerationError } from "@/lib/format-generation-error";
 import { generateTestPlanFromRequirement } from "@/lib/generate-test-plan";
-import { openaiGenerationErrorStatus } from "@/lib/openai-generation-error-status";
+import { aiGenerationErrorStatus } from "@/lib/ai-generation-error-status";
 import { ZodError } from "zod";
 import { syncTestPlanToDisk } from "@/lib/local-framework/sync-workspace-to-disk";
 import { getProjectPlatformType } from "@/lib/project-platform";
@@ -65,13 +65,14 @@ export async function POST(req: Request) {
       projectName: requirement.project.name,
       requirementId: requirement.id,
       plan: saved,
+      userId: guard.user.id,
     });
 
     return NextResponse.json(saved, { status: 201 });
   } catch (err) {
     const message = formatGenerationError(err);
     const status =
-      err instanceof ZodError ? 422 : openaiGenerationErrorStatus(message);
+      err instanceof ZodError ? 422 : aiGenerationErrorStatus(message);
     return NextResponse.json({ error: message }, { status });
   }
 }

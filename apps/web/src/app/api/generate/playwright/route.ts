@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateCodeBodySchema, testPlanSchema } from "@automation-ai/shared";
+import { generateCodeBodySchema, testPlanSchema } from "@automation-ai/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
 import {
@@ -15,7 +15,7 @@ import { upsertPageObjectFilesFromPomBundle } from "@/lib/persist-page-objects";
 import { writeFrameworkFiles } from "@/lib/local-framework/writer";
 import { syncProjectWorkspaceToDisk } from "@/lib/local-framework/sync-workspace-to-disk";
 import { generateTestFixturesSource, TEST_FIXTURES_MODULE_PATH } from "@/lib/generate-test-fixtures";
-import { openaiGenerationErrorStatus } from "@/lib/openai-generation-error-status";
+import { aiGenerationErrorStatus } from "@/lib/ai-generation-error-status";
 import { getProjectPlatformType } from "@/lib/project-platform";
 
 function parseStoredPlans(rows: Array<{ json: string }>) {
@@ -193,6 +193,7 @@ export async function POST(req: Request) {
       overwritePageObjects: true,
       overwriteTests: true,
       environment: environmentDisk,
+      userId: guard.user.id,
     });
 
     const combined = flattenPomBundleForStorage(bundle);
@@ -226,7 +227,7 @@ export async function POST(req: Request) {
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Generation failed";
-    const status = openaiGenerationErrorStatus(message);
+    const status = aiGenerationErrorStatus(message);
     return NextResponse.json({ error: message }, { status });
   }
 }

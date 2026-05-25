@@ -7,7 +7,7 @@ import {
   type ProjectPlatformType,
   type TestCase,
   type TestPlan,
-} from "@automation-ai/shared";
+} from "@automation-ai/core";
 import { testRunnerDisplayName } from "@/lib/test-framework";
 import { useToast } from "@/components/toast-provider";
 import { readApiError } from "@/lib/api-response";

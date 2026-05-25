@@ -1,4 +1,4 @@
-import type { TestCase, TestStep } from "@automation-ai/shared";
+import type { TestCase, TestStep } from "@automation-ai/core";
 import {
   buildPageObjectStepIndex,
   resolvePageObjectEntry,

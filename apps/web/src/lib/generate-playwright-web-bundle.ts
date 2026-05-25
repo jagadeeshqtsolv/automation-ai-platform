@@ -1,6 +1,7 @@
-import { testPlanSchema, type TestPlan } from "@automation-ai/shared";
+import { generateText } from "ai";
+import { testPlanSchema, type TestPlan } from "@automation-ai/core";
 import { z } from "zod";
-import { normalizeOpenAITemperature, resolveOpenAIClient } from "@/lib/openai-client";
+import { resolveAIModel } from "@/lib/project-ai-config";
 import {
   aggregateRequirementTestPlan,
   normalizeRequirementSpecBundle,
@@ -70,7 +71,7 @@ export async function generatePlaywrightWebPomBundle(params: {
   scope?: "full-plan" | "single-case";
   focusTestCaseId?: string;
 }): Promise<{ bundle: PomMobilewrightBundle; model: string }> {
-  const { client, model } = await resolveOpenAIClient(params.projectId);
+  const { model, modelId } = await resolveAIModel(params.projectId);
   const plan = testPlanSchema.parse(params.plan);
   const hasLibrary = params.pageObjects.length > 0;
   const libraryContext =
@@ -83,10 +84,9 @@ export async function generatePlaywrightWebPomBundle(params: {
       : buildPageObjectLibraryCatalog(params.pageObjects);
   const specPath = testSpecPathForRequirement(params.requirementTitle);
 
-  const completion = await client.chat.completions.create({
+  const { text: raw } = await generateText({
     model,
-    temperature: normalizeOpenAITemperature(model, 0.12),
-    response_format: { type: "json_object" },
+    temperature: 0.12,
     messages: [
       { role: "system", content: ["Expert Playwright web engineer.", WEB_POM_RULES].join("\n") },
       {
@@ -104,7 +104,6 @@ export async function generatePlaywrightWebPomBundle(params: {
     ],
   });
 
-  const raw = completion.choices[0]?.message?.content;
   if (typeof raw !== "string" || raw.trim().length === 0) {
     throw new Error("Model returned an empty response");
   }
@@ -125,7 +124,7 @@ export async function generatePlaywrightWebPomBundle(params: {
     { platform: "web" },
   );
 
-  return { bundle, model };
+  return { bundle, model: modelId };
 }
 
 export { aggregateRequirementTestPlan, testSpecPathForRequirement };

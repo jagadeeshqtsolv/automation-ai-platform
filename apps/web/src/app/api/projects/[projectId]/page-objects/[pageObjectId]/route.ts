@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { updatePageObjectBodySchema } from "@automation-ai/shared";
+import { updatePageObjectBodySchema } from "@automation-ai/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
 import { inferMethodSummary } from "@/lib/page-object-utils";
@@ -122,6 +122,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ projectId
       modulePath: existing.modulePath,
       content: updated.content,
       overwrite: true,
+      userId: guard.user.id,
     });
   }
 

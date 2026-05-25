@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useToast } from "@/components/toast-provider";
 import { readApiError } from "@/lib/api-response";
-import type { WebPageElement, WebPageElementActionKind } from "@automation-ai/shared";
+import type { WebPageElement, WebPageElementActionKind } from "@automation-ai/core";
 
 type EnvOption = { id: string; name: string; slug: string; configJson: string };
 

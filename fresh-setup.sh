@@ -1,159 +1,143 @@
 #!/usr/bin/env bash
 #
-# Fresh install for AutomationAI monorepo (from repo root):
-#   ./fresh-setup.sh                     # clean node_modules + reinstall + db:push + build
-#   ./fresh-setup.sh --reset-data        # also empty DB + delete frameworks/* (destructive)
-#   ./fresh-setup.sh --wipe-db           # delete dev.db file + db:push (fresh SQLite file)
-#   ./fresh-setup.sh --skip-build        # install only, no next build
-#   ./fresh-setup.sh --dev               # after setup, run npm run dev
+# AutomationAI — fresh install script
+#
+# Usage:
+#   ./fresh-setup.sh                     # clean + install + db:push + build
+#   ./fresh-setup.sh --skip-build        # clean + install + db:push (skip next build)
+#   ./fresh-setup.sh --wipe-db           # also delete dev.db (fresh SQLite)
+#   ./fresh-setup.sh --reset-data        # wipe db + delete frameworks/* (destructive)
+#   ./fresh-setup.sh --create-admin      # prompt for admin email/password after setup
+#   ./fresh-setup.sh --dev               # start dev server after setup
 #
 set -euo pipefail
- 
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(basename "$SCRIPT_DIR")" == "scripts" ]]; then
-  ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-else
-  ROOT="$SCRIPT_DIR"
-fi
-cd "$ROOT"
- 
-RESET_DATA=false
-WIPE_DB=false
+cd "$SCRIPT_DIR"
+
+# ── colour helpers ─────────────────────────────────────────────────────────────
+bold="\033[1m"; green="\033[0;32m"; yellow="\033[0;33m"; red="\033[0;31m"; reset="\033[0m"
+step()  { echo -e "\n${bold}${green}==>${reset} $*"; }
+warn()  { echo -e "${yellow}WARNING:${reset} $*" >&2; }
+error() { echo -e "${red}ERROR:${reset} $*" >&2; exit 1; }
+
+# ── flags ──────────────────────────────────────────────────────────────────────
 SKIP_BUILD=false
-RUN_DEV=false
+WIPE_DB=false
+RESET_DATA=false
 CREATE_ADMIN=false
-ADMIN_EMAIL=""
-ADMIN_PASSWORD=""
- 
-usage() {
-  sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'
-  exit "${1:-0}"
-}
- 
+RUN_DEV=false
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --reset-data)
-      RESET_DATA=true
-      shift
-      ;;
-    --wipe-db)
-      WIPE_DB=true
-      shift
-      ;;
-    --skip-build)
-      SKIP_BUILD=true
-      shift
-      ;;
-    --dev)
-      RUN_DEV=true
-      shift
-      ;;
-    --create-admin)
-      CREATE_ADMIN=true
-      shift
-      ;;
-    --email)
-      ADMIN_EMAIL="${2:-}"
-      shift 2
-      ;;
-    --password)
-      ADMIN_PASSWORD="${2:-}"
-      shift 2
-      ;;
-    -h | --help)
-      usage 0
-      ;;
-    *)
-      echo "Unknown option: $1" >&2
-      usage 1
-      ;;
+    --skip-build)  SKIP_BUILD=true;  shift ;;
+    --wipe-db)     WIPE_DB=true;     shift ;;
+    --reset-data)  RESET_DATA=true;  shift ;;
+    --create-admin) CREATE_ADMIN=true; shift ;;
+    --dev)         RUN_DEV=true;     shift ;;
+    -h|--help)
+      sed -n '3,9p' "$0" | sed 's/^# \{0,1\}//'
+      exit 0 ;;
+    *) error "Unknown option: $1" ;;
   esac
 done
- 
-echo "==> AutomationAI fresh setup (root: $ROOT)"
-echo ""
- 
-echo "==> Removing node_modules and build caches..."
+
+echo -e "${bold}AutomationAI — fresh setup${reset}"
+
+# ── 1. GitHub Packages auth ────────────────────────────────────────────────────
+step "Checking GitHub Packages auth (@jagadeeshqtsolv registry)"
+# Check if token already set in ~/.npmrc
+if ! grep -q "npm.pkg.github.com/:_authToken" "${HOME}/.npmrc" 2>/dev/null; then
+  warn "GitHub Packages token not found in ~/.npmrc"
+  echo -n "  Enter your GitHub PAT (needs read:packages scope): "
+  read -r GITHUB_TOKEN
+  if [[ -z "$GITHUB_TOKEN" ]]; then
+    error "Token required to install @automation-ai/core from GitHub Packages"
+  fi
+  npm set //npm.pkg.github.com/:_authToken="$GITHUB_TOKEN"
+  echo "  Token saved to ~/.npmrc"
+else
+  echo "  Token already configured — skipping"
+fi
+
+# ── 2. Clean build artifacts ───────────────────────────────────────────────────
+step "Cleaning node_modules and build caches"
 rm -rf node_modules
 rm -rf apps/web/node_modules
-rm -rf packages/shared/node_modules
+rm -rf packages/core/node_modules
+rm -rf packages/core/dist
 rm -rf apps/web/.next
 rm -rf apps/web/out
- 
-if [[ -d frameworks ]]; then
-  while IFS= read -r -d '' dir; do
-    rm -rf "$dir"
-  done < <(find frameworks -name node_modules -type d -prune -print0 2>/dev/null || true)
-fi
- 
-find . -name "tsconfig.tsbuildinfo" -not -path "./node_modules/*" -delete 2>/dev/null || true
- 
-echo "    Done."
-echo ""
- 
+
+# Clean framework node_modules (not the user's project files)
+find frameworks -name node_modules -type d -prune -exec rm -rf {} + 2>/dev/null || true
+find . -name "tsconfig.tsbuildinfo" ! -path "*/node_modules/*" -delete 2>/dev/null || true
+
+echo "  Done"
+
+# ── 3. .env setup ─────────────────────────────────────────────────────────────
+step "Checking .env"
 ENV_FILE="apps/web/.env"
 ENV_EXAMPLE="apps/web/.env.example"
 if [[ ! -f "$ENV_FILE" ]]; then
   if [[ -f "$ENV_EXAMPLE" ]]; then
-    echo "==> Creating $ENV_FILE from .env.example..."
     cp "$ENV_EXAMPLE" "$ENV_FILE"
-    echo "    Edit $ENV_FILE and set SESSION_SECRET before using the app in production."
+    echo "  Created $ENV_FILE from .env.example"
+    warn "Edit $ENV_FILE and set SESSION_SECRET before use"
   else
-    echo "WARNING: $ENV_EXAMPLE not found — create $ENV_FILE manually." >&2
+    error "$ENV_EXAMPLE not found — create $ENV_FILE manually"
   fi
 else
-  echo "==> Keeping existing $ENV_FILE"
+  echo "  $ENV_FILE exists — keeping"
 fi
-echo ""
- 
-echo "==> npm install (workspaces)..."
+
+# ── 4. Install dependencies ────────────────────────────────────────────────────
+step "Installing dependencies (npm install)"
 npm install
-echo ""
- 
-if [[ "$WIPE_DB" == true ]]; then
-  echo "==> Removing SQLite database file(s)..."
-  rm -f apps/web/dev.db apps/web/dev.db-journal
-  rm -f apps/web/prisma/*.db apps/web/prisma/*.db-journal 2>/dev/null || true
-  echo "    Done."
-  echo ""
-fi
- 
+
+# ── 5. Database ────────────────────────────────────────────────────────────────
 if [[ "$RESET_DATA" == true ]]; then
-  echo "==> Resetting database and removing frameworks/* (npm run db:reset)..."
-  npm run db:reset
-  echo ""
-else
-  echo "==> Applying Prisma schema (npm run db:push)..."
+  step "Resetting database and frameworks data"
+  rm -f apps/web/dev.db apps/web/dev.db-journal
+  find frameworks -mindepth 2 -maxdepth 2 -type d -exec rm -rf {} + 2>/dev/null || true
   npm run db:push
-  echo ""
+elif [[ "$WIPE_DB" == true ]]; then
+  step "Wiping SQLite database"
+  rm -f apps/web/dev.db apps/web/dev.db-journal apps/web/prisma/*.db 2>/dev/null || true
+  npm run db:push
+else
+  step "Applying Prisma schema (db:push)"
+  npm run db:push
 fi
- 
+
+# ── 6. Create admin (optional) ────────────────────────────────────────────────
 if [[ "$CREATE_ADMIN" == true ]]; then
-  if [[ -z "$ADMIN_EMAIL" || -z "$ADMIN_PASSWORD" ]]; then
-    echo "ERROR: --create-admin requires --email and --password" >&2
-    exit 1
-  fi
-  echo "==> Creating platform admin..."
+  step "Creating platform admin"
+  echo -n "  Admin email: "
+  read -r ADMIN_EMAIL
+  echo -n "  Admin password: "
+  read -rs ADMIN_PASSWORD
+  echo ""
   npm run db:create-admin -- --email "$ADMIN_EMAIL" --password "$ADMIN_PASSWORD"
-  echo ""
 fi
- 
+
+# ── 7. Build ───────────────────────────────────────────────────────────────────
 if [[ "$SKIP_BUILD" == false ]]; then
-  echo "==> Building web app (npm run build)..."
+  step "Building Next.js app"
   npm run build
-  echo ""
 fi
- 
-echo "==> Fresh setup complete."
-echo ""
-echo "Next steps:"
-echo "  npm run dev          # http://localhost:3000"
+
+# ── Done ───────────────────────────────────────────────────────────────────────
+echo -e "\n${bold}${green}✓ Setup complete${reset}\n"
+echo "  Start dev server:  ./dev.sh"
+echo "  Start prod server: npm start"
 if [[ "$RESET_DATA" == true && "$CREATE_ADMIN" == false ]]; then
-  echo "  npm run db:create-admin -- --email you@example.com --password 'your-password'"
+  echo ""
+  echo "  Create admin:      npm run db:create-admin -- --email you@example.com --password 'yourpass'"
 fi
 echo ""
- 
+
 if [[ "$RUN_DEV" == true ]]; then
-  echo "==> Starting dev server..."
+  step "Starting dev server"
   exec npm run dev
 fi

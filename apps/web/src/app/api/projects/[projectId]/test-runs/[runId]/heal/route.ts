@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { healTestRunBodySchema } from "@automation-ai/shared";
+import { healTestRunBodySchema } from "@automation-ai/core";
 import { z } from "zod";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
-import { OPENAI_NOT_CONFIGURED_MESSAGE } from "@/lib/project-openai-config";
+import { AI_NOT_CONFIGURED_MESSAGE } from "@/lib/project-ai-config";
 import { healTestsFromRun } from "@/lib/test-execution/heal-tests-from-run";
 
 const MAX_RUN_OUTPUT_CHARS = 500_000;
@@ -79,7 +79,7 @@ export async function POST(
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Heal failed";
-    if (message === OPENAI_NOT_CONFIGURED_MESSAGE) {
+    if (message === AI_NOT_CONFIGURED_MESSAGE) {
       return NextResponse.json({ error: message }, { status: 503 });
     }
     const status = message.includes("not found") ? 404 : 400;

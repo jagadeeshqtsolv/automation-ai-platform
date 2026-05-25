@@ -1,4 +1,4 @@
-import type { TestCase } from "@automation-ai/shared";
+import type { TestCase } from "@automation-ai/core";
 import { listTestSpecFiles } from "@/lib/test-execution/list-test-specs";
 import { readFrameworkFile, writeFrameworkFiles } from "@/lib/local-framework/writer";
 

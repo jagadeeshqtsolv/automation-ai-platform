@@ -1,4 +1,4 @@
-import type { ProjectPlatformType } from "@automation-ai/shared";
+import type { ProjectPlatformType } from "@automation-ai/core";
 import type { WorkspaceNavItem, WorkspaceTab } from "./project-workspace-nav";
 
 /** Left-rail order matches product flow: configure → define → capture → generate → run → export. */

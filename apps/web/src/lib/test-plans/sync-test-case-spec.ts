@@ -1,4 +1,4 @@
-import type { TestCase } from "@automation-ai/shared";
+import type { TestCase } from "@automation-ai/core";
 import { testSpecPathForRequirement } from "@/lib/generate-mobilewright-bundle";
 import { readFrameworkFile, writeFrameworkFiles } from "@/lib/local-framework/writer";
 import { getProjectPlatformType } from "@/lib/project-platform";

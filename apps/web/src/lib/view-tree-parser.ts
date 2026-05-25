@@ -1,4 +1,4 @@
-import type { ScreenElement } from "@automation-ai/shared";
+import type { ScreenElement } from "@automation-ai/core";
 
 export type ViewNodeLike = {
   type: string;

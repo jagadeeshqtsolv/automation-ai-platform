@@ -1,5 +1,5 @@
-import type { ProjectPlatformType } from "@automation-ai/shared";
-import type { TestCase } from "@automation-ai/shared";
+import type { ProjectPlatformType } from "@automation-ai/core";
+import type { TestCase } from "@automation-ai/core";
 import {
   generateTestCaseBlock as generateMobileTestCaseBlock,
   generateTestCaseStepCodes as generateMobileTestCaseStepCodes,

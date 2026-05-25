@@ -1,5 +1,5 @@
-import type { ProjectPlatformType } from "@automation-ai/shared";
-import { projectPlatformTypeSchema } from "@automation-ai/shared";
+import type { ProjectPlatformType } from "@automation-ai/core";
+import { projectPlatformTypeSchema } from "@automation-ai/core";
 import { prisma } from "@/lib/prisma";
 
 export type { ProjectPlatformType };

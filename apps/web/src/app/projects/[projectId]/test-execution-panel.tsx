@@ -3,10 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/toast-provider";
 import {
+  ciProviderLabel,
   executionProviderLabel,
+  type CiProvider,
   type ExecutionConfig,
+  type ExecutionProvider,
   type ProjectPlatformType,
-} from "@automation-ai/shared";
+} from "@automation-ai/core";
 import { testConfigFileName } from "@/lib/test-framework";
 import type { RunDetailBody } from "./test-run-report-types";
 
@@ -31,6 +34,13 @@ export function TestExecutionPanel({
   const toast = useToast();
   const [specs, setSpecs] = useState<SpecFile[]>([]);
   const [config, setConfig] = useState<ExecutionConfig | null>(null);
+  const [availableProviders, setAvailableProviders] = useState<Array<{ provider: string; label: string }>>([]);
+  const [selectedProvider, setSelectedProvider] = useState<ExecutionProvider | "">("");
+  const [loadError, setLoadError] = useState(false);
+  const [ciPipeline, setCiPipeline] = useState<{ configured: boolean; provider: CiProvider | null }>({
+    configured: false,
+    provider: null,
+  });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [environmentId, setEnvironmentId] = useState("");
   const [grep, setGrep] = useState("");
@@ -50,18 +60,28 @@ export function TestExecutionPanel({
   }, []);
 
   const load = useCallback(async () => {
+    setLoadError(false);
     const res = await fetch(`/api/projects/${projectId}/test-runs`);
     if (!res.ok) {
+      setLoadError(true);
       toast.error("Could not load test specs");
       return;
     }
     const body = (await res.json()) as {
       specs: SpecFile[];
       config: ExecutionConfig;
+      availableProviders?: Array<{ provider: string; label: string }>;
+      ciPipeline?: { configured: boolean; provider: CiProvider | null };
     };
-    setSpecs(body.specs);
-    setSelected(new Set(body.specs.map((s) => s.path)));
-    setConfig(body.config);
+    setSpecs(body.specs ?? []);
+    setSelected(new Set((body.specs ?? []).map((s) => s.path)));
+    setConfig(body.config ?? { provider: "local" });
+    if (body.availableProviders) {
+      setAvailableProviders(body.availableProviders);
+      // Default selection to the saved provider
+      setSelectedProvider((body.config?.provider ?? "local") as ExecutionProvider);
+    }
+    if (body.ciPipeline) setCiPipeline(body.ciPipeline);
   }, [projectId, toast]);
 
   useEffect(() => {
@@ -198,6 +218,46 @@ export function TestExecutionPanel({
     }
   }
 
+  async function runViaCi() {
+    if (selected.size === 0) {
+      toast.error("Select at least one spec file");
+      return;
+    }
+    if (running) return;
+
+    try {
+      const res = await fetch(`/api/projects/${projectId}/git-config/trigger`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          specPaths: [...selected],
+          ...(environmentId.length > 0 ? { environmentId } : {}),
+          ...(grep.trim().length > 0 ? { grep: grep.trim() } : {}),
+        }),
+      });
+      const body = (await res.json()) as { runId?: string; error?: string };
+
+      if (res.status === 409 && typeof body.runId === "string") {
+        toast.info("Resuming in-progress run");
+        startPolling(body.runId);
+        return;
+      }
+      if (!res.ok) {
+        toast.error(body.error ?? "Could not trigger CI pipeline");
+        return;
+      }
+      if (typeof body.runId !== "string") {
+        toast.error("Pipeline trigger did not return a run id");
+        return;
+      }
+      startPolling(body.runId);
+    } catch {
+      toast.error("Could not trigger CI pipeline");
+      setRunning(false);
+      stopPolling();
+    }
+  }
+
   async function runTests() {
     if (selected.size === 0) {
       toast.error("Select at least one spec file");
@@ -215,6 +275,7 @@ export function TestExecutionPanel({
           specPaths: [...selected],
           ...(environmentId.length > 0 ? { environmentId } : {}),
           ...(grep.trim().length > 0 ? { grep: grep.trim() } : {}),
+          ...(selectedProvider.length > 0 ? { provider: selectedProvider } : {}),
         }),
       });
       const body = (await res.json()) as {
@@ -248,6 +309,20 @@ export function TestExecutionPanel({
   }
 
   if (config === null) {
+    if (loadError) {
+      return (
+        <div className="space-y-2">
+          <p className="text-sm text-rose-400">Could not load test configuration.</p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="text-xs font-medium text-accent hover:underline"
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
     return <p className="text-sm text-zinc-400">Loading…</p>;
   }
 
@@ -262,11 +337,29 @@ export function TestExecutionPanel({
         </p>
       </header>
 
-      <div className="rounded-xl border border-white/10 bg-ink-950/30 px-4 py-3 text-sm">
-        <p className="text-zinc-400">
-          Provider:{" "}
-          <span className="font-medium text-white">{executionProviderLabel(config.provider)}</span>
-        </p>
+      <div className="rounded-xl border border-white/10 bg-ink-950/30 px-4 py-3">
+        {availableProviders.length > 1 ? (
+          <label className="block text-xs font-medium text-zinc-400">
+            Execution provider
+            <select
+              value={selectedProvider}
+              onChange={(e) => setSelectedProvider(e.target.value as ExecutionProvider)}
+              disabled={disabled || running}
+              className="mt-1 block w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+            >
+              {availableProviders.map((p) => (
+                <option key={p.provider} value={p.provider}>{p.label}</option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <p className="text-sm text-zinc-400">
+            Provider:{" "}
+            <span className="font-medium text-white">
+              {selectedProvider ? executionProviderLabel(selectedProvider as ExecutionProvider) : executionProviderLabel(config.provider)}
+            </span>
+          </p>
+        )}
       </div>
 
       <div className="space-y-2 rounded-xl border border-white/10 bg-ink-950/40 p-4">
@@ -379,8 +472,21 @@ export function TestExecutionPanel({
             onClick={() => void runTests()}
             className="ui-btn-primary"
           >
-            {running ? "Running…" : `Run on ${executionProviderLabel(config.provider)}`}
+            {running
+              ? "Running…"
+              : `Run on ${executionProviderLabel((selectedProvider || config.provider) as ExecutionProvider)}`}
           </button>
+          {ciPipeline.configured && ciPipeline.provider !== null && !running && (
+            <button
+              type="button"
+              disabled={disabled || running}
+              onClick={() => void runViaCi()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/15 disabled:opacity-50 transition"
+            >
+              <PipelineIcon />
+              Run via {ciProviderLabel(ciPipeline.provider)}
+            </button>
+          )}
         </div>
       </div>
 
@@ -419,9 +525,24 @@ export function TestExecutionPanel({
             {output}
           </pre>
         ) : (
-          <p className="text-sm text-zinc-500">Start a run to stream output here.</p>
+          <p className="text-sm text-zinc-500">
+            Start a run to stream output here.{" "}
+            {ciPipeline.configured && ciPipeline.provider !== null && (
+              <span className="text-zinc-600">
+                CI pipeline runs report back when they finish.
+              </span>
+            )}
+          </p>
         )}
       </div>
     </section>
+  );
+}
+
+function PipelineIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+    </svg>
   );
 }

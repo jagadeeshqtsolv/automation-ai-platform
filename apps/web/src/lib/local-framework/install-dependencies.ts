@@ -310,15 +310,55 @@ export function isFrameworkDependencyInstallInFlight(projectId: string): boolean
   );
 }
 
+function runPlaywrightBrowserInstall(root: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn("npx", ["playwright", "install", "chromium"], {
+      cwd: root,
+      stdio: "pipe",
+      env: process.env,
+    });
+    let stderr = "";
+    const timer = setTimeout(() => child.kill("SIGTERM"), 600_000);
+    child.stderr?.on("data", (chunk: Buffer | string) => {
+      stderr += chunk.toString();
+      if (stderr.length > 4_000) stderr = stderr.slice(-4_000);
+    });
+    child.once("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    child.once("exit", (code) => {
+      clearTimeout(timer);
+      if (code === 0) resolve();
+      else reject(new Error(stderr.trim() || `playwright install exited with code ${String(code)}`));
+    });
+  });
+}
+
+export async function ensurePlaywrightBrowsersForProject(projectId: string): Promise<void> {
+  const root = getProjectFrameworkRoot(projectId, "web");
+  await runPlaywrightBrowserInstall(root);
+}
+
 /** Run install without blocking the caller (e.g. project create). */
 export function scheduleFrameworkDependencyInstall(projectId: string): void {
   if (installInFlight.has(projectId)) {
     return;
   }
   void installFrameworkDependencies(projectId)
-    .then((result) => {
+    .then(async (result) => {
       if (!result.ok) {
         console.error(`[framework] install failed for project ${projectId}: ${result.error ?? "unknown"}`);
+        return;
+      }
+      try {
+        const platform = await getProjectPlatformType(projectId);
+        if (platform === "web") {
+          await ensurePlaywrightBrowsersForProject(projectId);
+        }
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[framework] playwright browser install failed for project ${projectId}: ${message}`);
       }
     })
     .catch((err: unknown) => {

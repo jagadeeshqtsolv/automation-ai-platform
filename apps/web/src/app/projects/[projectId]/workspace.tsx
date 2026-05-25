@@ -9,15 +9,18 @@ import { buildWorkspaceNavItems } from "./workspace-nav-config";
 import { TestPlansSection } from "./test-plans-section";
 import { countTestCasesInPlanJson } from "@/lib/count-test-cases";
 import { DEFAULT_ENVIRONMENT_CONFIG_JSON } from "@/lib/mobilewright-environment-config";
-import { projectPlatformLabel, type ProjectPlatformType } from "@automation-ai/shared";
+import { projectPlatformLabel, type ProjectPlatformType } from "@automation-ai/core";
 import {
   codegenApiPath,
   defaultEnvironmentConfigJson,
   testConfigFileName,
   testRunnerDisplayName,
 } from "@/lib/test-framework";
-import { ProjectOpenAISettings } from "./project-openai-settings";
+import { ProjectAISettings } from "./project-ai-settings";
 import { ProjectExecutionSettings } from "./project-execution-settings";
+import { ProjectGitSettings } from "./project-git-settings";
+import { ProjectJiraSettings } from "./project-jira-settings";
+import { GitStatusWidget } from "./git-status-widget";
 import { TestExecutionPanel } from "./test-execution-panel";
 import { TestReportsPanel } from "./test-reports-panel";
 import { ProjectChatPanel } from "./project-chat-panel";
@@ -76,6 +79,7 @@ type ProjectDetail = {
   organizationId: string;
   platformType: ProjectPlatformType;
   createdAt: string;
+  currentUserRole: "owner" | "member";
   environments: EnvironmentRow[];
   pageObjects: PageObjectRow[];
   requirements: Requirement[];
@@ -277,7 +281,12 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   return (
     <>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
-        <ProjectWorkspaceNav items={navItems} active={activeTab} onChange={setActiveTab} />
+        <ProjectWorkspaceNav
+          items={navItems}
+          active={activeTab}
+          onChange={setActiveTab}
+          bottomSlot={<GitStatusWidget projectId={projectId} />}
+        />
 
         <div className="min-w-0 flex-1 space-y-4">
           {activeTab === "overview" ? (
@@ -295,6 +304,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
               busy={busy}
               project={project}
               projectId={projectId}
+              isOwner={project.currentUserRole === "owner"}
               onBusy={setBusy}
               onReload={async () => {
                 await load();
@@ -306,6 +316,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
           {activeTab === "requirements" ? (
             <RequirementsWorkspacePanel
               project={project}
+              projectId={projectId}
               busy={busy}
               onGeneratePlan={onGeneratePlan}
               onCreatePlan={onCreatePlan}
@@ -313,6 +324,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
               onDeleteRequirement={onDeleteRequirement}
               onRefresh={() => void load()}
               onViewTestPlans={() => setActiveTab("test-plans")}
+              onCreateRequirement={onCreateRequirement}
               requirementForm={
                 <RequirementForm
                   disabled={busy !== null}
@@ -585,6 +597,20 @@ function LocalFrameworkPanel({
   );
 }
 
+function MemberReadOnlyNotice({ tab }: { tab: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/8 px-3 py-2 text-xs text-amber-200/80">
+      <svg className="h-3.5 w-3.5 shrink-0 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+      </svg>
+      <span>
+        <span className="font-semibold text-amber-200">{tab} settings are read-only for members.</span>{" "}
+        Contact an owner to make changes.
+      </span>
+    </div>
+  );
+}
+
 function DownloadIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
@@ -605,19 +631,45 @@ function RefreshIcon() {
   );
 }
 
+type SetupTab = "ai" | "execution" | "git" | "environments" | "jira";
+
+const SETUP_TABS: { id: SetupTab; label: string }[] = [
+  { id: "ai", label: "AI" },
+  { id: "execution", label: "Execution" },
+  { id: "git", label: "Git" },
+  { id: "environments", label: "Environments" },
+  { id: "jira", label: "Jira" },
+];
+
 function ProjectSetupSection(props: {
   project: ProjectDetail;
   projectId: string;
   busy: string | null;
+  isOwner: boolean;
   onBusy: (v: string | null) => void;
   onReload: () => Promise<void>;
 }) {
   const toast = useToast();
-  const { project, projectId, busy, onBusy, onReload } = props;
+  const { project, projectId, busy, isOwner, onBusy, onReload } = props;
   const platform = project.platformType ?? "mobile";
   const isWeb = platform === "web";
   const runnerLabel = testRunnerDisplayName(platform);
   const configLabel = testConfigFileName(platform);
+  const [setupTab, setSetupTab] = useState<SetupTab>("ai");
+  const [aiConfigured, setAiConfigured] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/projects/${projectId}/ai-settings`)
+      .then((r) => r.json())
+      .then((body: { ai?: { activeProvider?: string | null } }) => {
+        setAiConfigured(body.ai?.activeProvider != null);
+      })
+      .catch(() => setAiConfigured(false));
+  }, [projectId]);
+
+  const hasEnvironments = project.environments.length > 0;
+  const showSetupBanner = aiConfigured === false || !hasEnvironments;
+
   const [envName, setEnvName] = useState("");
   const [envSlug, setEnvSlug] = useState("");
   const [envConfig, setEnvConfig] = useState(() => defaultEnvironmentConfigJson(platform));
@@ -688,85 +740,156 @@ function ProjectSetupSection(props: {
   }
 
   return (
-    <section className="space-y-6 rounded-2xl border border-white/10 bg-ink-900/40 p-6">
-      <header>
-        <h2 className="text-lg font-semibold text-white">Setup</h2>
-        <p className="mt-1 text-sm text-zinc-400">
-          OpenAI credentials for generation, plus {runnerLabel} environments for the recorder and codegen.
-          Environment values map to <code className="text-zinc-300">{configLabel}</code>.
-          {isWeb ? (
-            <>
-              {" "}
-              See{" "}
-              <a
-                href="https://playwright.dev/docs/test-fixtures"
-                className="text-accent underline-offset-2 hover:underline"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Playwright fixtures
-              </a>
-              .
-            </>
-          ) : (
-            <>
-              {" "}
-              See{" "}
-              <a
-                href="https://mobilewright.dev/docs/test/fixtures"
-                className="text-accent underline-offset-2 hover:underline"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Mobilewright fixtures
-              </a>
-              .
-            </>
-          )}
-        </p>
+    <section className="rounded-2xl border border-white/10 bg-ink-900/40">
+      <header className="border-b border-white/10 px-6 pt-6 pb-0">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-white">Setup</h2>
+          <p className="mt-1 text-sm text-zinc-400">
+            Configure AI, execution provider, Git integration, and test environments for this project.
+          </p>
+        </div>
+
+        {showSetupBanner && (
+          <div className="mb-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3">
+            <p className="text-sm font-medium text-amber-300">Complete setup before using this project</p>
+            <ul className="mt-2 space-y-1 text-xs text-amber-200/70">
+              {!aiConfigured && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setSetupTab("ai")}
+                    className="font-semibold text-amber-200 underline-offset-2 hover:underline"
+                  >
+                    AI
+                  </button>{" "}
+                  — Add an API key for OpenAI or Claude. Required for generating test plans, page objects, and test code.
+                </li>
+              )}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setSetupTab("execution")}
+                  className="font-semibold text-amber-200 underline-offset-2 hover:underline"
+                >
+                  Execution
+                </button>{" "}
+                — Choose where tests run: locally or on a cloud device farm (BrowserStack, Sauce Labs, LambdaTest).
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setSetupTab("git")}
+                  className="font-semibold text-amber-200 underline-offset-2 hover:underline"
+                >
+                  Git
+                </button>{" "}
+                — Connect your repository so generated test files are committed and pushed to your branch.
+              </li>
+              {!hasEnvironments && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setSetupTab("environments")}
+                    className="font-semibold text-amber-200 underline-offset-2 hover:underline"
+                  >
+                    Environments
+                  </button>{" "}
+                  — Define at least one environment (e.g. staging) with the base URL and config values used during test runs.
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
+
+        <nav className="flex gap-1" aria-label="Setup sections">
+          {SETUP_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setSetupTab(tab.id)}
+              className={`rounded-t-lg px-4 py-2 text-sm font-medium transition-colors ${
+                setupTab === tab.id
+                  ? "border border-b-0 border-white/10 bg-ink-950/60 text-white"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      <ProjectOpenAISettings projectId={projectId} disabled={busy !== null} />
+      <div className="p-6 space-y-6">
+        {setupTab === "ai" && (
+          <>
+            {!isOwner && <MemberReadOnlyNotice tab="AI" />}
+            <ProjectAISettings
+              projectId={projectId}
+              disabled={busy !== null || !isOwner}
+              onSaved={() => setAiConfigured(true)}
+            />
+          </>
+        )}
 
-      <ProjectExecutionSettings
-        projectId={projectId}
-        platformType={platform}
-        disabled={busy !== null}
-      />
+        {setupTab === "execution" && (
+          <>
+            {!isOwner && <MemberReadOnlyNotice tab="Execution" />}
+            <ProjectExecutionSettings
+              projectId={projectId}
+              platformType={platform}
+              disabled={busy !== null || !isOwner}
+            />
+          </>
+        )}
 
-      <div className="space-y-3 rounded-xl border border-white/10 bg-ink-950/30 p-4">
+        {setupTab === "git" && (
+          <ProjectGitSettings projectId={projectId} disabled={busy !== null} isOwner={isOwner} />
+        )}
+
+        {setupTab === "jira" && (
+          <>
+            {!isOwner && <MemberReadOnlyNotice tab="Jira" />}
+            <ProjectJiraSettings projectId={projectId} disabled={busy !== null || !isOwner} />
+          </>
+        )}
+
+        {setupTab === "environments" && <div className="space-y-3 rounded-xl border border-white/10 bg-ink-950/30 p-4">
         <h3 className="text-sm font-semibold text-white">Environments</h3>
         <ul className="space-y-2 text-sm text-zinc-300">
           {project.environments.length === 0 ? <li className="text-zinc-500">No environments yet.</li> : null}
-          {project.environments.map((env) => (
-            <li key={env.id} className="flex items-start justify-between gap-2 rounded-lg border border-white/5 p-2">
-              <div>
-                <p className="font-medium text-white">
-                  {env.name}{" "}
-                  <span className="text-xs font-normal text-zinc-500">({env.slug})</span>
-                </p>
-                <pre className="mt-1 max-h-24 overflow-auto text-[11px] text-zinc-400">{env.configJson}</pre>
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  type="button"
-                  disabled={busy !== null}
-                  onClick={() => startEditEnvironment(env)}
-                  className="text-xs text-cyan-300 hover:underline disabled:opacity-40"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  disabled={busy !== null}
-                  onClick={() => void deleteEnvironment(env.id)}
-                  className="text-xs text-rose-300 hover:underline disabled:opacity-40"
-                >
-                  Delete
-                </button>
-              </div>
-            </li>
-          ))}
+          {project.environments.map((env) => {
+            let pretty = env.configJson;
+            try { pretty = JSON.stringify(JSON.parse(env.configJson) as unknown, null, 2); } catch { /* keep raw */ }
+            return (
+              <li key={env.id} className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium text-white">
+                    {env.name}{" "}
+                    <span className="text-xs font-normal text-zinc-500">({env.slug})</span>
+                  </p>
+                  <div className="flex shrink-0 gap-3">
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => startEditEnvironment(env)}
+                      className="text-xs text-cyan-300 hover:underline disabled:opacity-40"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => void deleteEnvironment(env.id)}
+                      className="text-xs text-rose-300 hover:underline disabled:opacity-40"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+                <pre className="mt-2 max-h-40 overflow-auto rounded-md bg-black/30 p-2 text-[11px] leading-relaxed text-zinc-400 whitespace-pre">{pretty}</pre>
+              </li>
+            );
+          })}
         </ul>
 
         <form className="space-y-2 border-t border-white/10 pt-3" onSubmit={saveEnvironment}>
@@ -829,8 +952,8 @@ function ProjectSetupSection(props: {
             ) : null}
           </div>
         </form>
+      </div>}
       </div>
-
     </section>
   );
 }

@@ -2,7 +2,7 @@ import {
   executionConfigSchema,
   executionProviderLabel,
   type ExecutionConfig,
-} from "@automation-ai/shared";
+} from "@automation-ai/core";
 import { decryptSecret, encryptSecret } from "@/lib/secret-crypto";
 
 export type StoredExecutionSecrets = {

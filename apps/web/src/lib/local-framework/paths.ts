@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import type { ProjectPlatformType } from "@automation-ai/shared";
+import type { ProjectPlatformType } from "@automation-ai/core";
 import { z } from "zod";
 
 const projectIdSchema = z.string().uuid();
@@ -79,6 +79,22 @@ export function getProjectFrameworkRoot(
   return legacy;
 }
 
+/**
+ * Per-user git metadata directory for a project.
+ * Stored inside the work tree under .git-users/{userId} so it is never
+ * accidentally pushed (it is git-ignored automatically).
+ * Using separate git dirs lets multiple users track the same work tree
+ * independently — each has their own branch, history and remote config.
+ */
+export function getProjectUserGitDir(
+  projectId: string,
+  platformType: ProjectPlatformType,
+  userId: string,
+): string {
+  const root = getProjectFrameworkRoot(projectId, platformType);
+  return path.join(root, ".git-users", userId);
+}
+
 /** All framework roots that may exist for a project (for delete). */
 export function getAllProjectFrameworkRoots(projectId: string): string[] {
   const id = projectIdSchema.parse(projectId);
@@ -111,12 +127,15 @@ export function resolveFrameworkFilePath(
     normalized.startsWith("test-cases/") ||
     normalized.startsWith("logs/") ||
     normalized.startsWith("execution/") ||
+    normalized.startsWith("utils/") ||
+    normalized.startsWith("testdata/") ||
     normalized === "package.json" ||
     normalized === "tsconfig.json" ||
     normalized === "mobilewright.config.ts" ||
     normalized === "playwright.config.ts" ||
     normalized === "mobilewright.execution.config.ts" ||
     normalized === "playwright.execution.config.ts" ||
+    normalized === "browserstack.yml" ||
     normalized.startsWith("environments/");
   if (!allowed) {
     return null;
@@ -127,6 +146,44 @@ export function resolveFrameworkFilePath(
     return null;
   }
   return absolute;
+}
+
+/**
+ * Locates the `packages/core/web/` directory in the monorepo.
+ * Falls back to the same walk-up strategy as getFrameworksRoot.
+ */
+export function getWebCoreRoot(): string {
+  const fromEnv = process.env.WEB_CORE_ROOT;
+  if (typeof fromEnv === "string" && fromEnv.trim().length > 0) {
+    return path.resolve(fromEnv.trim());
+  }
+
+  const cwd = process.cwd();
+  const relativeCandidates = [
+    path.resolve(cwd, "../../packages/core/web"),
+    path.resolve(cwd, "../packages/core/web"),
+    path.resolve(cwd, "packages/core/web"),
+  ];
+  for (const candidate of relativeCandidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  let dir = cwd;
+  for (let depth = 0; depth < 10; depth += 1) {
+    const candidate = path.join(dir, "packages", "core", "web");
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      break;
+    }
+    dir = parent;
+  }
+
+  return path.resolve(cwd, "../../packages/core/web");
 }
 
 export function toFrameworkRelativePath(

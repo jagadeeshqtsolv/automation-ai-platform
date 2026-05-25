@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import { BRAND_NAME } from "@/lib/brand";
 import { QuarksLogoMark } from "@/components/quarks-logo-mark";
 import { WorkspaceTabIcon, WorkspaceTabIconCompact } from "./workspace-nav-icons";
@@ -26,10 +27,12 @@ export function ProjectWorkspaceNav({
   items,
   active,
   onChange,
+  bottomSlot,
 }: {
   items: WorkspaceNavItem[];
   active: WorkspaceTab;
   onChange: (tab: WorkspaceTab) => void;
+  bottomSlot?: React.ReactNode;
 }) {
   return (
     <>
@@ -45,6 +48,9 @@ export function ProjectWorkspaceNav({
           {items.map((item) => (
             <NavButton key={item.id} item={item} active={active === item.id} onClick={() => onChange(item.id)} />
           ))}
+          {bottomSlot ? (
+            <li className="pt-2">{bottomSlot}</li>
+          ) : null}
         </ul>
       </nav>
 

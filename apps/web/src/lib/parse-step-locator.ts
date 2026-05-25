@@ -1,4 +1,4 @@
-import type { TestStep, WebPageElement, WebPageElementActionKind } from "@automation-ai/shared";
+import type { TestStep, WebPageElement, WebPageElementActionKind } from "@automation-ai/core";
 
 export const COMMON_PAGE_CLASS_NAME = "CommonPage";
 export const COMMON_PAGE_MODULE_PATH = "pageobjects/CommonPage.ts";

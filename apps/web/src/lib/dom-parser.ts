@@ -1,4 +1,4 @@
-import type { WebPageElement, WebPageElementActionKind } from "@automation-ai/shared";
+import type { WebPageElement, WebPageElementActionKind } from "@automation-ai/core";
 
 export type DomNodeLike = {
   tagName: string;

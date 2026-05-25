@@ -1,6 +1,7 @@
-import { TEST_STEP_ACTIONS_PROMPT, testPlanSchema, type TestCase, type TestPlan } from "@automation-ai/shared";
+import { generateText } from "ai";
+import { TEST_STEP_ACTIONS_PROMPT, testPlanSchema, type TestCase, type TestPlan } from "@automation-ai/core";
 import { z } from "zod";
-import { normalizeOpenAITemperature, resolveOpenAIClient } from "@/lib/openai-client";
+import { resolveAIModel } from "@/lib/project-ai-config";
 import {
   enrichPageObjectWithExpectVisibilityMethods,
   enrichPageObjectWithFlowMethods,
@@ -250,17 +251,16 @@ export async function generateMobilewrightPomBundle(params: {
   /** When set, emphasize updating this case while keeping all cases in the requirement spec */
   focusTestCaseId?: string;
 }): Promise<{ bundle: PomMobilewrightBundle; model: string }> {
-  const { client, model } = await resolveOpenAIClient(params.projectId);
+  const { model, modelId } = await resolveAIModel(params.projectId);
   const plan = testPlanSchema.parse(params.plan);
   const hasLibrary = params.pageObjects.length > 0;
   const libraryContext = buildLibraryContext(params.pageObjects, params.environment);
   const specPath = testSpecPathForRequirement(params.requirementTitle);
   const systemRules = [...POM_TEST_RULES.split("\n"), ...libraryReuseRules(hasLibrary)].join("\n");
 
-  const completion = await client.chat.completions.create({
+  const { text: raw } = await generateText({
     model,
-    temperature: normalizeOpenAITemperature(model, 0.12),
-    response_format: { type: "json_object" },
+    temperature: 0.12,
     messages: [
       {
         role: "system",
@@ -288,7 +288,6 @@ export async function generateMobilewrightPomBundle(params: {
     ],
   });
 
-  const raw = completion.choices[0]?.message?.content;
   if (typeof raw !== "string" || raw.trim().length === 0) {
     throw new Error("Model returned an empty response");
   }
@@ -307,7 +306,7 @@ export async function generateMobilewrightPomBundle(params: {
     params.pageObjects.map((p) => p.className),
     params.pageObjects,
   );
-  return { bundle, model };
+  return { bundle, model: modelId };
 }
 
 export function flattenPomBundleForStorage(bundle: PomMobilewrightBundle): string {

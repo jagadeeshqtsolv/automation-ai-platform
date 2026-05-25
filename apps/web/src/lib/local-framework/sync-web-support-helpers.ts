@@ -1,12 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
-import { WEB_ACTIONS_HELPER_SOURCE } from "@/lib/screen-codegen/web-actions-helper";
-import { WEB_LOCATE_HELPER_SOURCE } from "@/lib/screen-codegen/web-locate-helper";
+
+const LOCATE_STUB = `export * from "@automation-ai/web-support/web-locate";\n`;
+const ACTIONS_STUB = `export * from "@automation-ai/web-support/web-actions";\n`;
 
 /**
- * Writes canonical `support/web-actions.ts` and `support/web-locate.ts` for a web framework.
- * Always overwrites — these are platform-managed (page objects depend on every export).
+ * Writes `support/web-actions.ts` and `support/web-locate.ts` as thin re-exports.
+ * The actual implementation lives in packages/core/web (installed via file: dep).
  */
 export async function syncWebSupportHelpersToDisk(projectId: string): Promise<void> {
   const root = getProjectFrameworkRoot(projectId, "web");
@@ -15,12 +16,10 @@ export async function syncWebSupportHelpersToDisk(projectId: string): Promise<vo
   const locatePath = resolveFrameworkFilePath(projectId, "support/web-locate.ts", "web");
   const actionsPath = resolveFrameworkFilePath(projectId, "support/web-actions.ts", "web");
 
-  const newline = (text: string): string => (text.endsWith("\n") ? text : `${text}\n`);
-
   if (locatePath !== null) {
-    await writeFile(locatePath, newline(WEB_LOCATE_HELPER_SOURCE), "utf8");
+    await writeFile(locatePath, LOCATE_STUB, "utf8");
   }
   if (actionsPath !== null) {
-    await writeFile(actionsPath, newline(WEB_ACTIONS_HELPER_SOURCE), "utf8");
+    await writeFile(actionsPath, ACTIONS_STUB, "utf8");
   }
 }

@@ -1,4 +1,4 @@
-import type { ExecutionConfig } from "@automation-ai/shared";
+import type { ExecutionConfig } from "@automation-ai/core";
 
 export type AnalysisSummary = {
   passed: number;

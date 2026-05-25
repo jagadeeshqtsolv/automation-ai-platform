@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useToast } from "@/components/toast-provider";
-import type { ProjectPlatformType } from "@automation-ai/shared";
+import type { ProjectPlatformType } from "@automation-ai/core";
 import { testRunnerDisplayName } from "@/lib/test-framework";
 import type { WorkspaceTab } from "./project-workspace-nav";
 
@@ -103,6 +103,7 @@ export function WorkspaceOverviewPanel({
 
 export function RequirementsWorkspacePanel({
   project,
+  projectId,
   busy,
   onGeneratePlan,
   onCreatePlan,
@@ -110,9 +111,11 @@ export function RequirementsWorkspacePanel({
   onDeleteRequirement,
   onRefresh,
   onViewTestPlans,
+  onCreateRequirement,
   requirementForm,
 }: {
   project: ProjectPanelsData;
+  projectId: string;
   busy: string | null;
   onGeneratePlan: (requirementId: string) => Promise<void>;
   onCreatePlan: (requirementId: string, suiteName: string) => Promise<void>;
@@ -120,6 +123,7 @@ export function RequirementsWorkspacePanel({
   onDeleteRequirement: (requirementId: string, title: string | null, planCount: number) => Promise<void>;
   onRefresh: () => void;
   onViewTestPlans: () => void;
+  onCreateRequirement?: (title: string, content: string) => Promise<void>;
   requirementForm: ReactNode;
 }) {
   const totalPlans = project.requirements.reduce((n, r) => n + r.testPlans.length, 0);
@@ -140,6 +144,10 @@ export function RequirementsWorkspacePanel({
           tab ({totalPlans} saved).
         </p>
       </header>
+
+      {onCreateRequirement !== undefined && (
+        <JiraImportSection projectId={projectId} onCreateRequirement={onCreateRequirement} onRefresh={onRefresh} />
+      )}
 
       <div className="grid gap-8 xl:grid-cols-[360px_1fr]">
         <section className="space-y-4 rounded-2xl border border-white/10 bg-ink-900/50 p-6">
@@ -184,6 +192,265 @@ export function RequirementsWorkspacePanel({
     </div>
   );
 }
+
+// ── Jira import ─────────────────────────────────────────────────────────────
+
+type JiraStory = {
+  key: string;
+  summary: string;
+  description: string;
+  issueType: string;
+  status: string;
+};
+
+function JiraImportSection({
+  projectId,
+  onCreateRequirement,
+  onRefresh,
+}: {
+  projectId: string;
+  onCreateRequirement: (title: string, content: string) => Promise<void>;
+  onRefresh: () => void;
+}) {
+  const toast = useToast();
+  const [expanded, setExpanded] = useState(false);
+  const [jql, setJql] = useState("");
+  const [instructions, setInstructions] = useState("");
+  const [stories, setStories] = useState<JiraStory[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [fetching, setFetching] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [defaultJqlLoaded, setDefaultJqlLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!expanded || defaultJqlLoaded) return;
+    setDefaultJqlLoaded(true);
+    fetch(`/api/projects/${projectId}/jira-config`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { jira?: { defaultJql?: string | null } } | null) => {
+        const saved = body?.jira?.defaultJql ?? "";
+        if (saved) setJql(saved);
+      })
+      .catch(() => {});
+  }, [expanded, projectId, defaultJqlLoaded]);
+
+  const onFetch = useCallback(async () => {
+    if (!jql.trim()) {
+      toast.error("Enter a JQL query");
+      return;
+    }
+    setFetching(true);
+    setStories([]);
+    setSelected(new Set());
+    try {
+      const res = await fetch(`/api/projects/${projectId}/jira-config/fetch-stories`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jql: jql.trim(), maxResults: 50 }),
+      });
+      const body = (await res.json()) as { stories?: JiraStory[]; error?: string };
+      if (!res.ok) {
+        toast.error(body.error ?? "Could not fetch stories");
+        return;
+      }
+      const fetched = body.stories ?? [];
+      setStories(fetched);
+      if (fetched.length === 0) toast.success("No stories matched the JQL query");
+    } finally {
+      setFetching(false);
+    }
+  }, [jql, projectId, toast]);
+
+  const onImport = useCallback(async () => {
+    if (selected.size === 0) {
+      toast.error("Select at least one story to import");
+      return;
+    }
+    setImporting(true);
+    const prefix = instructions.trim().length > 0 ? `${instructions.trim()}\n\n` : "";
+    let created = 0;
+    try {
+      for (const story of stories) {
+        if (!selected.has(story.key)) continue;
+        const title = `[${story.key}] ${story.summary}`;
+        const content = `${prefix}[${story.key}] ${story.summary}\n\n${story.description}`.trim();
+        await onCreateRequirement(title, content);
+        created++;
+      }
+      if (created > 0) {
+        toast.success(`Imported ${created} requirement${created === 1 ? "" : "s"} from Jira`);
+        setSelected(new Set());
+        setStories([]);
+        onRefresh();
+      }
+    } finally {
+      setImporting(false);
+    }
+  }, [selected, stories, instructions, onCreateRequirement, onRefresh, toast]);
+
+  function toggleStory(key: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
+
+  function toggleAll(checked: boolean) {
+    setSelected(checked ? new Set(stories.map((s) => s.key)) : new Set());
+  }
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-ink-900/30">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between px-5 py-4 text-left"
+      >
+        <span className="flex items-center gap-2">
+          <JiraIcon />
+          <span className="text-sm font-semibold text-white">Import from Jira</span>
+        </span>
+        <ChevronIcon expanded={expanded} />
+      </button>
+
+      {expanded && (
+        <div className="border-t border-white/10 px-5 py-4 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-end">
+            <label className="block text-xs text-zinc-400">
+              JQL query
+              <input
+                value={jql}
+                onChange={(e) => setJql(e.target.value)}
+                placeholder='project = MYPROJ AND issuetype = Story AND status != Done ORDER BY created DESC'
+                maxLength={500}
+                disabled={fetching}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void onFetch(); } }}
+                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => void onFetch()}
+              disabled={fetching || !jql.trim()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-white/[0.07] disabled:opacity-50 transition whitespace-nowrap"
+            >
+              {fetching ? <><JiraSpinner />Fetching…</> : "Fetch stories"}
+            </button>
+          </div>
+
+          <label className="block text-xs text-zinc-400">
+            Instructions{" "}
+            <span className="text-zinc-500">(optional — prepended to each imported requirement)</span>
+            <textarea
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              rows={2}
+              maxLength={4000}
+              placeholder="e.g. These are mobile checkout user stories. Focus on edge cases and error handling."
+              className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white"
+            />
+          </label>
+
+          {stories.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-400">
+                  <input
+                    type="checkbox"
+                    checked={selected.size === stories.length && stories.length > 0}
+                    onChange={(e) => toggleAll(e.target.checked)}
+                    className="rounded"
+                  />
+                  Select all ({stories.length} stories)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void onImport()}
+                  disabled={importing || selected.size === 0}
+                  className="ui-btn-primary ui-btn-sm disabled:opacity-50"
+                >
+                  {importing ? <><JiraSpinner />Importing…</> : `Import selected (${selected.size})`}
+                </button>
+              </div>
+
+              <ul className="max-h-80 space-y-1.5 overflow-y-auto rounded-xl border border-white/[0.08] bg-ink-950/30 p-2">
+                {stories.map((story) => (
+                  <li
+                    key={story.key}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => toggleStory(story.key)}
+                    onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") toggleStory(story.key); }}
+                    className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition hover:bg-white/[0.03] ${
+                      selected.has(story.key)
+                        ? "border-accent/30 bg-accent/5"
+                        : "border-transparent"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(story.key)}
+                      onChange={() => toggleStory(story.key)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-0.5 rounded"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-mono text-[11px] font-semibold text-accent">{story.key}</span>
+                        <span className="rounded-full border border-white/10 px-1.5 py-0.5 text-[10px] text-zinc-500">
+                          {story.issueType}
+                        </span>
+                        <span className="rounded-full border border-white/10 px-1.5 py-0.5 text-[10px] text-zinc-500">
+                          {story.status}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 line-clamp-1 text-xs text-zinc-200">{story.summary}</p>
+                      {story.description.length > 0 && (
+                        <p className="mt-0.5 line-clamp-2 text-[11px] text-zinc-500">{story.description}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function JiraIcon() {
+  return (
+    <svg className="h-4 w-4 text-blue-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M11.571 11.107 6.15 5.686a.914.914 0 0 0-1.293 0 .914.914 0 0 0 0 1.293l4.775 4.775-4.775 4.775a.914.914 0 0 0 0 1.293.914.914 0 0 0 1.293 0l5.421-5.421a.914.914 0 0 0 0-1.294zm6.857 0-5.42-5.421a.914.914 0 0 0-1.294 0 .914.914 0 0 0 0 1.293l4.775 4.775-4.775 4.775a.914.914 0 0 0 0 1.293.914.914 0 0 0 1.294 0l5.42-5.421a.914.914 0 0 0 0-1.294z" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      className={`h-4 w-4 text-zinc-400 transition-transform ${expanded ? "rotate-180" : ""}`}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
+function JiraSpinner() {
+  return (
+    <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current/20 border-t-current" />
+  );
+}
+
+// ── Saved requirement card ────────────────────────────────────────────────────
 
 function defaultSuiteNameForRequirement(requirementTitle: string | null): string {
   const title = requirementTitle?.trim();

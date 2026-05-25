@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createProjectBodySchema } from "@automation-ai/shared";
+import { createProjectBodySchema } from "@automation-ai/core";
 import { requireApiUser, requireOrgAccess } from "@/lib/auth/api-auth";
 import { listAccessibleProjectIds } from "@/lib/auth/access";
 import { scheduleFrameworkDependencyInstall } from "@/lib/local-framework/install-dependencies";

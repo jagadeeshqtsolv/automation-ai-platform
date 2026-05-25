@@ -1,6 +1,7 @@
-import { TEST_STEP_ACTIONS_PROMPT, testPlanSchema, type TestPlan } from "@automation-ai/shared";
+import { generateText } from "ai";
+import { TEST_STEP_ACTIONS_PROMPT, testPlanSchema, type TestPlan } from "@automation-ai/core";
 import { formatGenerationError } from "@/lib/format-generation-error";
-import { normalizeOpenAITemperature, resolveOpenAIClient } from "@/lib/openai-client";
+import { resolveAIModel } from "@/lib/project-ai-config";
 import { normalizeLlmTestPlan } from "@/lib/normalize-llm-test-plan";
 
 const MOBILE_PLAN_SCHEMA_DESCRIPTION = `{
@@ -81,7 +82,7 @@ export async function generateTestPlanFromRequirement(params: {
   projectId: string;
   platform?: "web" | "mobile";
 }): Promise<{ plan: TestPlan; model: string }> {
-  const { client, model } = await resolveOpenAIClient(params.projectId);
+  const { model, modelId } = await resolveAIModel(params.projectId);
   const isWeb = params.platform === "web";
   const userParts: string[] = [];
   if (params.requirementTitle !== null && params.requirementTitle.trim().length > 0) {
@@ -89,20 +90,15 @@ export async function generateTestPlanFromRequirement(params: {
   }
   userParts.push(`Requirements:\n${params.requirementContent}`);
 
-  const completion = await client.chat.completions.create({
+  const { text: raw } = await generateText({
     model,
-    temperature: normalizeOpenAITemperature(model, 0.2),
-    response_format: { type: "json_object" },
+    temperature: 0.2,
     messages: [
-      {
-        role: "system",
-        content: isWeb ? WEB_SYSTEM_PROMPT : MOBILE_SYSTEM_PROMPT,
-      },
+      { role: "system", content: isWeb ? WEB_SYSTEM_PROMPT : MOBILE_SYSTEM_PROMPT },
       { role: "user", content: userParts.join("\n\n") },
     ],
   });
 
-  const raw = completion.choices[0]?.message?.content;
   if (typeof raw !== "string" || raw.trim().length === 0) {
     throw new Error("Model returned an empty response");
   }
@@ -119,5 +115,5 @@ export async function generateTestPlanFromRequirement(params: {
   if (!result.success) {
     throw result.error;
   }
-  return { plan: result.data, model };
+  return { plan: result.data, model: modelId };
 }

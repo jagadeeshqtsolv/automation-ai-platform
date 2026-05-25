@@ -2,7 +2,8 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { normalizeOpenAITemperature, resolveOpenAIClient } from "@/lib/openai-client";
+import { generateText } from "ai";
+import { resolveAIModel } from "@/lib/project-ai-config";
 import { buildPageObjectLibraryCatalog } from "@/lib/page-object-library-context";
 import type { PageObjectLibraryEntry } from "@/lib/generate-mobilewright-bundle";
 import { sanitizeGeneratedTestFileContent } from "@/lib/sanitize-generated-test-file";
@@ -283,12 +284,11 @@ export async function healTestsFromRun(params: {
   const configName = testConfigFileName(platform);
   const isWeb = platform === "web";
 
-  const { client, model } = await resolveOpenAIClient(run.project.id);
+  const { model, modelId } = await resolveAIModel(run.project.id);
 
-  const completion = await client.chat.completions.create({
+  const { text: raw } = await generateText({
     model,
-    temperature: normalizeOpenAITemperature(model, 0.1),
-    response_format: { type: "json_object" },
+    temperature: 0.1,
     messages: [
       {
         role: "system",
@@ -349,7 +349,6 @@ export async function healTestsFromRun(params: {
     ],
   });
 
-  const raw = completion.choices[0]?.message?.content;
   if (typeof raw !== "string" || raw.trim().length === 0) {
     throw new Error("Model returned empty heal response");
   }
@@ -419,5 +418,5 @@ export async function healTestsFromRun(params: {
 
   await syncProjectWorkspaceToDisk(params.projectId);
 
-  return { healedTestPaths, healedPagePaths, model };
+  return { healedTestPaths, healedPagePaths, model: modelId };
 }

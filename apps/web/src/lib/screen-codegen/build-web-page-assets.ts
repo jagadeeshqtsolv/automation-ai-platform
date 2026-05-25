@@ -1,4 +1,4 @@
-import type { WebPageElement } from "@automation-ai/shared";
+import type { WebPageElement } from "@automation-ai/core";
 import {
   appendWebFlowMethodsToMethodSummary,
   enrichWebPageObjectWithFlowMethods,

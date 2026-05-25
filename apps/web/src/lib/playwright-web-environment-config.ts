@@ -2,13 +2,6 @@
 
 export const DEFAULT_PLAYWRIGHT_REPORTER_CONFIG = `[["list"], ["html", { open: "never" }], ["json", { outputFile: "logs/playwright-report.json" }]]`;
 
-/** Playwright `use` options: trace + video retained on failure (HTML report attachments). */
-export const DEFAULT_PLAYWRIGHT_USE_LINES = [
-  `    trace: "retain-on-failure",`,
-  `    video: "retain-on-failure",`,
-  `    screenshot: "only-on-failure",`,
-] as const;
-
 export type PlaywrightWebEnvironmentConfig = {
   baseURL?: string;
   browser?: "chromium" | "firefox" | "webkit";
@@ -60,53 +53,100 @@ export function parseWebEnvironmentConfig(configJson: string | null): Playwright
   }
 }
 
-function escapeTsString(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-}
-
-function browserDeviceExpr(browser: PlaywrightWebEnvironmentConfig["browser"]): string {
-  switch (browser) {
-    case "firefox":
-      return `{ ...devices["Desktop Firefox"] }`;
-    case "webkit":
-      return `{ ...devices["Desktop Safari"] }`;
-    default:
-      return `{ ...devices["Desktop Chrome"] }`;
-  }
-}
-
-export function buildPlaywrightWebConfig(configJson: string | null): string {
-  const cfg = parseWebEnvironmentConfig(configJson);
-  const baseURL = cfg.baseURL ?? "https://example.com";
-  const browser = cfg.browser ?? "chromium";
-  const headless = cfg.headless !== false;
-  const timeout = cfg.timeout ?? 30_000;
-  const device = browserDeviceExpr(browser);
-
-  const lines: string[] = [
+/**
+ * Generates `playwright.config.ts` content.
+ * All run-time settings are read from `environments/<TEST_ENV>.json`
+ * (defaulting to `environments/qa.json`).  Set the TEST_ENV shell variable
+ * to switch environments:  TEST_ENV=staging npm test
+ */
+export function buildPlaywrightWebConfig(_configJson: string | null): string {
+  return [
     `import { defineConfig, devices } from "@playwright/test";`,
+    `import { readFileSync } from "node:fs";`,
+    `import path from "node:path";`,
+    `import { fileURLToPath } from "node:url";`,
+    ``,
+    `// Select environment: TEST_ENV=staging npm test  (default: qa)`,
+    `const __dirname = path.dirname(fileURLToPath(import.meta.url));`,
+    `const envName = process.env.TEST_ENV ?? "qa";`,
+    ``,
+    `let env: Record<string, unknown> = {};`,
+    `try {`,
+    `  env = JSON.parse(`,
+    `    readFileSync(path.join(__dirname, "environments", \`\${envName}.json\`), "utf8"),`,
+    `  ) as Record<string, unknown>;`,
+    `} catch {`,
+    `  console.warn(\`[playwright] environments/\${envName}.json not found — using built-in defaults\`);`,
+    `}`,
+    ``,
+    `const browser = (String(env.browser ?? "chromium")) as "chromium" | "firefox" | "webkit";`,
+    ``,
+    `function browserDevice(b: "chromium" | "firefox" | "webkit") {`,
+    `  switch (b) {`,
+    `    case "firefox": return { ...devices["Desktop Firefox"] };`,
+    `    case "webkit":  return { ...devices["Desktop Safari"] };`,
+    `    default:        return { ...devices["Desktop Chrome"] };`,
+    `  }`,
+    `}`,
     ``,
     `export default defineConfig({`,
     `  testDir: "./tests",`,
-    `  timeout: ${timeout},`,
-    `  fullyParallel: false,`,
-    `  workers: 1,`,
+    `  timeout:       Number(env.timeout       ?? 30000),`,
+    `  retries:       Number(env.retries        ?? 0),`,
+    `  fullyParallel: Boolean(env.fullyParallel ?? false),`,
+    `  workers:       Number(env.workers        ?? 1),`,
     `  use: {`,
-    `    baseURL: "${escapeTsString(baseURL)}",`,
-    `    headless: ${headless},`,
-    ...DEFAULT_PLAYWRIGHT_USE_LINES,
-  ];
-  if (cfg.actionTimeout !== undefined) {
-    lines.push(`    actionTimeout: ${cfg.actionTimeout},`);
-  }
-  lines.push(`  },`);
-  lines.push(`  projects: [`);
-  lines.push(`    {`);
-  lines.push(`      name: "${browser}",`);
-  lines.push(`      use: ${device},`);
-  lines.push(`    },`);
-  lines.push(`  ],`);
-  lines.push(`  reporter: ${DEFAULT_PLAYWRIGHT_REPORTER_CONFIG},`);
-  lines.push(`});`, ``);
-  return lines.join("\n");
+    `    baseURL:       String(env.baseURL       ?? "https://example.com"),`,
+    `    headless:      env.headless !== false,`,
+    `    trace:         (String(env.trace        ?? "retain-on-failure")) as "off" | "on" | "retain-on-failure" | "on-all-retries",`,
+    `    video:         (String(env.video        ?? "retain-on-failure")) as "off" | "on" | "retain-on-failure" | "on-first-retry",`,
+    `    screenshot:    (String(env.screenshot   ?? "only-on-failure"))  as "off" | "on" | "only-on-failure",`,
+    `    actionTimeout: Number(env.actionTimeout ?? 10000),`,
+    `  },`,
+    `  projects: [`,
+    `    { name: browser, use: browserDevice(browser) },`,
+    `  ],`,
+    `  reporter: ${DEFAULT_PLAYWRIGHT_REPORTER_CONFIG},`,
+    `});`,
+    ``,
+  ].join("\n");
+}
+
+/**
+ * Generates the content for `environments/qa.json` — the default environment
+ * file that `playwright.config.ts` reads at runtime.  Seeded from configJson
+ * when available so the values from Setup → Environments are preserved.
+ */
+export function buildDefaultEnvironmentJson(configJson: string | null): string {
+  const cfg = parseWebEnvironmentConfig(configJson);
+  return JSON.stringify(
+    {
+      // ── Application ──────────────────────────────────────────────────────────
+      baseURL:       cfg.baseURL       ?? "https://example.com",
+      username:      "admin@example.com",
+      password:      "changeme",
+
+      // ── Browser ──────────────────────────────────────────────────────────────
+      // Options: chromium | firefox | webkit
+      browser:       cfg.browser       ?? "chromium",
+
+      // ── Run settings ─────────────────────────────────────────────────────────
+      headless:      cfg.headless      ?? true,
+      timeout:       cfg.timeout       ?? 30000,
+      actionTimeout: cfg.actionTimeout ?? 10000,
+      retries:       0,
+      fullyParallel: false,
+      workers:       1,
+
+      // ── Artifacts ────────────────────────────────────────────────────────────
+      // video:      off | on | retain-on-failure | on-first-retry
+      video:         "retain-on-failure",
+      // trace:      off | on | retain-on-failure | on-all-retries
+      trace:         "retain-on-failure",
+      // screenshot: off | on | only-on-failure
+      screenshot:    "only-on-failure",
+    },
+    null,
+    2,
+  ) + "\n";
 }

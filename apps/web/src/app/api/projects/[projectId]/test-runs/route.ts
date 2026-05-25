@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { runTestsBodySchema } from "@automation-ai/shared";
+import { runTestsBodySchema, detectCiProvider } from "@automation-ai/core";
 import { z } from "zod";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { decryptAccessKey, parseExecutionConfigDocument } from "@/lib/execution-config";
@@ -7,6 +7,7 @@ import { executeTestRunInBackground } from "@/lib/test-execution/execute-test-ru
 import { syncProjectWorkspaceToDisk } from "@/lib/local-framework/sync-workspace-to-disk";
 import { listTestSpecFiles } from "@/lib/test-execution/list-test-specs";
 import { summarizeResultsAnalysis } from "@/lib/test-execution/playwright-report-analysis";
+import { getProjectCiConfigView, getProjectGitConfigView } from "@/lib/project-git/git-config";
 import { prisma } from "@/lib/prisma";
 
 const paramsSchema = z.object({
@@ -25,9 +26,9 @@ export async function GET(_req: Request, context: { params: Promise<{ projectId:
     return guard.error;
   }
 
-  await syncProjectWorkspaceToDisk(parsedParams.data.projectId);
+  await syncProjectWorkspaceToDisk(parsedParams.data.projectId).catch(() => {});
 
-  const [specs, runs, project] = await Promise.all([
+  const [specs, runs, project, gitConfig, ciConfig] = await Promise.all([
     listTestSpecFiles(parsedParams.data.projectId),
     prisma.testRun.findMany({
       where: { projectId: parsedParams.data.projectId },
@@ -51,13 +52,43 @@ export async function GET(_req: Request, context: { params: Promise<{ projectId:
       where: { id: parsedParams.data.projectId },
       select: { executionConfigJson: true },
     }),
+    getProjectGitConfigView(parsedParams.data.projectId).catch(() => null),
+    getProjectCiConfigView(parsedParams.data.projectId).catch(() => null),
   ]);
 
   const doc = parseExecutionConfigDocument(project?.executionConfigJson);
 
+  const ciProvider = gitConfig?.remoteUrl ? detectCiProvider(gitConfig.remoteUrl) : null;
+
+  // Compute which providers have credentials saved and are ready to use
+  const bsKey = decryptAccessKey(doc.secrets.browserstackAccessKeyEnc);
+  const sauceKey = decryptAccessKey(doc.secrets.saucelabsAccessKeyEnc);
+  const ltKey = decryptAccessKey(doc.secrets.lambdatestAccessKeyEnc);
+
+  const availableProviders: Array<{ provider: string; label: string }> = [
+    { provider: "local", label: "Local" },
+  ];
+  if (doc.config.browserstack?.username && bsKey) {
+    availableProviders.push({ provider: "browserstack", label: "BrowserStack" });
+  }
+  if (doc.config.saucelabs?.username && sauceKey) {
+    availableProviders.push({ provider: "saucelabs", label: "Sauce Labs" });
+  }
+  if (doc.config.lambdatest?.username && ltKey) {
+    availableProviders.push({ provider: "lambdatest", label: "LambdaTest" });
+  }
+  if (doc.config.custom?.hubUrl) {
+    availableProviders.push({ provider: "custom", label: "Custom hub" });
+  }
+
   return NextResponse.json({
     specs,
     config: doc.config,
+    availableProviders,
+    ciPipeline: {
+      configured: ciConfig?.hasCiToken === true,
+      provider: ciProvider,
+    },
     recentRuns: runs.map((r) => ({
       id: r.id,
       provider: r.provider,
@@ -132,10 +163,14 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
 
   const doc = parseExecutionConfigDocument(project.executionConfigJson);
 
+  // Use the provider requested by the user, or fall back to the saved default
+  const requestedProvider = parsed.data.provider ?? doc.config.provider;
+  const runConfig = { ...doc.config, provider: requestedProvider };
+
   const run = await prisma.testRun.create({
     data: {
       projectId: parsedParams.data.projectId,
-      provider: doc.config.provider,
+      provider: requestedProvider,
       status: "running",
       specPaths: JSON.stringify(parsed.data.specPaths),
       environmentId: parsed.data.environmentId ?? null,
@@ -146,7 +181,7 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
 
   const runParams = {
     projectId: parsedParams.data.projectId,
-    config: doc.config,
+    config: runConfig,
     environmentConfigJson,
     secrets: {
       saucelabsAccessKey: decryptAccessKey(doc.secrets.saucelabsAccessKeyEnc),

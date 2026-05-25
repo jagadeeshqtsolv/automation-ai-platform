@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { BRAND_NAME } from "@/lib/brand";
 import { requireAccessibleProjectPage } from "@/lib/auth/page-guards";
+import { getOrganizationMembership } from "@/lib/auth/access";
 import { ProjectHeaderActions } from "./project-header-actions";
 import { ProjectWorkspace } from "./workspace";
 
@@ -17,7 +18,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
     notFound();
   }
 
-  const { project } = await requireAccessibleProjectPage(parsed.data.projectId);
+  const { user, project } = await requireAccessibleProjectPage(parsed.data.projectId);
+  const membership = await getOrganizationMembership(user.id, project.organizationId);
+  const isOwner = membership?.role === "owner";
 
   return (
     <div className="ui-page py-8 sm:py-10">
@@ -31,7 +34,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           <Link href="/dashboard" className="ui-btn-secondary">
             All projects
           </Link>
-          <ProjectHeaderActions projectId={project.id} projectName={project.name} />
+          {isOwner && <ProjectHeaderActions projectId={project.id} projectName={project.name} />}
         </div>
       </div>
 

@@ -2,28 +2,21 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useToast } from "@/components/toast-provider";
+import type { ExecutionConfig, ProjectPlatformType } from "@automation-ai/core";
+import { testConfigFileName } from "@/lib/test-framework";
 import { readApiError } from "@/lib/api-response";
-import type { ExecutionConfig, ExecutionProvider, ProjectPlatformType } from "@automation-ai/shared";
-import { testConfigFileName, testRunnerDisplayName } from "@/lib/test-framework";
 
-type SecretsView = {
-  saucelabsAccessKeyConfigured: boolean;
-  saucelabsAccessKeyPreview: string | null;
+type SecretsInfo = {
   browserstackAccessKeyConfigured: boolean;
   browserstackAccessKeyPreview: string | null;
-  lambdatestAccessKeyConfigured: boolean;
-  lambdatestAccessKeyPreview: string | null;
 };
 
-const PROVIDERS: Array<{ id: ExecutionProvider; label: string }> = [
-  { id: "local", label: "Local" },
-  { id: "saucelabs", label: "Sauce Labs" },
-  { id: "browserstack", label: "BrowserStack" },
-  { id: "lambdatest", label: "LambdaTest" },
-  { id: "custom", label: "Custom hub" },
-];
+type ConfigResponse = {
+  config: ExecutionConfig;
+  secrets: SecretsInfo;
+};
 
-const DEFAULT_CONFIG: ExecutionConfig = { provider: "local" };
+type Provider = "local" | "browserstack";
 
 export function ProjectExecutionSettings({
   projectId,
@@ -34,357 +27,404 @@ export function ProjectExecutionSettings({
   platformType?: ProjectPlatformType;
   disabled: boolean;
 }) {
-  const runnerLabel = testRunnerDisplayName(platformType);
-  const configLabel = testConfigFileName(platformType);
-  const isWeb = platformType === "web";
   const toast = useToast();
-  const [config, setConfig] = useState<ExecutionConfig>(DEFAULT_CONFIG);
-  const [secrets, setSecrets] = useState<SecretsView | null>(null);
-  const [sauceKey, setSauceKey] = useState("");
-  const [bsKey, setBsKey] = useState("");
-  const [ltKey, setLtKey] = useState("");
-  const [busy, setBusy] = useState(false);
+  const configLabel = testConfigFileName(platformType);
+
+  const [loaded, setLoaded] = useState(false);
+  const [response, setResponse] = useState<ConfigResponse | null>(null);
+  const [provider, setProvider] = useState<Provider>("local");
+
+  // BrowserStack fields — shared
+  const [bsUsername, setBsUsername] = useState("");
+  const [bsAccessKey, setBsAccessKey] = useState("");
+  // BrowserStack web-only
+  const [bsBrowser, setBsBrowser] = useState<"chrome" | "firefox" | "edge" | "safari">("chrome");
+  const [bsBrowserVersion, setBsBrowserVersion] = useState("latest");
+  const [bsOs, setBsOs] = useState<"Windows" | "OS X">("Windows");
+  const [bsOsVersion, setBsOsVersion] = useState("11");
+  // BrowserStack mobile-only
+  const [bsDeviceName, setBsDeviceName] = useState("");
+  const [bsAppUrl, setBsAppUrl] = useState("");
+
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; plan?: string; parallelSessions?: number; error?: string } | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/projects/${projectId}/execution-config`);
-    if (!res.ok) {
-      toast.error("Could not load execution settings");
-      return;
+    if (!res.ok) return;
+    const body = (await res.json()) as ConfigResponse;
+    setResponse(body);
+    const p: Provider = body.config.provider === "browserstack" ? "browserstack" : "local";
+    setProvider(p);
+    if (body.config.browserstack) {
+      const bs = body.config.browserstack;
+      setBsUsername(bs.username ?? "");
+      // web fields
+      setBsBrowser((bs.browser as typeof bsBrowser) ?? "chrome");
+      setBsBrowserVersion(bs.browserVersion ?? "latest");
+      setBsOs((bs.os as typeof bsOs) ?? "Windows");
+      setBsOsVersion(bs.osVersion ?? (bs.os === "OS X" ? "Sonoma" : "11"));
+      // mobile fields
+      setBsDeviceName(bs.deviceName ?? "");
+      setBsAppUrl(bs.appUrl ?? "");
     }
-    const body = (await res.json()) as { config: ExecutionConfig; secrets: SecretsView };
-    setConfig(body.config);
-    setSecrets(body.secrets);
-  }, [projectId, toast]);
+    setLoaded(true);
+  }, [projectId]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    setBusy(true);
+  async function onTestBrowserStack() {
+    setTesting(true);
+    setTestResult(null);
     try {
-      const payload: {
-        config: ExecutionConfig;
-        saucelabsAccessKey?: string | null;
-        browserstackAccessKey?: string | null;
-        lambdatestAccessKey?: string | null;
-      } = { config };
+      const body: Record<string, string> = {};
+      if (bsUsername.trim()) body.username = bsUsername.trim();
+      if (bsAccessKey.trim()) body.accessKey = bsAccessKey.trim();
 
-      if (sauceKey.trim().length > 0) {
-        payload.saucelabsAccessKey = sauceKey.trim();
-      }
-      if (bsKey.trim().length > 0) {
-        payload.browserstackAccessKey = bsKey.trim();
-      }
-      if (ltKey.trim().length > 0) {
-        payload.lambdatestAccessKey = ltKey.trim();
-      }
+      const res = await fetch(`/api/projects/${projectId}/execution-config/test-browserstack`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const result = (await res.json()) as typeof testResult;
+      setTestResult(result);
+    } catch (err) {
+      setTestResult({ ok: false, error: err instanceof Error ? err.message : "Test failed" });
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function onSave(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      type SavePayload = {
+        config: ExecutionConfig;
+        browserstackAccessKey?: string | null;
+      };
+
+      const payload: SavePayload =
+        provider === "browserstack"
+          ? {
+              config: {
+                provider: "browserstack",
+                browserstack: platformType === "web"
+                  ? {
+                      username: bsUsername.trim(),
+                      browser: bsBrowser,
+                      browserVersion: bsBrowserVersion.trim() || "latest",
+                      os: bsOs,
+                      osVersion: bsOsVersion.trim() || (bsOs === "OS X" ? "Sonoma" : "11"),
+                    }
+                  : {
+                      username: bsUsername.trim(),
+                      ...(bsDeviceName.trim() ? { deviceName: bsDeviceName.trim() } : {}),
+                      ...(bsOsVersion.trim() ? { osVersion: bsOsVersion.trim() } : {}),
+                      ...(bsAppUrl.trim() ? { appUrl: bsAppUrl.trim() } : {}),
+                    },
+              },
+              ...(bsAccessKey.trim().length > 0 ? { browserstackAccessKey: bsAccessKey.trim() } : {}),
+            }
+          : { config: { provider: "local" } };
 
       const res = await fetch(`/api/projects/${projectId}/execution-config`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       if (!res.ok) {
         toast.error(await readApiError(res, "Could not save execution settings"));
         return;
       }
-      setSauceKey("");
-      setBsKey("");
-      setLtKey("");
+
+      setBsAccessKey("");
+      setTestResult(null);
       await load();
       toast.success("Execution settings saved");
     } finally {
-      setBusy(false);
+      setSaving(false);
     }
   }
 
-  if (secrets === null) {
+  if (!loaded) {
     return <p className="text-sm text-zinc-400">Loading execution settings…</p>;
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-white/10 bg-ink-950/30 p-4">
-      <div>
-        <h3 className="text-sm font-semibold text-white">Test execution</h3>
-        <p className="mt-1 text-xs text-zinc-400">
-          Choose where {runnerLabel} runs tests from the{" "}
-          <strong className="font-medium text-zinc-300">Test execution</strong> tab. Credentials are encrypted at
-          rest.
-        </p>
+    <form onSubmit={(e) => void onSave(e)} className="space-y-4">
+      {/* Provider picker */}
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-zinc-400">Execution provider</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <ProviderCard
+            active={provider === "local"}
+            disabled={disabled || saving}
+            onClick={() => setProvider("local")}
+            title="Local"
+            description={`Run ${configLabel} tests on this server using your environment config`}
+          />
+          <ProviderCard
+            active={provider === "browserstack"}
+            disabled={disabled || saving}
+            onClick={() => setProvider("browserstack")}
+            title="BrowserStack"
+            description={
+              platformType === "mobile"
+                ? "Run tests on BrowserStack real devices and emulators via the cloud"
+                : "Run tests on BrowserStack Automate across browsers via the cloud"
+            }
+          />
+        </div>
       </div>
 
-      <label className="block text-xs font-medium text-zinc-400">
-        Provider
-        <select
-          value={config.provider}
-          onChange={(e) =>
-            setConfig((c) => ({
-              ...c,
-              provider: e.target.value as ExecutionProvider,
-            }))
-          }
-          className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-2 text-sm text-white"
-        >
-          {PROVIDERS.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      {/* BrowserStack config */}
+      {provider === "browserstack" && (
+        <div className="rounded-xl border border-white/10 bg-ink-950/40 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-white">BrowserStack settings</h3>
+            {response?.secrets.browserstackAccessKeyConfigured && (
+              <span className="flex items-center gap-1.5 text-[11px] text-emerald-300">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                Access key saved
+                {response.secrets.browserstackAccessKeyPreview && (
+                  <span className="font-mono text-zinc-500">{response.secrets.browserstackAccessKeyPreview}</span>
+                )}
+              </span>
+            )}
+          </div>
 
-      {config.provider === "saucelabs" ? (
-        <SauceLabsFields
-          config={config}
-          secrets={secrets}
-          sauceKey={sauceKey}
-          onSauceKeyChange={setSauceKey}
-          onChange={setConfig}
-        />
-      ) : null}
+          {/* Credentials — same for web and mobile */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-xs text-zinc-400">
+              Username <span className="text-rose-300">(required)</span>
+              <input
+                value={bsUsername}
+                onChange={(e) => setBsUsername(e.target.value)}
+                required
+                placeholder="your-bs-username"
+                disabled={disabled || saving}
+                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+              />
+            </label>
+            <label className="block text-xs text-zinc-400">
+              Access key{" "}
+              <span className="text-zinc-500">
+                {response?.secrets.browserstackAccessKeyConfigured
+                  ? "(leave blank to keep current)"
+                  : "(required)"}
+              </span>
+              <input
+                type="password"
+                value={bsAccessKey}
+                onChange={(e) => setBsAccessKey(e.target.value)}
+                autoComplete="off"
+                placeholder={response?.secrets.browserstackAccessKeyConfigured ? "••••••••" : "Your access key"}
+                disabled={disabled || saving}
+                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 font-mono text-sm text-white disabled:opacity-50"
+              />
+            </label>
+          </div>
 
-      {config.provider === "browserstack" ? (
-        <BrowserStackFields config={config} secrets={secrets} accessKey={bsKey} onAccessKeyChange={setBsKey} onChange={setConfig} />
-      ) : null}
-
-      {config.provider === "lambdatest" ? (
-        <LambdaTestFields config={config} secrets={secrets} accessKey={ltKey} onAccessKeyChange={setLtKey} onChange={setConfig} />
-      ) : null}
-
-      {config.provider === "custom" ? <CustomFields config={config} onChange={setConfig} /> : null}
-
-      {config.provider === "local" ? (
-        <p className="text-xs text-zinc-500">
-          {isWeb ? (
+          {/* Web-specific fields */}
+          {platformType === "web" && (
             <>
-              Uses the local browser from your environment config and{" "}
-              <code className="text-zinc-400">{configLabel}</code>.
-            </>
-          ) : (
-            <>
-              Uses the local simulator/emulator from your environment config and{" "}
-              <code className="text-zinc-400">{configLabel}</code>.
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-xs text-zinc-400">
+                  Browser
+                  <select
+                    value={bsBrowser}
+                    onChange={(e) => setBsBrowser(e.target.value as typeof bsBrowser)}
+                    disabled={disabled || saving}
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                  >
+                    <option value="chrome">Chrome</option>
+                    <option value="firefox">Firefox</option>
+                    <option value="edge">Edge</option>
+                    <option value="safari">Safari</option>
+                  </select>
+                </label>
+                <label className="block text-xs text-zinc-400">
+                  Browser version
+                  <input
+                    value={bsBrowserVersion}
+                    onChange={(e) => setBsBrowserVersion(e.target.value)}
+                    placeholder="latest"
+                    disabled={disabled || saving}
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                  />
+                </label>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-xs text-zinc-400">
+                  Operating system
+                  <select
+                    value={bsOs}
+                    onChange={(e) => {
+                      const next = e.target.value as typeof bsOs;
+                      setBsOs(next);
+                      setBsOsVersion(next === "OS X" ? "Sonoma" : "11");
+                    }}
+                    disabled={disabled || saving}
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                  >
+                    <option value="Windows">Windows</option>
+                    <option value="OS X">macOS</option>
+                  </select>
+                </label>
+                <label className="block text-xs text-zinc-400">
+                  OS version
+                  <select
+                    value={bsOsVersion}
+                    onChange={(e) => setBsOsVersion(e.target.value)}
+                    disabled={disabled || saving}
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                  >
+                    {bsOs === "Windows" ? (
+                      <>
+                        <option value="11">Windows 11</option>
+                        <option value="10">Windows 10</option>
+                        <option value="8.1">Windows 8.1</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Sonoma">macOS Sonoma</option>
+                        <option value="Ventura">macOS Ventura</option>
+                        <option value="Monterey">macOS Monterey</option>
+                        <option value="Big Sur">macOS Big Sur</option>
+                      </>
+                    )}
+                  </select>
+                </label>
+              </div>
+              <p className="text-[11px] text-zinc-400">
+                AutomationAI will generate <code className="text-zinc-300">browserstack.yml</code> and a{" "}
+                <code className="text-zinc-300">test:bs</code> script. Run{" "}
+                <code className="rounded bg-white/5 px-1 text-zinc-300">npm run test:bs</code> from the
+                framework folder to execute on BrowserStack.
+              </p>
             </>
           )}
-        </p>
-      ) : null}
 
-      <button
-        type="submit"
-        disabled={disabled || busy}
-        className="ui-btn-primary ui-btn-xs disabled:opacity-50"
-      >
-        {busy ? "Saving…" : "Save execution settings"}
-      </button>
+          {/* Mobile-specific fields */}
+          {platformType === "mobile" && (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-xs text-zinc-400">
+                  Device name
+                  <input
+                    value={bsDeviceName}
+                    onChange={(e) => setBsDeviceName(e.target.value)}
+                    placeholder="iPhone 14"
+                    disabled={disabled || saving}
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                  />
+                </label>
+                <label className="block text-xs text-zinc-400">
+                  OS version
+                  <input
+                    value={bsOsVersion}
+                    onChange={(e) => setBsOsVersion(e.target.value)}
+                    placeholder="16"
+                    disabled={disabled || saving}
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                  />
+                </label>
+              </div>
+              <label className="block text-xs text-zinc-400">
+                App URL / path
+                <input
+                  value={bsAppUrl}
+                  onChange={(e) => setBsAppUrl(e.target.value)}
+                  placeholder="bs://… or /path/to/MyApp.ipa"
+                  disabled={disabled || saving}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                />
+                <span className="mt-1 block text-[10px] text-zinc-500">
+                  BrowserStack app URL (<code className="text-zinc-400">bs://…</code>) returned after uploading your app, or a local path
+                </span>
+              </label>
+            </>
+          )}
+
+          {/* Test connection */}
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => void onTestBrowserStack()}
+              disabled={testing || saving || disabled || (!bsUsername.trim() && !response?.secrets.browserstackAccessKeyConfigured)}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/[0.07] disabled:opacity-50 transition"
+            >
+              {testing ? <><BsSpinner />Testing…</> : "Test connection"}
+            </button>
+            {testResult !== null && (
+              <div
+                role="alert"
+                className={`rounded-lg border px-3 py-2 text-xs ${
+                  testResult.ok
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                    : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                }`}
+              >
+                {testResult.ok
+                  ? `✓ Connected${testResult.plan ? ` — ${testResult.plan}` : ""}${testResult.parallelSessions !== undefined ? ` · ${testResult.parallelSessions} parallel sessions` : ""}.`
+                  : `✗ ${testResult.error ?? "Connection failed"}`}
+              </div>
+            )}
+          </div>
+
+          <p className="text-[11px] text-zinc-500">
+            Find your credentials at{" "}
+            <span className="text-zinc-400">browserstack.com → Account → Settings</span>
+          </p>
+        </div>
+      )}
+
+      {!disabled && (
+        <button type="submit" disabled={saving} className="ui-btn-primary ui-btn-xs disabled:opacity-50">
+          {saving ? "Saving…" : "Save execution settings"}
+        </button>
+      )}
     </form>
   );
 }
 
-function fieldClass() {
-  return "mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white";
-}
-
-function SauceLabsFields({
-  config,
-  secrets,
-  sauceKey,
-  onSauceKeyChange,
-  onChange,
+function ProviderCard({
+  active,
+  disabled,
+  onClick,
+  title,
+  description,
 }: {
-  config: ExecutionConfig;
-  secrets: SecretsView;
-  sauceKey: string;
-  onSauceKeyChange: (v: string) => void;
-  onChange: (fn: (c: ExecutionConfig) => ExecutionConfig) => void;
+  active: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  title: string;
+  description: string;
 }) {
-  const s = config.saucelabs ?? {
-    username: "",
-    region: "us-west-1" as const,
-  };
-
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <label className="text-xs text-zinc-400 sm:col-span-2">
-        Username
-        <input
-          value={s.username}
-          onChange={(e) =>
-            onChange((c) => ({
-              ...c,
-              saucelabs: { ...s, username: e.target.value },
-            }))
-          }
-          className={fieldClass()}
-          required
-        />
-      </label>
-      <label className="text-xs text-zinc-400 sm:col-span-2">
-        Access key
-        <input
-          type="password"
-          value={sauceKey}
-          onChange={(e) => onSauceKeyChange(e.target.value)}
-          placeholder={secrets.saucelabsAccessKeyConfigured ? secrets.saucelabsAccessKeyPreview ?? "••••" : "Required"}
-          className={fieldClass()}
-          autoComplete="off"
-        />
-      </label>
-      <label className="text-xs text-zinc-400">
-        Region
-        <select
-          value={s.region}
-          onChange={(e) =>
-            onChange((c) => ({
-              ...c,
-              saucelabs: { ...s, region: e.target.value as "us-west-1" | "eu-central-1" | "apac-southeast-1" },
-            }))
-          }
-          className={fieldClass()}
-        >
-          <option value="us-west-1">US West</option>
-          <option value="eu-central-1">EU Central</option>
-          <option value="apac-southeast-1">APAC</option>
-        </select>
-      </label>
-      <label className="text-xs text-zinc-400">
-        Device name
-        <input
-          value={s.deviceName ?? ""}
-          onChange={(e) => onChange((c) => ({ ...c, saucelabs: { ...s, deviceName: e.target.value } }))}
-          placeholder="iPhone 15"
-          className={fieldClass()}
-        />
-      </label>
-      <label className="text-xs text-zinc-400">
-        Platform version
-        <input
-          value={s.platformVersion ?? ""}
-          onChange={(e) => onChange((c) => ({ ...c, saucelabs: { ...s, platformVersion: e.target.value } }))}
-          placeholder="17"
-          className={fieldClass()}
-        />
-      </label>
-      <label className="text-xs text-zinc-400 sm:col-span-2">
-        App (storage id or URL)
-        <input
-          value={s.app ?? ""}
-          onChange={(e) => onChange((c) => ({ ...c, saucelabs: { ...s, app: e.target.value } }))}
-          placeholder="storage:filename=MyApp.ipa"
-          className={fieldClass()}
-        />
-      </label>
-    </div>
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`rounded-xl border px-4 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+        active
+          ? "border-accent/40 bg-accent/10 ring-1 ring-accent/30"
+          : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
+      }`}
+    >
+      <p className={`text-sm font-semibold ${active ? "text-accent" : "text-zinc-200"}`}>{title}</p>
+      <p className="mt-0.5 text-xs text-zinc-400">{description}</p>
+    </button>
   );
 }
 
-function BrowserStackFields({
-  config,
-  secrets,
-  accessKey,
-  onAccessKeyChange,
-  onChange,
-}: {
-  config: ExecutionConfig;
-  secrets: SecretsView;
-  accessKey: string;
-  onAccessKeyChange: (v: string) => void;
-  onChange: (fn: (c: ExecutionConfig) => ExecutionConfig) => void;
-}) {
-  const b = config.browserstack ?? { username: "" };
+function BsSpinner() {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <label className="text-xs text-zinc-400 sm:col-span-2">
-        Username
-        <input
-          value={b.username}
-          onChange={(e) => onChange((c) => ({ ...c, browserstack: { ...b, username: e.target.value } }))}
-          className={fieldClass()}
-          required
-        />
-      </label>
-      <label className="text-xs text-zinc-400 sm:col-span-2">
-        Access key
-        <input
-          type="password"
-          value={accessKey}
-          onChange={(e) => onAccessKeyChange(e.target.value)}
-          placeholder={secrets.browserstackAccessKeyConfigured ? "Leave blank to keep" : "Required"}
-          className={fieldClass()}
-        />
-      </label>
-    </div>
-  );
-}
-
-function LambdaTestFields({
-  config,
-  secrets,
-  accessKey,
-  onAccessKeyChange,
-  onChange,
-}: {
-  config: ExecutionConfig;
-  secrets: SecretsView;
-  accessKey: string;
-  onAccessKeyChange: (v: string) => void;
-  onChange: (fn: (c: ExecutionConfig) => ExecutionConfig) => void;
-}) {
-  const l = config.lambdatest ?? { username: "" };
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <label className="text-xs text-zinc-400 sm:col-span-2">
-        Username
-        <input
-          value={l.username}
-          onChange={(e) => onChange((c) => ({ ...c, lambdatest: { ...l, username: e.target.value } }))}
-          className={fieldClass()}
-          required
-        />
-      </label>
-      <label className="text-xs text-zinc-400 sm:col-span-2">
-        Access key
-        <input
-          type="password"
-          value={accessKey}
-          onChange={(e) => onAccessKeyChange(e.target.value)}
-          placeholder={secrets.lambdatestAccessKeyConfigured ? "Leave blank to keep" : "Required"}
-          className={fieldClass()}
-        />
-      </label>
-    </div>
-  );
-}
-
-function CustomFields({
-  config,
-  onChange,
-}: {
-  config: ExecutionConfig;
-  onChange: (fn: (c: ExecutionConfig) => ExecutionConfig) => void;
-}) {
-  const c = config.custom ?? { hubUrl: "https://hub.example.com/wd/hub", capabilitiesJson: "{}" };
-  return (
-    <div className="space-y-3">
-      <label className="text-xs text-zinc-400">
-        Appium hub URL
-        <input
-          value={c.hubUrl}
-          onChange={(e) => onChange((cfg) => ({ ...cfg, custom: { ...c, hubUrl: e.target.value } }))}
-          className={fieldClass()}
-          required
-        />
-      </label>
-      <label className="text-xs text-zinc-400">
-        Capabilities JSON
-        <textarea
-          value={c.capabilitiesJson}
-          onChange={(e) => onChange((cfg) => ({ ...cfg, custom: { ...c, capabilitiesJson: e.target.value } }))}
-          rows={6}
-          className={`${fieldClass()} font-mono text-[11px]`}
-        />
-      </label>
-    </div>
+    <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current/20 border-t-current" />
   );
 }

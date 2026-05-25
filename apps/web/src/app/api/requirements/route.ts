@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createRequirementBodySchema } from "@automation-ai/shared";
+import { createRequirementBodySchema } from "@automation-ai/core";
 import { getAccessibleProject } from "@/lib/auth/access";
 import { requireApiUser, requireProjectAccess } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";
@@ -46,6 +46,7 @@ export async function POST(req: Request) {
     projectId: project.id,
     projectName: project.name,
     requirement,
+    userId: auth.id,
   });
 
   return NextResponse.json(requirement, { status: 201 });

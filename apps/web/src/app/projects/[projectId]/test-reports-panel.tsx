@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/toast-provider";
-import { executionProviderLabel, type ExecutionConfig } from "@automation-ai/shared";
+import { executionProviderLabel, type ExecutionConfig } from "@automation-ai/core";
 import {
   buildRerunAllParams,
   buildRerunFailuresParams,
@@ -135,9 +135,10 @@ export function TestReportsPanel({
       toast.error("Could not load test runs");
       return [];
     }
-    const body = (await res.json()) as { recentRuns: RecentRun[] };
-    setRecentRuns(body.recentRuns);
-    return body.recentRuns;
+    const body = (await res.json()) as { recentRuns?: RecentRun[] };
+    const runs = body.recentRuns ?? [];
+    setRecentRuns(runs);
+    return runs;
   }, [projectId, toast]);
 
   const loadRunDetail = useCallback(
@@ -501,7 +502,7 @@ export function TestReportsPanel({
                       {r.status}
                     </span>
                     {" · "}
-                    {executionProviderLabel(r.provider as ExecutionProvider)}
+                    {r.provider === "ci" ? "CI Pipeline" : executionProviderLabel(r.provider as ExecutionProvider)}
                     <p className="mt-1 text-[10px] text-zinc-500">{new Date(r.createdAt).toLocaleString()}</p>
                     <p className="mt-0.5 truncate font-mono text-[10px] text-zinc-600">{r.specPaths.join(", ")}</p>
                     {r.analysisSummary !== undefined ? (

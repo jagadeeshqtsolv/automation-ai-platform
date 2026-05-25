@@ -1,4 +1,4 @@
-import type { WebPageElement } from "@automation-ai/shared";
+import type { WebPageElement } from "@automation-ai/core";
 
 function escapeTsString(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");

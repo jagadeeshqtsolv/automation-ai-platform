@@ -1,4 +1,4 @@
-import type { ScreenElement } from "@automation-ai/shared";
+import type { ScreenElement } from "@automation-ai/core";
 import { appendFlowMethodsToMethodSummary, enrichPageObjectWithFlowMethods } from "@/lib/enrich-page-object-flows";
 import { normalizeScreenClassName, normalizeScreenModulePath } from "@/lib/page-object-naming";
 

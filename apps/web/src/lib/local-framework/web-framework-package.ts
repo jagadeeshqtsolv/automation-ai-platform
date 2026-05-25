@@ -5,12 +5,19 @@ export const WEB_FRAMEWORK_PACKAGE_JSON = `{
   "type": "module",
   "scripts": {
     "test": "playwright test",
+    "test:bs": "browserstack-node-sdk playwright test",
     "test:report": "playwright show-report",
     "test:ui": "playwright test --ui",
-    "capture:dom": "node scripts/capture-dom.mjs"
+    "capture:dom": "node node_modules/@automation-ai/web-support/scripts/capture-dom.mjs"
+  },
+  "dependencies": {
+    "@automation-ai/web-support": "npm:@jagadeeshqtsolv/web-support@^1.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
+    "@types/node": "^22.0.0",
+    "browserstack-node-sdk": "^1.0.0",
+    "@faker-js/faker": "^9.5.0",
     "typescript": "^5.8.3"
   }
 }

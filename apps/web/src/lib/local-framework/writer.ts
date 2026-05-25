@@ -5,6 +5,7 @@ import { ensureProjectFrameworkScaffold } from "@/lib/local-framework/ensure-pro
 import { writeEnvironmentSnapshot } from "@/lib/local-framework/scaffold";
 import { writeProjectTestConfig } from "@/lib/local-framework/project-config-writer";
 import { getProjectPlatformType } from "@/lib/project-platform";
+import { recordUserFiles } from "@/lib/local-framework/user-file-tracker";
 
 export type FrameworkFileWrite = {
   relativePath: string;
@@ -49,6 +50,7 @@ export async function writeFrameworkFiles(params: {
   overwritePageObjects: boolean;
   overwriteTests: boolean;
   environment?: { slug: string; configJson: string } | null;
+  userId?: string;
 }): Promise<WriteFrameworkResult> {
   const platformType = await getProjectPlatformType(params.projectId);
   await ensureProjectFrameworkScaffold({
@@ -90,6 +92,10 @@ export async function writeFrameworkFiles(params: {
     }
   }
 
+  if (params.userId && written.length > 0) {
+    await recordUserFiles(params.projectId, platformType, params.userId, written).catch(() => {});
+  }
+
   return { rootPath: getProjectFrameworkRoot(params.projectId), written, skipped };
 }
 
@@ -99,6 +105,7 @@ export async function syncPageObjectToDisk(params: {
   modulePath: string;
   content: string;
   overwrite: boolean;
+  userId?: string;
 }): Promise<void> {
   const platformType = await getProjectPlatformType(params.projectId);
   await ensureProjectFrameworkScaffold({
@@ -106,12 +113,15 @@ export async function syncPageObjectToDisk(params: {
     projectName: params.projectName,
     platformType,
   });
-  await writeValidatedFile({
+  const result = await writeValidatedFile({
     projectId: params.projectId,
     relativePath: params.modulePath,
     content: params.content,
     overwrite: params.overwrite,
   });
+  if (params.userId && result === "written") {
+    await recordUserFiles(params.projectId, platformType, params.userId, [params.modulePath]).catch(() => {});
+  }
 }
 
 export type FrameworkTreeEntry = {

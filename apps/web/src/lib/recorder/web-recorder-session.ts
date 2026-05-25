@@ -3,7 +3,7 @@ import { access, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
 import { installFrameworkDependencies } from "@/lib/local-framework/install-dependencies";
-import { ensurePlaywrightBrowsersForProject } from "@/lib/recorder/run-dom-capture-script";
+import { ensurePlaywrightBrowsersForProject } from "@/lib/local-framework/install-dependencies";
 
 const SIGNAL_FILE = "environments/.recorder-capture.signal";
 const STOP_FILE = "environments/.recorder-stop.signal";
@@ -82,7 +82,7 @@ export async function startWebRecorderSession(projectId: string): Promise<void> 
   await ensurePlaywrightBrowsersForProject(projectId);
 
   await new Promise<void>((resolve, reject) => {
-    const child = spawn("node", ["scripts/capture-dom.mjs", "start"], {
+    const child = spawn("node", ["node_modules/@automation-ai/web-support/scripts/capture-dom.mjs", "start"], {
       cwd: root,
       detached: true,
       stdio: "ignore",

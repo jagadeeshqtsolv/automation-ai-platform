@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { registerBodySchema } from "@automation-ai/shared";
+import { registerBodySchema } from "@automation-ai/core";
 import { hashPassword } from "@/lib/auth/password";
 import { createSessionToken, sessionCookieOptions } from "@/lib/auth/session";
 import { findValidInvite } from "@/lib/auth/invites";

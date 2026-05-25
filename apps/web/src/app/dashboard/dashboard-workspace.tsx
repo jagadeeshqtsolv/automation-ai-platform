@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/toast-provider";
 import { WorkspaceToolbar } from "@/components/workspace-toolbar";
-import { projectPlatformLabel, type ProjectPlatformType } from "@automation-ai/shared";
+import { projectPlatformLabel, type ProjectPlatformType } from "@automation-ai/core";
 import { readApiError } from "@/lib/api-response";
 import { readSelectedOrganizationId, writeSelectedOrganizationId } from "@/lib/selected-organization";
 
@@ -26,6 +26,7 @@ type ProjectRow = {
 };
 
 type AnalyticsPayload = {
+  currentUserRole: "owner" | "member";
   totals: {
     projects: number;
     requirements: number;
@@ -151,12 +152,12 @@ function DashboardContent({
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <section className="rounded-2xl border border-white/10 bg-ink-900/50 p-6">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Projects</h2>
-          <p className="mt-1 text-sm text-zinc-400">Per-project footprint. Open a project to edit requirements and codegen.</p>
+          <p className="mt-1 text-sm text-zinc-400">Each project has its own requirements, environments, page objects, and generated test code.</p>
           <div className="mt-4">
             {data === null ? (
               <p className="text-sm text-zinc-400">Loading…</p>
             ) : data.projects.length === 0 ? (
-              <p className="text-sm text-zinc-400">No projects yet. Create one on the right.</p>
+              <p className="text-sm text-zinc-400">No projects yet. Create your first one using the form on the right.</p>
             ) : (
               <ul className="divide-y divide-white/10 rounded-xl border border-white/10 bg-ink-950/40">
                 {data.projects.map((p) => (
@@ -180,7 +181,9 @@ function DashboardContent({
                       >
                         Open
                       </Link>
-                      <DeleteProjectButton projectId={p.id} projectName={p.name} onDeleted={onReload} />
+                      {data.currentUserRole === "owner" && (
+                        <DeleteProjectButton projectId={p.id} projectName={p.name} onDeleted={onReload} />
+                      )}
                     </div>
                   </li>
                 ))}
@@ -191,7 +194,7 @@ function DashboardContent({
 
         <aside className="h-fit rounded-2xl border border-white/10 bg-ink-900/50 p-6">
           <h2 className="text-sm font-semibold text-white">New project</h2>
-          <p className="mt-2 text-sm text-zinc-400">Create a container for requirements, environments, and generated assets.</p>
+          <p className="mt-2 text-sm text-zinc-400">Set up a workspace for your application&apos;s test requirements, environments, and generated test code.</p>
           <div className="mt-4">
             <CreateProjectForm organizationId={organizationId} onCreated={() => void onReload()} />
           </div>
@@ -319,8 +322,7 @@ function CreateProjectForm({
           ))}
         </div>
         <p className="text-[10px] text-zinc-500">
-          Mobile uses Mobilewright on devices. Web uses Playwright in the browser. Cannot be changed after
-          create.
+          Mobile automation runs on real devices using Mobilewright. Web automation runs in the browser using Playwright. This cannot be changed after the project is created.
         </p>
       </fieldset>
       <label className="block text-xs font-medium text-zinc-400">

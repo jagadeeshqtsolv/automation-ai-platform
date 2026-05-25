@@ -1,4 +1,4 @@
-import type { TestStep } from "@automation-ai/shared";
+import type { TestStep } from "@automation-ai/core";
 
 /** True when the plan step means “open the app at baseURL”, not a deep link. */
 export function isWebAppEntryStep(step: TestStep): boolean {

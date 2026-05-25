@@ -1,5 +1,5 @@
-import type { TestCase, TestStep } from "@automation-ai/shared";
-import { labelForTestStepAction } from "@automation-ai/shared";
+import type { TestCase, TestStep } from "@automation-ai/core";
+import { labelForTestStepAction } from "@automation-ai/core";
 import {
   buildPageObjectStepIndex,
   findLocatorKeyForStep,

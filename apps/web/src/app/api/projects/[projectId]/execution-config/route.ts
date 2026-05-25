@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateExecutionConfigBodySchema } from "@automation-ai/shared";
+import { updateExecutionConfigBodySchema } from "@automation-ai/core";
 import { z } from "zod";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import {

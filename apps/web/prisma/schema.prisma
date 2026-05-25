@@ -17,8 +17,9 @@ model User {
   updatedAt       DateTime @updatedAt
 
   organizationMemberships OrganizationMember[]
-  projectMemberships    ProjectMember[]
-  invitesCreated        OrganizationInvite[] @relation("InviteCreatedBy")
+  projectMemberships      ProjectMember[]
+  invitesCreated          OrganizationInvite[]     @relation("InviteCreatedBy")
+  projectGitConfigs       ProjectUserGitConfig[]
 }
 
 model Organization {
@@ -78,16 +79,60 @@ model Project {
   executionConfigJson  String   @default("{}")
   openaiApiKeyEnc      String?
   openaiModel          String?
+  /// Active AI provider: "openai" or "claude". Null defaults to openai when a key exists.
+  aiProvider           String?
+  claudeApiKeyEnc      String?
+  claudeModel          String?
+  /// Shared repo URL — set once by admin, applies to all users
+  gitRemoteUrl         String?
+  /// Protected base branch that PRs are merged into (default: main)
+  gitBaseBranch        String?
+  /// AES-256-GCM encrypted CI API token (GitHub PAT / GitLab token / Bitbucket app password)
+  gitCiTokenEnc        String?
+  /// CI workflow file to dispatch (e.g. "run-tests.yml")
+  gitWorkflowFile      String?
+  /// Jira base URL (e.g. https://yourorg.atlassian.net)
+  jiraBaseUrl          String?
+  jiraEmail            String?
+  /// AES-256-GCM encrypted Jira API token
+  jiraApiTokenEnc      String?
+  /// Default JQL query pre-filled in the requirements import panel
+  jiraDefaultJql       String?
   createdAt            DateTime @default(now())
 
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  members      ProjectMember[]
-  requirements Requirement[]
-  environments Environment[]
-  pageObjects  PageObject[]
-  testRuns     TestRun[]
+  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members         ProjectMember[]
+  requirements    Requirement[]
+  environments    Environment[]
+  pageObjects     PageObject[]
+  testRuns        TestRun[]
+  userGitConfigs  ProjectUserGitConfig[]
 
   @@index([organizationId])
+}
+
+/// Per-user git settings for a project (branch, token, author identity)
+model ProjectUserGitConfig {
+  id             String   @id @default(uuid())
+  projectId      String
+  userId         String
+  /// Personal working branch — user pushes here and raises a PR to baseBranch
+  gitBranch      String?
+  /// Author name used in commits
+  gitAuthorName  String?
+  /// Author email used in commits
+  gitAuthorEmail String?
+  /// AES-256-GCM encrypted personal access token
+  gitTokenEnc    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
 }
 
 model TestRun {
@@ -105,6 +150,10 @@ model TestRun {
   resultsAnalysis Json?
   /// Snapshot of HTML report folder after this run (under framework root), e.g. logs/reports/<runId>.
   htmlReportRel String?
+  /// Random token used to authenticate the CI pipeline callback POST
+  callbackToken String?
+  /// URL of the triggered CI pipeline run (e.g. GitHub Actions run URL)
+  pipelineUrl   String?
   createdAt    DateTime  @default(now())
   finishedAt   DateTime?
 

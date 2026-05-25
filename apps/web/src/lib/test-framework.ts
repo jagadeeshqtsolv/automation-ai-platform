@@ -1,4 +1,4 @@
-import type { ProjectPlatformType } from "@automation-ai/shared";
+import type { ProjectPlatformType } from "@automation-ai/core";
 
 /** Runner config file name per platform (under framework root). */
 export function testConfigFileName(platform: ProjectPlatformType): string {
@@ -36,9 +36,18 @@ export function defaultEnvironmentConfigJson(platform: ProjectPlatformType): str
     return JSON.stringify(
       {
         baseURL: "https://example.com",
+        username: "admin@example.com",
+        password: "changeme",
         browser: "chromium",
         headless: true,
         timeout: 30_000,
+        actionTimeout: 10_000,
+        retries: 0,
+        fullyParallel: false,
+        workers: 1,
+        video: "retain-on-failure",
+        trace: "retain-on-failure",
+        screenshot: "only-on-failure",
       },
       null,
       2,

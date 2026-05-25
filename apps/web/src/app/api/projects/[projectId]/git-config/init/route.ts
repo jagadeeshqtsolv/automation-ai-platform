@@ -1,0 +1,54 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { withAuthAndProject } from "@/lib/auth/route-guards";
+import { getProjectGitConfigView } from "@/lib/project-git/git-config";
+import { getUserGitConfigView, getUserGitToken } from "@/lib/project-git/user-git-config";
+import { initRepo, getRepoStatus } from "@/lib/project-git/repo-ops";
+import { prisma } from "@/lib/prisma";
+
+const paramsSchema = z.object({ projectId: z.string().uuid() });
+
+export async function POST(_req: Request, context: { params: Promise<{ projectId: string }> }) {
+  const params = paramsSchema.safeParse(await context.params);
+  if (!params.success) return NextResponse.json({ error: "Invalid project id" }, { status: 400 });
+
+  const guard = await withAuthAndProject(params.data.projectId);
+  if ("error" in guard) return guard.error;
+
+  const [projectConfig, userConfig, token, project] = await Promise.all([
+    getProjectGitConfigView(params.data.projectId),
+    getUserGitConfigView(params.data.projectId, guard.user.id),
+    getUserGitToken(params.data.projectId, guard.user.id),
+    prisma.project.findUnique({
+      where: { id: params.data.projectId },
+      select: { platformType: true },
+    }),
+  ]);
+
+  if (!projectConfig || !project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!projectConfig.remoteUrl) return NextResponse.json({ error: "Project remote URL is not configured. Ask an owner to set it in Setup → Git." }, { status: 400 });
+  if (!userConfig.branch) return NextResponse.json({ error: "Set your working branch in Git Settings before initialising." }, { status: 400 });
+  if (!userConfig.authorName) return NextResponse.json({ error: "Set your author name in Git Settings before initialising." }, { status: 400 });
+  if (!userConfig.authorEmail) return NextResponse.json({ error: "Set your author email in Git Settings before initialising." }, { status: 400 });
+  if (!token) return NextResponse.json({ error: "Add your personal access token in Git Settings before initialising." }, { status: 400 });
+
+  await initRepo({
+    projectId: params.data.projectId,
+    platformType: project.platformType as "web" | "mobile",
+    remoteUrl: projectConfig.remoteUrl,
+    branch: userConfig.branch,
+    baseBranch: projectConfig.baseBranch,
+    authorName: userConfig.authorName,
+    authorEmail: userConfig.authorEmail,
+    token,
+    userId: guard.user.id,
+  });
+
+  const repoStatus = await getRepoStatus(
+    params.data.projectId,
+    project.platformType as "web" | "mobile",
+    guard.user.id,
+  );
+
+  return NextResponse.json({ ok: true, repoStatus });
+}

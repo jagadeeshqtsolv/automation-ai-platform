@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { assignMemberBodySchema } from "@automation-ai/shared";
+import { assignMemberBodySchema } from "@automation-ai/core";
 import { z } from "zod";
 import { requireApiUser, requirePlatformAdmin } from "@/lib/auth/api-auth";
 import type { OrgRole } from "@/lib/auth/access";

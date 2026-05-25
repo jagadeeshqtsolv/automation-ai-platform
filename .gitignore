@@ -24,8 +24,11 @@ frameworks/mobile/*/
 frameworks/**/node_modules/
 frameworks/_shared/node_modules/
 
-# Local Claude Code settings (machine-specific)
-.claude/settings.local.json
+# Local Claude Code / AI assistant memory (machine-specific, never commit)
+.claude/
+
+# packages/core has its own git repo (automation-ai-core)
+packages/core/
 
 # OS / IDE
 .DS_Store

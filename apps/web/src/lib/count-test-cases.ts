@@ -1,4 +1,4 @@
-import { testPlanSchema } from "@automation-ai/shared";
+import { testPlanSchema } from "@automation-ai/core";
 
 export function countTestCasesInPlanJson(planJson: string): number {
   let raw: unknown;

@@ -7,7 +7,6 @@ import { getProjectPlatformType } from "@/lib/project-platform";
 import { parseWebEnvironmentConfig } from "@/lib/playwright-web-environment-config";
 import { ensureWebFrameworkScaffold, writePlaywrightWebConfig } from "@/lib/local-framework/web-scaffold";
 import { resolveFrameworkFilePath } from "@/lib/local-framework/paths";
-import { CAPTURE_DOM_SCRIPT_SOURCE } from "@/lib/recorder/capture-dom-script-source";
 import { parseViewTreeJson } from "@/lib/parse-view-tree-json";
 import {
   captureWebRecorderDom,
@@ -52,11 +51,6 @@ async function prepareWebRecorder(
 
   if (envConfig !== null) {
     await writePlaywrightWebConfig(projectId, envConfig);
-  }
-
-  const capturePath = resolveFrameworkFilePath(projectId, "scripts/capture-dom.mjs", "web");
-  if (capturePath !== null) {
-    await writeFile(capturePath, CAPTURE_DOM_SCRIPT_SOURCE, "utf8");
   }
 
   const sessionPath = resolveFrameworkFilePath(projectId, "environments/.recorder-session.json", "web");

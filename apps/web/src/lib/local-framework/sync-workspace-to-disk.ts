@@ -1,10 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { testPlanSchema, type TestPlan } from "@automation-ai/shared";
+import { testPlanSchema, type TestPlan } from "@automation-ai/core";
 import { prisma } from "@/lib/prisma";
 import { ensureProjectFrameworkScaffold } from "@/lib/local-framework/ensure-project-scaffold";
 import { getProjectPlatformType } from "@/lib/project-platform";
 import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
+import { recordUserFiles } from "@/lib/local-framework/user-file-tracker";
 
 function safeFileSegment(value: string): string {
   const cleaned = value.replace(/[^a-zA-Z0-9._-]+/g, "_").replace(/^-+|-+$/g, "");
@@ -28,6 +29,7 @@ export async function syncRequirementToDisk(params: {
     content: string;
     createdAt: Date;
   };
+  userId?: string;
 }): Promise<void> {
   const platformType = await getProjectPlatformType(params.projectId);
   await ensureProjectFrameworkScaffold({
@@ -35,12 +37,16 @@ export async function syncRequirementToDisk(params: {
     projectName: params.projectName,
     platformType,
   });
-  await writeFrameworkJson(params.projectId, `requirements/${params.requirement.id}.json`, {
+  const relPath = `requirements/${params.requirement.id}.json`;
+  await writeFrameworkJson(params.projectId, relPath, {
     id: params.requirement.id,
     title: params.requirement.title,
     content: params.requirement.content,
     createdAt: params.requirement.createdAt.toISOString(),
   });
+  if (params.userId) {
+    await recordUserFiles(params.projectId, platformType, params.userId, [relPath]).catch(() => {});
+  }
 }
 
 export async function syncTestPlanToDisk(params: {
@@ -53,6 +59,7 @@ export async function syncTestPlanToDisk(params: {
     model: string;
     createdAt: Date;
   };
+  userId?: string;
 }): Promise<void> {
   const platformType = await getProjectPlatformType(params.projectId);
   await ensureProjectFrameworkScaffold({
@@ -70,25 +77,35 @@ export async function syncTestPlanToDisk(params: {
     parsedPlan = null;
   }
 
-  await writeFrameworkJson(params.projectId, `test-plans/${params.plan.id}.json`, {
+  const written: string[] = [];
+
+  const planPath = `test-plans/${params.plan.id}.json`;
+  await writeFrameworkJson(params.projectId, planPath, {
     id: params.plan.id,
     requirementId: params.requirementId,
     model: params.plan.model,
     createdAt: params.plan.createdAt.toISOString(),
     plan: parsedPlan ?? params.plan.json,
   });
+  written.push(planPath);
 
-  if (parsedPlan === null) return;
+  if (parsedPlan !== null) {
+    for (const testCase of parsedPlan.cases) {
+      const caseFileId = `${params.plan.id}__${safeFileSegment(testCase.id)}`;
+      const casePath = `test-cases/${caseFileId}.json`;
+      await writeFrameworkJson(params.projectId, casePath, {
+        id: testCase.id,
+        testPlanId: params.plan.id,
+        requirementId: params.requirementId,
+        suiteName: parsedPlan.suiteName,
+        case: testCase,
+      });
+      written.push(casePath);
+    }
+  }
 
-  for (const testCase of parsedPlan.cases) {
-    const caseFileId = `${params.plan.id}__${safeFileSegment(testCase.id)}`;
-    await writeFrameworkJson(params.projectId, `test-cases/${caseFileId}.json`, {
-      id: testCase.id,
-      testPlanId: params.plan.id,
-      requirementId: params.requirementId,
-      suiteName: parsedPlan.suiteName,
-      case: testCase,
-    });
+  if (params.userId && written.length > 0) {
+    await recordUserFiles(params.projectId, platformType, params.userId, written).catch(() => {});
   }
 }
 

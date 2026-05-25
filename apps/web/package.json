@@ -17,8 +17,11 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@automation-ai/shared": "*",
+    "@ai-sdk/anthropic": "^3.0.79",
+    "@ai-sdk/openai": "^3.0.65",
+    "@automation-ai/core": "npm:@jagadeeshqtsolv/core@^1.0.0",
     "@prisma/client": "^6.8.2",
+    "ai": "^6.0.191",
     "archiver": "^7.0.1",
     "next": "^15.3.2",
     "openai": "^4.100.1",

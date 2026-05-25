@@ -37,9 +37,10 @@ No-code style pipeline: **requirements → structured test plan → runnable Typ
 
 ## Mobilewright
 
-Product site: [https://mobilewright.dev/](https://mobilewright.dev/)
+Mobile projects use Mobilewright
 
-Mobile projects use Mobilewright; web projects use Playwright. Generated specs live under each project's framework folder.
+## Playwright
+Web projects use Playwright. Generated specs live under each project's framework folder.
 
 ## Security notes
 

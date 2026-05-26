@@ -299,8 +299,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        GITHUB_TOKEN: "${GITHUB_TOKEN}"
+      secrets:
+        - github_token
     ports:
       - "${PORT:-3000}:3000"
     depends_on:
@@ -324,6 +324,10 @@ services:
 volumes:
   pg-data:
   app-data:
+
+secrets:
+  github_token:
+    environment: GITHUB_TOKEN
 ```
 
 **3. Update `apps/web/prisma/schema.prisma`** — change the datasource block:

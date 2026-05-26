@@ -6,7 +6,8 @@ import {
   installFrameworkDependencies,
   isFrameworkDependencyInstallInFlight,
 } from "@/lib/local-framework/install-dependencies";
-import { ensureFrameworkScaffold } from "@/lib/local-framework/scaffold";
+import type { ProjectPlatformType } from "@automation-ai/core";
+import { ensureProjectFrameworkScaffold } from "@/lib/local-framework/ensure-project-scaffold";
 import { prisma } from "@/lib/prisma";
 
 const paramsSchema = z.object({
@@ -46,13 +47,13 @@ export async function POST(_req: Request, context: { params: Promise<{ projectId
 
   const project = await prisma.project.findUnique({
     where: { id: parsed.data.projectId },
-    select: { name: true },
+    select: { name: true, platformType: true },
   });
   if (project === null) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  await ensureFrameworkScaffold({ projectId: parsed.data.projectId, projectName: project.name });
+  await ensureProjectFrameworkScaffold({ projectId: parsed.data.projectId, projectName: project.name, platformType: project.platformType as ProjectPlatformType });
   const install = await installFrameworkDependencies(parsed.data.projectId);
   const status = await getFrameworkDependencyStatus(parsed.data.projectId);
 

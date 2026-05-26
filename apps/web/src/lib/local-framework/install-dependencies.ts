@@ -8,6 +8,7 @@ import { WEB_FRAMEWORK_PACKAGE_JSON } from "@/lib/local-framework/web-framework-
 import { getFrameworksRoot, getProjectFrameworkRoot } from "@/lib/local-framework/paths";
 import { getProjectPlatformType } from "@/lib/project-platform";
 import { relinkNodeModulesBinaries } from "@/lib/local-framework/relink-node-modules-binaries";
+import { syncWebSupportDistToProject } from "@/lib/local-framework/sync-web-support-helpers";
 
 /** Only used when seeding the shared cache from npm (not per-project copy). */
 const SHARED_NPM_TIMEOUT_MS = 600_000;
@@ -385,6 +386,7 @@ export async function installFrameworkDependencies(
   if (platform === "web") {
     if (await pathExists(projectRunnerPkg)) {
       await relinkNodeModulesBinaries(root);
+      await syncWebSupportDistToProject(root);
       return { ok: true };
     }
     if (installInFlight.has(projectId)) {
@@ -392,7 +394,9 @@ export async function installFrameworkDependencies(
     }
     installInFlight.add(projectId);
     try {
-      return await installWebFrameworkDependencies(root);
+      const result = await installWebFrameworkDependencies(root);
+      if (result.ok) await syncWebSupportDistToProject(root);
+      return result;
     } finally {
       installInFlight.delete(projectId);
     }

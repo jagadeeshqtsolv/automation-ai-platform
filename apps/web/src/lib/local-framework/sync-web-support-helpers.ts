@@ -1,6 +1,6 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { cp, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
+import { getProjectFrameworkRoot, getWebCoreRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
 
 const LOCATE_STUB = `export * from "@automation-ai/web-support/web-locate";\n`;
 const ACTIONS_STUB = `export * from "@automation-ai/web-support/web-actions";\n`;
@@ -21,5 +21,30 @@ export async function syncWebSupportHelpersToDisk(projectId: string): Promise<vo
   }
   if (actionsPath !== null) {
     await writeFile(actionsPath, ACTIONS_STUB, "utf8");
+  }
+}
+
+/**
+ * Copies the locally-built @automation-ai/web-support dist and scripts into a
+ * project framework's node_modules so it always uses the latest source without
+ * requiring a package publish or npm reinstall.
+ */
+export async function syncWebSupportDistToProject(frameworkRoot: string): Promise<void> {
+  const webCoreRoot = getWebCoreRoot();
+  const target = path.join(frameworkRoot, "node_modules/@automation-ai/web-support");
+
+  try {
+    // Sync TypeScript-compiled helpers (web-actions, web-locate, fixtures, etc.)
+    const srcDist = path.join(webCoreRoot, "dist");
+    const dstDist = path.join(target, "dist");
+    await cp(srcDist, dstDist, { recursive: true, force: true });
+
+    // Sync the recorder script
+    const srcScript = path.join(webCoreRoot, "scripts", "capture-dom.mjs");
+    const dstScripts = path.join(target, "scripts");
+    await mkdir(dstScripts, { recursive: true });
+    await cp(srcScript, path.join(dstScripts, "capture-dom.mjs"), { force: true });
+  } catch {
+    // Non-critical — node_modules may not exist yet or web-support may not be built
   }
 }

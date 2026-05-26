@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { access, readFile, stat, unlink, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { getProjectFrameworkRoot, resolveFrameworkFilePath, getWebCoreRoot } from "@/lib/local-framework/paths";
+import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
+import { syncWebSupportDistToProject } from "@/lib/local-framework/sync-web-support-helpers";
 import { installFrameworkDependencies } from "@/lib/local-framework/install-dependencies";
 import { ensurePlaywrightBrowsersForProject } from "@/lib/local-framework/install-dependencies";
 
@@ -104,16 +104,8 @@ export async function startWebRecorderSession(projectId: string): Promise<void> 
 
   await ensurePlaywrightBrowsersForProject(projectId);
 
-  // Always copy the latest capture-dom.mjs from the monorepo source so new-tab
-  // event writing is available regardless of the installed npm package version.
-  try {
-    const srcScript = path.join(getWebCoreRoot(), "scripts", "capture-dom.mjs");
-    const dstScript = path.join(root, "node_modules/@automation-ai/web-support/scripts/capture-dom.mjs");
-    const content = await readFile(srcScript, "utf8");
-    await writeFile(dstScript, content, "utf8");
-  } catch {
-    // non-critical — falls back to the installed npm version
-  }
+  // Sync the latest web-support dist and scripts from the monorepo source.
+  await syncWebSupportDistToProject(root);
 
   await new Promise<void>((resolve, reject) => {
     const child = spawn("node", ["node_modules/@automation-ai/web-support/scripts/capture-dom.mjs", "start"], {

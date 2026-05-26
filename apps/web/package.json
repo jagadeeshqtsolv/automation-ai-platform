@@ -19,7 +19,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.79",
     "@ai-sdk/openai": "^3.0.65",
-    "@automation-ai/core": "npm:@jagadeeshqtsolv/core@^1.0.0",
+    "@automation-ai/core": "file:../../packages/core",
     "@prisma/client": "^6.8.2",
     "ai": "^6.0.191",
     "archiver": "^7.0.1",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useToast } from "@/components/toast-provider";
 import { readApiError } from "@/lib/api-response";
 import type { WebPageElement, WebPageElementActionKind } from "@automation-ai/core";
@@ -59,9 +59,11 @@ export function BrowserRecorderPanel({
     message?: string;
     at?: string;
   }>({ state: "idle" });
+  const [activeTabUrl, setActiveTabUrl] = useState<string | null>(null);
+  const tabCountRef = useRef(0);
 
   const recorderPayload = useCallback(
-    (action: "start" | "capture" | "stop" | "status") => ({
+    (action: "start" | "capture" | "stop" | "status" | "events") => ({
       projectId,
       action,
       environmentId: envId.length > 0 ? envId : undefined,
@@ -88,6 +90,36 @@ export function BrowserRecorderPanel({
   useEffect(() => {
     void refreshBrowserStatus();
   }, [refreshBrowserStatus]);
+
+  useEffect(() => {
+    if (!browserOpen) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/recorder/capture-dom", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(recorderPayload("events")),
+        });
+        if (!res.ok) return;
+        const body = (await res.json()) as { events?: Array<{ type: string; url?: string; at: string }> };
+        const events = body.events ?? [];
+        for (const evt of events) {
+          if (evt.type === "newTab") {
+            tabCountRef.current += 1;
+            setActiveTabUrl(evt.url ?? null);
+            toast.info(`New tab opened${evt.url ? `: ${evt.url}` : ""}`);
+          } else if (evt.type === "closeTab") {
+            tabCountRef.current = Math.max(0, tabCountRef.current - 1);
+            if (tabCountRef.current === 0) setActiveTabUrl(null);
+            toast.info("Tab closed — back to previous tab");
+          }
+        }
+      } catch {
+        // non-critical polling — ignore errors
+      }
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [browserOpen, recorderPayload, toast]);
 
   const selectedEnv = useMemo(() => environments.find((env) => env.id === envId) ?? null, [envId, environments]);
 
@@ -162,6 +194,8 @@ export function BrowserRecorderPanel({
         return;
       }
       setBrowserOpen(true);
+      setActiveTabUrl(null);
+      tabCountRef.current = 0;
       setSession({
         state: "success",
         message: "Browser is open — navigate, then click Capture current page.",
@@ -216,6 +250,8 @@ export function BrowserRecorderPanel({
         body: JSON.stringify(recorderPayload("stop")),
       });
       setBrowserOpen(false);
+      setActiveTabUrl(null);
+      tabCountRef.current = 0;
       setSession({ state: "idle", message: "Browser closed." });
       toast.success("Browser closed");
     } finally {
@@ -417,6 +453,19 @@ export function BrowserRecorderPanel({
             ? "No environment selected — manual baseURL is used."
             : `Using ${selectedEnv.name} as base config.`}
         </p>
+        {activeTabUrl !== null && (
+          <div className="flex items-start gap-2 rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-300">
+            <span className="mt-0.5 inline-block h-2 w-2 shrink-0 rounded-full bg-sky-400" />
+            <span>
+              <span className="font-medium">New tab active</span>
+              {activeTabUrl.length > 0 && (
+                <span className="ml-1 font-mono text-sky-400/80 break-all">{activeTabUrl}</span>
+              )}
+              <span className="ml-2 text-sky-500/70">— next capture will be from this tab</span>
+            </span>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
           <button
             type="button"

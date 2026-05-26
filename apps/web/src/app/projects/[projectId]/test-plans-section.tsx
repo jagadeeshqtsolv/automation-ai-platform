@@ -110,6 +110,32 @@ function priorityClass(priority: TestCase["priority"]): string {
   return "bg-zinc-500/20 text-zinc-300";
 }
 
+const CATEGORY_TAG_LABELS: Record<string, string> = {
+  smoke: "Smoke",
+  functional: "Functional",
+  negative: "Negative",
+  edgecase: "Edge Case",
+  e2e: "E2E",
+};
+
+const CATEGORY_TAG_CLASSES: Record<string, string> = {
+  smoke: "bg-orange-500/20 text-orange-300",
+  functional: "bg-sky-500/20 text-sky-300",
+  negative: "bg-rose-500/15 text-rose-300",
+  edgecase: "bg-violet-500/20 text-violet-300",
+  e2e: "bg-emerald-500/20 text-emerald-300",
+};
+
+function extractCategoryTag(tags: string[]): { label: string; cls: string } | null {
+  for (const tag of tags) {
+    const key = tag.trim().toLowerCase().replace(/^@/, "");
+    if (key in CATEGORY_TAG_LABELS) {
+      return { label: CATEGORY_TAG_LABELS[key]!, cls: CATEGORY_TAG_CLASSES[key] ?? "bg-zinc-500/20 text-zinc-300" };
+    }
+  }
+  return null;
+}
+
 function codegenBusyKey(planId: string, testCaseId?: string): string {
   return testCaseId !== undefined ? `code:${planId}:${testCaseId}` : `code:${planId}`;
 }
@@ -191,11 +217,22 @@ function TestCaseCard({
               <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${priorityClass(testCase.priority)}`}>
                 {testCase.priority}
               </span>
+              {(() => {
+                const cat = extractCategoryTag(testCase.tags);
+                return cat ? (
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${cat.cls}`}>
+                    {cat.label}
+                  </span>
+                ) : null;
+              })()}
               <span className="text-[10px] text-zinc-500">{testCase.platforms.join(", ")}</span>
             </span>
             <span className="mt-0.5 block text-sm font-medium text-white">{testCase.title}</span>
           </span>
-          <span className="shrink-0 text-[10px] text-zinc-500">{testCase.steps.length} steps</span>
+          <span className="shrink-0 text-[10px] text-zinc-500">
+            {testCase.preconditions.length > 0 ? `${testCase.preconditions.length} pre + ` : ""}
+            {testCase.steps.length} steps
+          </span>
         </button>
         <div className="flex shrink-0 flex-col gap-1 sm:flex-row sm:flex-wrap sm:justify-end">
           {!editing ? (
@@ -242,18 +279,6 @@ function TestCaseCard({
 
       {open && !editing ? (
         <div className="space-y-3 border-t border-white/5 px-3 pb-3 pt-2">
-          {testCase.preconditions.length > 0 ? (
-            <div className="rounded-lg border border-amber-500/15 bg-amber-950/20 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-200/90">
-                Before (preconditions)
-              </p>
-              <ul className="mt-1.5 space-y-1 text-xs text-zinc-300">
-                {testCase.preconditions.map((p) => (
-                  <li key={p}>{p}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
           {testCase.tags.length > 0 ? (
             <div className="flex flex-wrap gap-1">
               {testCase.tags.map((tag) => (
@@ -266,6 +291,16 @@ function TestCaseCard({
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-sky-200/90">Test steps</p>
             <ol className="mt-1.5 space-y-1.5">
+              {testCase.preconditions.map((p, i) => (
+                <li
+                  key={`pre-${i}`}
+                  className="rounded-md border border-amber-500/20 bg-amber-950/20 px-2.5 py-1.5 text-xs text-zinc-300"
+                >
+                  <span className="font-mono text-[10px] text-amber-500/70">Pre {i + 1}</span>{" "}
+                  <span className="font-medium text-amber-200">Before</span>
+                  {" — "}{p}
+                </li>
+              ))}
               {testCase.steps.map((step, i) => (
                 <li
                   key={step.id}
@@ -876,12 +911,17 @@ function SuiteBlock({
             type="button"
             disabled={busy !== null || data.cases.length === 0}
             onClick={() => void onGenerateCode(plan.id)}
-            className="ui-btn-primary ui-btn-xs disabled:cursor-not-allowed"
+            className="ui-btn-primary ui-btn-xs disabled:cursor-not-allowed inline-flex items-center gap-1.5"
             title={data.cases.length === 0 ? "Add at least one test case first" : undefined}
           >
-            {busy === codegenBusyKey(plan.id)
-              ? "Generating…"
-              : "Generate all tests"}
+            {busy === codegenBusyKey(plan.id) ? (
+              <>
+                <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current/20 border-t-current" />
+                Generating…
+              </>
+            ) : (
+              "Generate all tests"
+            )}
           </button>
           <button
             type="button"
@@ -894,7 +934,22 @@ function SuiteBlock({
         </div>
       </div>
 
-      {data.cases.length === 0 ? (
+      {busy === codegenBusyKey(plan.id) ? (
+        <div className="mt-3 rounded-xl border border-sky-500/30 bg-sky-950/20 p-4">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-sky-400/30 border-t-sky-400" />
+            <div>
+              <p className="text-sm font-semibold text-sky-100">Test Generation using AI — in progress</p>
+              <p className="mt-1 text-xs text-zinc-400">
+                Writing {runnerLabel} specs for all test cases. This may take a moment.
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 h-1 overflow-hidden rounded-full bg-sky-950/60">
+            <div className="h-full w-2/3 animate-pulse rounded-full bg-sky-500/50" />
+          </div>
+        </div>
+      ) : data.cases.length === 0 ? (
         <p className="mt-3 text-xs text-zinc-500">No test cases yet. Add one below.</p>
       ) : null}
 

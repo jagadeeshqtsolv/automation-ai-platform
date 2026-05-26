@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { readFile } from "node:fs/promises";
 import { generateCodeBodySchema, testPlanSchema } from "@automation-ai/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
@@ -12,11 +13,13 @@ import {
   generatePlaywrightWebPomBundle,
 } from "@/lib/generate-playwright-web-bundle";
 import { upsertPageObjectFilesFromPomBundle } from "@/lib/persist-page-objects";
-import { writeFrameworkFiles } from "@/lib/local-framework/writer";
+import { writeFrameworkFiles, readFrameworkFile } from "@/lib/local-framework/writer";
+import { removeTestCaseFromSpecContent, findTestBlockStarts, findTestBlockEnd } from "@/lib/test-plans/remove-test-from-spec";
 import { syncProjectWorkspaceToDisk } from "@/lib/local-framework/sync-workspace-to-disk";
 import { generateTestFixturesSource, TEST_FIXTURES_MODULE_PATH } from "@/lib/generate-test-fixtures";
 import { aiGenerationErrorStatus } from "@/lib/ai-generation-error-status";
 import { getProjectPlatformType } from "@/lib/project-platform";
+import { resolveFrameworkFilePath } from "@/lib/local-framework/paths";
 
 const generatingProjects = new Set<string>();
 
@@ -130,6 +133,11 @@ export async function POST(req: Request) {
     environmentDisk = { slug: env.slug, configJson: env.configJson };
   }
 
+  const testDataPath = resolveFrameworkFilePath(projectId, "testdata/test-data.json");
+  const currentTestData = testDataPath !== null
+    ? await readFile(testDataPath, "utf8").catch(() => "{}")
+    : "{}";
+
   generatingProjects.add(projectId);
   try {
     const { bundle, model } = await generatePlaywrightWebPomBundle({
@@ -140,6 +148,7 @@ export async function POST(req: Request) {
       projectId: testPlanRow.requirement.projectId,
       scope: singleCaseId !== undefined ? "single-case" : "full-plan",
       focusTestCaseId: singleCaseId,
+      currentTestData,
     });
 
     if (bundle.pageObjectFiles.length > 0) {
@@ -174,7 +183,43 @@ export async function POST(req: Request) {
         .trim()
         .replace(/^\.\//, "")
         .replace(/^tests\/generated\//, "tests/");
+
+      if (singleCaseId !== undefined) {
+        const testCase = planForGeneration.cases.find((c) => c.id === singleCaseId);
+        if (testCase !== undefined) {
+          const existing = await readFrameworkFile(projectId, rel);
+          if (existing !== null && existing.trim().length > 0) {
+            // Extract the test() block from the AI-generated single-case output
+            const starts = findTestBlockStarts(f.content);
+            let newBlock = f.content.trimEnd();
+            if (starts.length > 0) {
+              const blockEnd = findTestBlockEnd(f.content, starts[0]!);
+              newBlock = blockEnd > 0
+                ? f.content.slice(starts[0]!, blockEnd).trimEnd()
+                : f.content.slice(starts[0]!).trimEnd();
+            }
+            // Remove old version of this test from existing file, then append new block
+            const { content: without } = removeTestCaseFromSpecContent(existing, testCase);
+            const trimmed = without.trimEnd();
+            const merged = trimmed.length > 0
+              ? `${trimmed}\n\n${newBlock}\n`
+              : `import { test, expect } from '../support/fixtures';\n\n${newBlock}\n`;
+            diskFiles.push({ relativePath: rel, content: merged });
+            continue;
+          }
+          // No existing spec — write full AI content (imports + test block)
+        }
+      }
+
       diskFiles.push({ relativePath: rel, content: f.content });
+    }
+
+    if (bundle.testDataFile !== undefined) {
+      const tdRel = bundle.testDataFile.path.trim().replace(/^\.\//, "");
+      if (!seen.has(tdRel)) {
+        seen.add(tdRel);
+        diskFiles.push({ relativePath: tdRel, content: bundle.testDataFile.content });
+      }
     }
 
     const fixturePageRows: Array<{ className: string; modulePath: string }> = [

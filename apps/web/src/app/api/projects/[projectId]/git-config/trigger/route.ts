@@ -48,7 +48,7 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
   }
   if (!ciConfig?.hasCiToken) {
     return NextResponse.json(
-      { error: "No CI token configured. Set it in Setup → Git → CI Pipeline." },
+      { error: "No CI token configured. Set it in Setup → Execution → GitHub CI." },
       { status: 422 },
     );
   }

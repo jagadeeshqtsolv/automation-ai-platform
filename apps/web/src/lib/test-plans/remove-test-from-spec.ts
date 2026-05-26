@@ -32,7 +32,7 @@ export function testBlockMatchesCase(block: string, testCase: TestCase): boolean
   return titleRe.test(block);
 }
 
-function findTestBlockStarts(content: string): number[] {
+export function findTestBlockStarts(content: string): number[] {
   const indices: number[] = [];
   const re = /(?:^|\n)(\s*)test\s*\(/g;
   let match: RegExpExecArray | null;
@@ -43,7 +43,7 @@ function findTestBlockStarts(content: string): number[] {
   return indices;
 }
 
-function findTestBlockEnd(content: string, testStart: number): number {
+export function findTestBlockEnd(content: string, testStart: number): number {
   const asyncIdx = content.indexOf("async", testStart);
   if (asyncIdx === -1) {
     return -1;

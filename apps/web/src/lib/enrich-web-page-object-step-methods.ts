@@ -17,18 +17,23 @@ function hasMethod(content: string, name: string): boolean {
   return new RegExp(`\\basync\\s+${name}\\s*\\(`).test(content);
 }
 
+const WEB_LOCATE_IMPORT_RE = /\nimport\s+\{\s*webLocator\s*\}\s+from\s+["']\.\.\/support\/web-locate["']\s*;/g;
+
 function ensureWebActionImports(content: string): string {
-  if (/from\s+["']\.\.\/support\/web-actions["']/.test(content)) {
-    return content.replace(
+  let out = content;
+  if (/from\s+["']\.\.\/support\/web-actions["']/.test(out)) {
+    out = out.replace(
       /import\s+\{[\s\S]*?\}\s+from\s+["']\.\.\/support\/web-actions["']\s*;/,
       WEB_ACTIONS_IMPORT_BLOCK,
     );
+    out = out.replace(WEB_LOCATE_IMPORT_RE, "");
+    return out;
   }
   const locateImport = /import\s+\{\s*webLocator\s*\}\s+from\s+["']\.\.\/support\/web-locate["']\s*;/;
-  if (locateImport.test(content)) {
-    return content.replace(locateImport, (m) => `${m}\n${WEB_ACTIONS_IMPORT_BLOCK}`);
+  if (locateImport.test(out)) {
+    return out.replace(locateImport, WEB_ACTIONS_IMPORT_BLOCK);
   }
-  return content;
+  return out;
 }
 
 type LocatorKind = "textbox" | "checkbox" | "combobox" | "clickable";

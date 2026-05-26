@@ -6,6 +6,8 @@ import { FRAMEWORK_NPMRC_FILENAME, FRAMEWORK_PROJECT_NPMRC } from "@/lib/local-f
 import { WEB_FRAMEWORK_PACKAGE_JSON } from "@/lib/local-framework/web-framework-package";
 import { syncWebSupportHelpersToDisk } from "@/lib/local-framework/sync-web-support-helpers";
 import { readWebCoreFile } from "@/lib/local-framework/web-core-reader";
+import { generateWorkflowTemplate } from "@/lib/project-git/workflow-template";
+import { DEFAULT_CI_RUN_CONFIG } from "@automation-ai/core";
 
 const WEB_TSCONFIG = `{
   "compilerOptions": {
@@ -28,30 +30,7 @@ const WEB_TSCONFIG = `{
 }
 `;
 
-const TEST_DATA_JSON = JSON.stringify(
-  {
-    users: {
-      admin: { email: "admin@example.com", password: "Admin@123" },
-      standard: { email: "user@example.com", password: "User@123" },
-      readonly: { email: "viewer@example.com", password: "View@123" },
-    },
-    search: {
-      validKeyword: "laptop",
-      invalidKeyword: "xyznonexistent999",
-    },
-    products: [
-      { name: "Sample Product 1", price: 29.99, sku: "PRD-001" },
-      { name: "Sample Product 2", price: 49.99, sku: "PRD-002" },
-    ],
-    messages: {
-      loginSuccess: "Welcome back!",
-      loginFailed: "Invalid credentials",
-      requiredField: "This field is required",
-    },
-  },
-  null,
-  2,
-);
+const TEST_DATA_JSON = JSON.stringify({}, null, 2);
 
 const WEB_GITIGNORE = `# Dependencies
 node_modules/
@@ -101,6 +80,7 @@ export async function ensureWebFrameworkScaffold(params: {
     "pageobjects", "support", "tests", "requirements",
     "test-plans", "test-cases", "environments",
     "logs", "utils", "testdata",
+    ".github/workflows",
   ]) {
     await mkdir(path.join(root, dir), { recursive: true });
   }
@@ -129,6 +109,14 @@ export async function ensureWebFrameworkScaffold(params: {
   // .gitignore — always refresh so it stays up to date
   await writeFile(gitignorePath, WEB_GITIGNORE, { encoding: "utf8" }).catch(() => undefined);
 
+  // CI workflow — create only, never overwrite user's customised file
+  const workflowPath = path.join(root, ".github/workflows/run-tests.yml");
+  await writeFile(
+    workflowPath,
+    generateWorkflowTemplate("github", "run-tests.yml", "web", DEFAULT_CI_RUN_CONFIG),
+    { encoding: "utf8", flag: "wx" },
+  ).catch(() => undefined);
+
   if (pkgPath !== null) {
     await writeFile(pkgPath, WEB_FRAMEWORK_PACKAGE_JSON, { encoding: "utf8", flag: "wx" }).catch(() => undefined);
   }
@@ -156,7 +144,7 @@ export async function ensureWebFrameworkScaffold(params: {
     await writeFile(
       fixturesPath,
       `export * from "@automation-ai/web-support/fixtures";\n`,
-      { encoding: "utf8" },
+      { encoding: "utf8", flag: "wx" },
     ).catch(() => undefined);
   }
 

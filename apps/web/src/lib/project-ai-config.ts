@@ -18,7 +18,16 @@ export type ResolvedAIModel = {
   model: LanguageModel;
   modelId: string;
   provider: AIProvider;
+  isReasoningModel: boolean;
 };
+
+const REASONING_MODEL_PREFIXES = ["o1", "o3", "o4", "o-"];
+const REASONING_MODEL_IDS = new Set(["gpt-5"]);
+
+export function isReasoningModelId(modelId: string): boolean {
+  const id = modelId.toLowerCase().trim();
+  return REASONING_MODEL_IDS.has(id) || REASONING_MODEL_PREFIXES.some((p) => id.startsWith(p));
+}
 
 export type ProjectAISettingsView = {
   activeProvider: AIProvider | null;
@@ -68,6 +77,7 @@ export async function resolveAIModel(projectId: string): Promise<ResolvedAIModel
       model: createAnthropic({ apiKey })(modelId),
       modelId,
       provider: "claude",
+      isReasoningModel: false,
     };
   }
 
@@ -78,6 +88,7 @@ export async function resolveAIModel(projectId: string): Promise<ResolvedAIModel
     model: createOpenAI({ apiKey })(modelId),
     modelId,
     provider: "openai",
+    isReasoningModel: isReasoningModelId(modelId),
   };
 }
 

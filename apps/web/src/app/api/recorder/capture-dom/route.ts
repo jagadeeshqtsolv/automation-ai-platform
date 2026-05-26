@@ -10,6 +10,7 @@ import { resolveFrameworkFilePath } from "@/lib/local-framework/paths";
 import { parseViewTreeJson } from "@/lib/parse-view-tree-json";
 import {
   captureWebRecorderDom,
+  consumeRecorderEvents,
   isWebRecorderSessionRunning,
   startWebRecorderSession,
   stopWebRecorderSession,
@@ -22,8 +23,8 @@ const bodySchema = z.object({
   startPath: z.string().max(500).optional(),
   browser: z.enum(["chromium", "firefox", "webkit"]).optional(),
   headless: z.boolean().optional(),
-  /** start = open headed browser; capture = snapshot current page; stop = close browser */
-  action: z.enum(["start", "capture", "stop", "status"]).default("capture"),
+  /** start = open headed browser; capture = snapshot current page; stop = close browser; events = consume tab events */
+  action: z.enum(["start", "capture", "stop", "status", "events"]).default("capture"),
 });
 
 function mergeWebSession(base: string | null, overrides: z.infer<typeof bodySchema>): string {
@@ -109,6 +110,11 @@ export async function POST(req: Request) {
     if (parsed.data.action === "status") {
       const running = await isWebRecorderSessionRunning(parsed.data.projectId);
       return NextResponse.json({ running });
+    }
+
+    if (parsed.data.action === "events") {
+      const events = await consumeRecorderEvents(parsed.data.projectId);
+      return NextResponse.json({ events });
     }
 
     if (parsed.data.action === "stop") {

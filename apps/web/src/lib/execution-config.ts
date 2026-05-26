@@ -1,7 +1,10 @@
 import {
+  ciRunConfigSchema,
   executionConfigSchema,
   executionProviderLabel,
+  type CiRunConfig,
   type ExecutionConfig,
+  DEFAULT_CI_RUN_CONFIG,
 } from "@automation-ai/core";
 import { decryptSecret, encryptSecret } from "@/lib/secret-crypto";
 
@@ -14,6 +17,7 @@ export type StoredExecutionSecrets = {
 export type ExecutionConfigDocument = {
   config: ExecutionConfig;
   secrets: StoredExecutionSecrets;
+  ciRunConfig?: CiRunConfig;
 };
 
 export const DEFAULT_EXECUTION_CONFIG: ExecutionConfig = {
@@ -41,11 +45,14 @@ export function parseExecutionConfigDocument(raw: string | null | undefined): Ex
     const parsed = JSON.parse(raw) as {
       config?: unknown;
       secrets?: StoredExecutionSecrets;
+      ciRunConfig?: unknown;
     };
     const config = executionConfigSchema.safeParse(parsed.config ?? parsed);
+    const ciRunConfig = ciRunConfigSchema.safeParse(parsed.ciRunConfig ?? {});
     return {
       config: config.success ? config.data : DEFAULT_EXECUTION_CONFIG,
       secrets: parsed.secrets ?? {},
+      ciRunConfig: ciRunConfig.success ? ciRunConfig.data : DEFAULT_CI_RUN_CONFIG,
     };
   } catch {
     return { config: DEFAULT_EXECUTION_CONFIG, secrets: {} };

@@ -124,9 +124,9 @@ export function TestExecutionPanel({
       onRunFinished?.(body.id, body.status);
 
       if (body.status === "passed") {
-        toast.success("Test run completed — open Test Reports for HTML and step breakdown");
+        toast.success("Test run passed");
       } else if (body.status === "failed") {
-        toast.error("Test run finished with failures — see Test Reports");
+        toast.error("Test run finished with failures");
       } else if (body.status === "cancelled") {
         toast.info("Test run stopped");
       } else {
@@ -518,9 +518,6 @@ export function TestExecutionPanel({
             {lastStatus}
             {running ? " (live)" : ""}
           </span>
-          {!running && lastStatus !== "running" ? (
-            <span className="text-zinc-500"> — open Test reports for HTML and step breakdown.</span>
-          ) : null}
         </p>
       ) : null}
 

@@ -1,19 +1,32 @@
-import type { CiProvider } from "@automation-ai/core";
+import type { CiProvider, CiRunConfig } from "@automation-ai/core";
+import { DEFAULT_CI_RUN_CONFIG } from "@automation-ai/core";
 
 /** Returns a starter CI workflow YAML the user can commit to their repo. */
 export function generateWorkflowTemplate(
   provider: CiProvider,
   workflowFile: string,
   platformType: "web" | "mobile",
+  ciConfig?: CiRunConfig,
 ): string {
-  const testCmd =
-    platformType === "web"
-      ? "npx playwright test $SPEC_PATHS_ARG $GREP_ARG"
-      : "npx mobilewright test $SPEC_PATHS_ARG $GREP_ARG";
+  const cfg = ciConfig ?? DEFAULT_CI_RUN_CONFIG;
+
+  let testCmd: string;
+  if (platformType === "web") {
+    const flags = [
+      `$SPEC_PATHS_ARG`,
+      `$GREP_ARG`,
+      `--workers=${cfg.workers}`,
+      `--retries=${cfg.retries}`,
+      ...cfg.browsers.map((b: string) => `--project=${b}`),
+    ].join(" ");
+    testCmd = `npx playwright test ${flags}`;
+  } else {
+    testCmd = "npx mobilewright test $SPEC_PATHS_ARG $GREP_ARG";
+  }
 
   switch (provider) {
     case "github":
-      return githubTemplate(workflowFile, testCmd);
+      return githubTemplate(workflowFile, testCmd, platformType, cfg);
     case "gitlab":
       return gitlabTemplate(testCmd);
     case "bitbucket":
@@ -21,8 +34,12 @@ export function generateWorkflowTemplate(
   }
 }
 
-function githubTemplate(workflowFile: string, testCmd: string): string {
+function githubTemplate(workflowFile: string, testCmd: string, platformType: "web" | "mobile", cfg: CiRunConfig): string {
   const name = workflowFile.replace(/\.ya?ml$/i, "");
+  const browsersArg = cfg.browsers.join(" ");
+  const installBrowsersStep = platformType === "web"
+    ? `\n      - run: npx playwright install --with-deps ${browsersArg}\n`
+    : "";
   return `# .github/workflows/${workflowFile}
 # Triggered by AutomationAI via workflow_dispatch.
 # Requires: Node.js, npm, and test dependencies installed.
@@ -42,7 +59,7 @@ on:
       grep:
         description: "Test title filter (e.g. @smoke)"
         required: false
-        default: ""
+        default: "${cfg.defaultTag}"
       callback_url:
         description: "AutomationAI webhook URL to post results back"
         required: true
@@ -55,6 +72,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${cfg.branch}
 
       - uses: actions/setup-node@v4
         with:
@@ -62,10 +81,7 @@ jobs:
           cache: npm
 
       - run: npm ci
-
-      # Web projects only — install Playwright browsers
-      # - run: npx playwright install --with-deps chromium
-
+${installBrowsersStep}
       - name: Run tests
         env:
           AUTOM_ENVIRONMENT: \${{ inputs.environment }}

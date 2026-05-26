@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { ciProviderLabel, detectCiProvider, type CiProvider } from "@automation-ai/core";
+import { detectCiProvider, type CiProvider } from "@automation-ai/core";
 import { useToast } from "@/components/toast-provider";
 import { readApiError } from "@/lib/api-response";
 
@@ -55,11 +55,6 @@ export function ProjectGitSettings({
   const [initialising, setInitialising] = useState(false);
   const [identityResult, setIdentityResult] = useState<{ ok: boolean; message: string } | null>(null);
 
-  // CI Pipeline fields
-  const [ciToken, setCiToken] = useState("");
-  const [workflowFile, setWorkflowFile] = useState("run-tests.yml");
-  const [savingCi, setSavingCi] = useState(false);
-
   // Test + push-to-base
   const [testing, setTesting] = useState(false);
   const [pushing, setPushing] = useState(false);
@@ -80,7 +75,6 @@ export function ProjectGitSettings({
     setUserConfig(body.userConfig);
     setRemoteUrl(body.projectConfig.remoteUrl ?? "");
     setBaseBranch(body.projectConfig.baseBranch);
-    setWorkflowFile(body.ciConfig?.workflowFile ?? "run-tests.yml");
     setBranch(body.userConfig.branch ?? "");
     setAuthorName(body.userConfig.authorName ?? "");
     setAuthorEmail(body.userConfig.authorEmail ?? "");
@@ -112,45 +106,6 @@ export function ProjectGitSettings({
     } finally {
       setSavingRepo(false);
     }
-  }
-
-  // ── Save CI pipeline config ───────────────────────────────────────────────
-  async function onSaveCiConfig(e: FormEvent) {
-    e.preventDefault();
-    setSavingCi(true);
-    try {
-      const payload: Record<string, string | null> = {
-        gitWorkflowFile: workflowFile.trim() || "run-tests.yml",
-      };
-      if (ciToken.trim().length > 0) payload.gitCiToken = ciToken.trim();
-
-      const res = await fetch(`/api/projects/${projectId}/git-config`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        toast.error(await readApiError(res, "Could not save CI settings"));
-        return;
-      }
-      setCiToken("");
-      await load();
-      toast.success("CI pipeline settings saved");
-    } finally {
-      setSavingCi(false);
-    }
-  }
-
-  function downloadWorkflowTemplate() {
-    const remoteUrl = projectConfig?.remoteUrl ?? "";
-    const provider: CiProvider | null = remoteUrl ? detectCiProvider(remoteUrl) : null;
-    if (!provider) {
-      toast.error("Save repository URL first so the provider can be detected");
-      return;
-    }
-
-    const templateUrl = `/api/projects/${projectId}/git-config/workflow-template?provider=${provider}&workflowFile=${encodeURIComponent(workflowFile.trim() || "run-tests.yml")}`;
-    window.open(templateUrl, "_blank");
   }
 
   // ── Save identity + trigger auto-init ────────────────────────────────────
@@ -501,92 +456,6 @@ export function ProjectGitSettings({
               {testResult.ok ? "✓ " : "✗ "}{testResult.message}
             </div>
           )}
-        </div>
-      )}
-
-      {/* ── CI Pipeline ─────────────────────────────────────────────── */}
-      {isOwner && projectConfig.remoteUrl && (
-        <div className="rounded-xl border border-white/10 bg-ink-950/30 p-4 space-y-3">
-          <div>
-            <h3 className="text-sm font-semibold text-white">CI Pipeline</h3>
-            <p className="mt-0.5 text-xs text-zinc-400">
-              Trigger your{" "}
-              {(() => {
-                const p = detectCiProvider(projectConfig.remoteUrl!);
-                return p ? <span className="font-medium text-zinc-200">{ciProviderLabel(p)}</span> : "CI";
-              })()}{" "}
-              pipeline from the Test execution tab. Tests run on your own CI infrastructure — no server resources used.
-            </p>
-          </div>
-
-          {ciConfig?.hasCiToken && (
-            <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/8 px-3 py-2 text-xs text-emerald-300">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              CI token configured
-              {ciConfig.ciTokenPreview && (
-                <span className="ml-1 font-mono text-zinc-500">{ciConfig.ciTokenPreview}</span>
-              )}
-            </div>
-          )}
-
-          <form onSubmit={onSaveCiConfig} className="space-y-3" data-testid="git-ci-form">
-            <label className="block text-xs text-zinc-400">
-              CI API token{" "}
-              <span className="text-zinc-500">
-                {ciConfig?.hasCiToken ? "(leave blank to keep current)" : "(required to trigger pipeline)"}
-              </span>
-              <input
-                type="password"
-                value={ciToken}
-                onChange={(e) => setCiToken(e.target.value)}
-                autoComplete="off"
-                placeholder={ciConfig?.hasCiToken ? "••••••••" : "ghp_… / glpat-… / App password"}
-                disabled={savingCi}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 font-mono text-sm text-white disabled:opacity-50"
-                data-testid="git-ci-token-input"
-              />
-              <span className="mt-1 block text-[10px] text-zinc-500">
-                GitHub: PAT with <code className="text-zinc-400">repo</code> +{" "}
-                <code className="text-zinc-400">workflow</code> scopes · GitLab: Project/Group access token ·
-                Bitbucket: App password with pipeline write scope
-              </span>
-            </label>
-
-            <label className="block text-xs text-zinc-400">
-              Workflow file
-              <input
-                value={workflowFile}
-                onChange={(e) => setWorkflowFile(e.target.value)}
-                placeholder="run-tests.yml"
-                maxLength={200}
-                disabled={savingCi}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
-                data-testid="git-workflow-file-input"
-              />
-              <span className="mt-1 block text-[10px] text-zinc-500">
-                GitHub: file name in <code className="text-zinc-400">.github/workflows/</code> · GitLab/Bitbucket: ignored (pipeline is triggered by ref)
-              </span>
-            </label>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="submit"
-                disabled={savingCi}
-                className="ui-btn-primary ui-btn-xs disabled:opacity-50"
-                data-testid="git-ci-save-btn"
-              >
-                {savingCi ? <><Spinner />Saving…</> : "Save CI settings"}
-              </button>
-              <button
-                type="button"
-                onClick={downloadWorkflowTemplate}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-white/[0.07] transition"
-                data-testid="git-ci-download-template-btn"
-              >
-                Download workflow template
-              </button>
-            </div>
-          </form>
         </div>
       )}
 

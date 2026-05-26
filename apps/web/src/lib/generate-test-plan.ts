@@ -1,6 +1,10 @@
 import { generateText } from "ai";
-import { TEST_STEP_ACTIONS_PROMPT, testPlanSchema, type TestPlan } from "@automation-ai/core";
-import { formatGenerationError } from "@/lib/format-generation-error";
+import {
+  TEST_STEP_ACTIONS_PROMPT,
+  testPlanSchema,
+  type TestPlan,
+  type TestCaseType,
+} from "@automation-ai/core";
 import { resolveAIModel } from "@/lib/project-ai-config";
 import { normalizeLlmTestPlan } from "@/lib/normalize-llm-test-plan";
 
@@ -54,58 +58,101 @@ const WEB_PLAN_SCHEMA_DESCRIPTION = `{
   ]
 }`;
 
-const MOBILE_SYSTEM_PROMPT = [
-  "You are a principal mobile QA engineer.",
-  "Turn product requirements into executable-style test cases for native mobile apps.",
-  "Respond with JSON ONLY. No markdown fences. No commentary.",
-  `The JSON MUST match this shape: ${MOBILE_PLAN_SCHEMA_DESCRIPTION}`,
-  "Use realistic steps; prefer accessibility-friendly locator hints (labels, roles, names).",
-  "Use only the exact action strings listed (e.g. tap, not click). platforms must be lowercase ios and/or android.",
-  "Include negative and edge cases where appropriate.",
-].join("\n");
+const TEST_CASE_TYPE_DESCRIPTIONS: Record<TestCaseType, string> = {
+  "smoke": "SMOKE — P0 critical-path tests that verify the core feature works end-to-end with minimal steps. Fast sanity check before deeper testing.",
+  "functional": "FUNCTIONAL — positive happy-path tests covering all main flows with valid inputs and expected outcomes.",
+  "negative": "NEGATIVE — invalid inputs, wrong credentials, unauthorised access, missing required fields, incorrect formats, and expected error messages.",
+  "edgecase": "EDGE CASES — boundary values (min/max length, 0, 1, empty string, whitespace-only), special characters, very long strings, and numeric limits.",
+  "e2e": "END-TO-END — complete user journeys spanning multiple screens or features (e.g. search → product detail → add to cart → checkout).",
+};
 
-const WEB_SYSTEM_PROMPT = [
-  "You are a principal web QA engineer.",
-  "Turn product requirements into executable-style test cases for web applications running in a browser.",
-  "Respond with JSON ONLY. No markdown fences. No commentary.",
-  `The JSON MUST match this shape: ${WEB_PLAN_SCHEMA_DESCRIPTION}`,
-  "Use realistic steps; prefer accessibility-friendly locator hints (label text, role+name, data-testid, or CSS selectors like #id or [name=x]).",
-  "Use only the exact action strings listed. For web: tap = click a button/link, fill = fill a form field. Avoid mobile-only actions (tapAt, swipe, launchApp, terminateApp, setOrientation, pullToRefresh, pressButton, openDeepLink, gesture).",
-  "Set platforms to an array of applicable browsers from: chrome, firefox, safari, edge. Default to [\"chrome\"] when not specified.",
-  "Preconditions must be browser/web appropriate — e.g. 'Browser is open', 'User is on the login page', 'User is logged out', 'User is on the home page'. Never write 'App is installed', 'Device is connected', or any native-app precondition.",
-  "Include negative and edge cases where appropriate.",
-].join("\n");
+const ALL_TEST_CASE_TYPES: TestCaseType[] = [
+  "smoke", "functional", "negative", "edgecase", "e2e",
+];
+
+const TEST_CASE_TYPE_TAGS: Record<TestCaseType, string> = {
+  smoke: "@smoke",
+  functional: "@functional",
+  negative: "@negative",
+  edgecase: "@edgecase",
+  e2e: "@e2e",
+};
+
+function categoryInstruction(types: TestCaseType[]): string {
+  const maxPerCategory = Math.min(5, Math.max(3, Math.ceil(8 / types.length)));
+  const typeLines = types.map((t) => `- ${t.toUpperCase()}: ${TEST_CASE_TYPE_DESCRIPTIONS[t]}`).join("\n");
+  const tags = types.map((t) => TEST_CASE_TYPE_TAGS[t]).join(", ");
+  return [
+    `Your task: generate ${maxPerCategory} test cases per category for ONLY these ${types.length} categor${types.length === 1 ? "y" : "ies"}:`,
+    typeLines,
+    `Tag each case with its category tag (${tags}) plus @regression.`,
+    `Do not generate any other test category.`,
+  ].join("\n");
+}
+
+function buildMobileSystemPrompt(types: TestCaseType[]): string {
+  return [
+    "You are a mobile QA engineer. Respond with JSON only — no markdown, no commentary.",
+    categoryInstruction(types),
+    `JSON shape: ${MOBILE_PLAN_SCHEMA_DESCRIPTION}`,
+    "Use exact action strings (tap, fill, etc). platforms: ios and/or android (lowercase).",
+    "Encode setup as first step, not as preconditions. Keep steps concise.",
+  ].join("\n");
+}
+
+function buildWebSystemPrompt(types: TestCaseType[]): string {
+  return [
+    "You are a web QA engineer. Respond with JSON only — no markdown, no commentary.",
+    categoryInstruction(types),
+    `JSON shape: ${WEB_PLAN_SCHEMA_DESCRIPTION}`,
+    "Use exact action strings (tap=click, fill=form input). No mobile-only actions.",
+    "platforms: array of chrome/firefox/safari/edge. Default to [\"chrome\"].",
+    "Encode setup as first step, not as preconditions. Keep steps concise.",
+  ].join("\n");
+}
 
 export async function generateTestPlanFromRequirement(params: {
   requirementTitle: string | null;
   requirementContent: string;
   projectId: string;
   platform?: "web" | "mobile";
+  testCaseTypes?: TestCaseType[];
 }): Promise<{ plan: TestPlan; model: string }> {
-  const { model, modelId } = await resolveAIModel(params.projectId);
+  const { model, modelId, isReasoningModel } = await resolveAIModel(params.projectId);
   const isWeb = params.platform === "web";
-  const userParts: string[] = [];
+  const types = params.testCaseTypes ?? ALL_TEST_CASE_TYPES;
+  const systemPrompt = isWeb
+    ? buildWebSystemPrompt(types)
+    : buildMobileSystemPrompt(types);
+
+  const categoryLabel = types.map((t) => t.toUpperCase()).join(" + ");
+  const userParts: string[] = [
+    `Generate ${categoryLabel} test cases only.`,
+  ];
   if (params.requirementTitle !== null && params.requirementTitle.trim().length > 0) {
-    userParts.push(`Title: ${params.requirementTitle.trim()}`);
+    userParts.push(`Feature: ${params.requirementTitle.trim()}`);
   }
   userParts.push(`Requirements:\n${params.requirementContent}`);
 
+  const messages: Array<{ role: "user" | "assistant"; content: string }> = isReasoningModel
+    ? [{ role: "user", content: `${systemPrompt}\n\n${userParts.join("\n\n")}` }]
+    : [{ role: "user", content: userParts.join("\n\n") }];
+
   const { text: raw } = await generateText({
     model,
-    temperature: 0.2,
-    messages: [
-      { role: "system", content: isWeb ? WEB_SYSTEM_PROMPT : MOBILE_SYSTEM_PROMPT },
-      { role: "user", content: userParts.join("\n\n") },
-    ],
+    ...(isReasoningModel ? {} : { system: systemPrompt, temperature: 0.2 }),
+    messages,
   });
 
   if (typeof raw !== "string" || raw.trim().length === 0) {
     throw new Error("Model returned an empty response");
   }
 
+  const cleaned = extractJsonFromResponse(raw);
+
   let parsed: unknown;
   try {
-    parsed = JSON.parse(raw) as unknown;
+    parsed = JSON.parse(cleaned) as unknown;
   } catch {
     throw new Error("Model returned non-JSON content");
   }
@@ -115,5 +162,60 @@ export async function generateTestPlanFromRequirement(params: {
   if (!result.success) {
     throw result.error;
   }
-  return { plan: result.data, model: modelId };
+
+  const filtered = filterTestPlanByCategories(result.data, types);
+
+  return { plan: filtered, model: modelId };
+}
+
+function extractJsonFromResponse(text: string): string {
+  const trimmed = text.trim();
+  // Try direct parse first
+  try { JSON.parse(trimmed); return trimmed; } catch {}
+  // Strip markdown code fences
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/s);
+  if (fenced) {
+    const inner = fenced[1]!.trim();
+    try { JSON.parse(inner); return inner; } catch {}
+  }
+  // Walk character-by-character to find the balanced outermost JSON object
+  const start = trimmed.indexOf("{");
+  if (start !== -1) {
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < trimmed.length; i++) {
+      const c = trimmed[i]!;
+      if (escape) { escape = false; continue; }
+      if (c === "\\") { escape = true; continue; }
+      if (c === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (c === "{") depth++;
+      else if (c === "}") { depth--; if (depth === 0) return trimmed.slice(start, i + 1); }
+    }
+  }
+  return trimmed;
+}
+
+function normalizeTagKey(tag: string): string {
+  return tag.trim().toLowerCase().replace(/^@/, "");
+}
+
+function filterTestPlanByCategories(plan: TestPlan, selectedTypes: TestCaseType[]): TestPlan {
+  const excludedKeys = new Set<string>(ALL_TEST_CASE_TYPES.filter((t) => !selectedTypes.includes(t)));
+
+  // Only remove cases that are explicitly tagged as an excluded category.
+  // Cases with no category tag (e.g. only @regression) are kept.
+  const validCases = plan.cases.filter((testCase) => {
+    const keys = testCase.tags.map(normalizeTagKey);
+    return !keys.some((k) => excludedKeys.has(k));
+  });
+
+  if (validCases.length === 0) {
+    throw new Error(
+      `No test cases generated for the selected categor${selectedTypes.length === 1 ? "y" : "ies"}: ${selectedTypes.join(", ")}. Please try again.`,
+    );
+  }
+
+  return { ...plan, cases: validCases };
 }

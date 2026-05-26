@@ -260,20 +260,19 @@ export async function generateMobilewrightPomBundle(params: {
 
   const { text: raw } = await generateText({
     model,
+    system: ["You are an expert Mobilewright engineer.", systemRules].join("\n"),
     temperature: 0.12,
     messages: [
-      {
-        role: "system",
-        content: ["You are an expert Mobilewright engineer.", systemRules].join("\n"),
-      },
       {
         role: "user",
         content: [
           "Generate Mobilewright specs for this requirement.",
-          "Return exactly ONE entry in testFiles containing ALL test cases from the plan JSON.",
+          params.scope === "single-case" && params.focusTestCaseId !== undefined
+            ? `Return exactly ONE entry in testFiles containing only the focused case id "${params.focusTestCaseId}".`
+            : "Return exactly ONE entry in testFiles containing ALL test cases from the plan JSON.",
           `Each case must be its own test() block in that single file. The testFiles path MUST be exactly: ${specPath}`,
           params.scope === "single-case" && params.focusTestCaseId !== undefined
-            ? `Focus on implementing or updating the test for case id "${params.focusTestCaseId}", but still include test() blocks for every case in the plan JSON.`
+            ? `Generate only the single test() block for case id "${params.focusTestCaseId}". Do not include test() blocks for any other cases in the plan JSON.`
             : "Include one test() per case id in the plan JSON.",
           "Test plan JSON:",
           JSON.stringify(plan),

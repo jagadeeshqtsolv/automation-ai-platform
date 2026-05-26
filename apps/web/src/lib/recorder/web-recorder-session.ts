@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { access, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
+import { getProjectFrameworkRoot, resolveFrameworkFilePath, getWebCoreRoot } from "@/lib/local-framework/paths";
 import { installFrameworkDependencies } from "@/lib/local-framework/install-dependencies";
 import { ensurePlaywrightBrowsersForProject } from "@/lib/local-framework/install-dependencies";
 
@@ -9,6 +9,29 @@ const SIGNAL_FILE = "environments/.recorder-capture.signal";
 const STOP_FILE = "environments/.recorder-stop.signal";
 const PID_FILE = "environments/.recorder.pid";
 const SNAPSHOT_FILE = "environments/latest-dom-snapshot.json";
+const EVENTS_FILE = "environments/.recorder-events.json";
+
+export type RecorderEvent = { type: "newTab" | "closeTab"; url?: string; at: string };
+
+export async function consumeRecorderEvents(projectId: string): Promise<RecorderEvent[]> {
+  const eventsPath = resolveFrameworkFilePath(projectId, EVENTS_FILE, "web");
+  if (eventsPath === null) return [];
+  try {
+    const raw = await readFile(eventsPath, "utf8");
+    await writeFile(eventsPath, "[]", "utf8").catch(() => undefined);
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (e): e is RecorderEvent =>
+        typeof e === "object" &&
+        e !== null &&
+        "type" in e &&
+        ((e as { type: string }).type === "newTab" || (e as { type: string }).type === "closeTab"),
+    );
+  } catch {
+    return [];
+  }
+}
 
 async function pathExists(filePath: string): Promise<boolean> {
   try {
@@ -80,6 +103,17 @@ export async function startWebRecorderSession(projectId: string): Promise<void> 
   }
 
   await ensurePlaywrightBrowsersForProject(projectId);
+
+  // Always copy the latest capture-dom.mjs from the monorepo source so new-tab
+  // event writing is available regardless of the installed npm package version.
+  try {
+    const srcScript = path.join(getWebCoreRoot(), "scripts", "capture-dom.mjs");
+    const dstScript = path.join(root, "node_modules/@automation-ai/web-support/scripts/capture-dom.mjs");
+    const content = await readFile(srcScript, "utf8");
+    await writeFile(dstScript, content, "utf8");
+  } catch {
+    // non-critical — falls back to the installed npm version
+  }
 
   await new Promise<void>((resolve, reject) => {
     const child = spawn("node", ["node_modules/@automation-ai/web-support/scripts/capture-dom.mjs", "start"], {

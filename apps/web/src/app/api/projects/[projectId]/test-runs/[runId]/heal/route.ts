@@ -52,11 +52,15 @@ export async function POST(
         select: { output: true },
       });
       if (row !== null) {
+        const fileLines = result.changedFiles
+          .map((f) => `  ${f.path}  (+${f.linesAdded} / -${f.linesRemoved} lines)`)
+          .join("\n");
         const block =
           `\n\n--- auto-heal ${stamp} ---\n` +
           `model: ${result.model}\n` +
           `updated tests: ${result.healedTestPaths.length > 0 ? result.healedTestPaths.join(", ") : "(none)"}\n` +
-          `updated page objects: ${result.healedPagePaths.length > 0 ? result.healedPagePaths.join(", ") : "(none)"}\n`;
+          `updated page objects: ${result.healedPagePaths.length > 0 ? result.healedPagePaths.join(", ") : "(none)"}\n` +
+          (fileLines.length > 0 ? `changes:\n${fileLines}\n` : "");
         const combined = `${row.output ?? ""}${block}`;
         const trimmed =
           combined.length > MAX_RUN_OUTPUT_CHARS
@@ -76,6 +80,7 @@ export async function POST(
       healedTestPaths: result.healedTestPaths,
       healedPagePaths: result.healedPagePaths,
       model: result.model,
+      changedFiles: result.changedFiles,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Heal failed";

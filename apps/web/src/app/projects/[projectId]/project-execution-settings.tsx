@@ -11,12 +11,18 @@ type SecretsInfo = {
   browserstackAccessKeyPreview: string | null;
 };
 
+type CiInfo = {
+  hasCiToken: boolean;
+  ciTokenPreview: string | null;
+  workflowFile: string;
+};
+
 type ConfigResponse = {
   config: ExecutionConfig;
   secrets: SecretsInfo;
 };
 
-type Provider = "local" | "browserstack";
+type Provider = "local" | "browserstack" | "github-ci";
 
 export function ProjectExecutionSettings({
   projectId,
@@ -33,6 +39,10 @@ export function ProjectExecutionSettings({
   const [loaded, setLoaded] = useState(false);
   const [response, setResponse] = useState<ConfigResponse | null>(null);
   const [provider, setProvider] = useState<Provider>("local");
+  const [ciInfo, setCiInfo] = useState<CiInfo | null>(null);
+  const [ciToken, setCiToken] = useState("");
+  const [workflowFile, setWorkflowFile] = useState("run-tests.yml");
+  const [savingCi, setSavingCi] = useState(false);
 
   // BrowserStack fields — shared
   const [bsUsername, setBsUsername] = useState("");
@@ -51,23 +61,36 @@ export function ProjectExecutionSettings({
   const [testResult, setTestResult] = useState<{ ok: boolean; plan?: string; parallelSessions?: number; error?: string } | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/projects/${projectId}/execution-config`);
-    if (!res.ok) return;
-    const body = (await res.json()) as ConfigResponse;
+    const [execRes, gitRes] = await Promise.all([
+      fetch(`/api/projects/${projectId}/execution-config`),
+      fetch(`/api/projects/${projectId}/git-config`),
+    ]);
+    if (!execRes.ok) return;
+    const body = (await execRes.json()) as ConfigResponse;
     setResponse(body);
     const p: Provider = body.config.provider === "browserstack" ? "browserstack" : "local";
     setProvider(p);
     if (body.config.browserstack) {
       const bs = body.config.browserstack;
       setBsUsername(bs.username ?? "");
-      // web fields
       setBsBrowser((bs.browser as typeof bsBrowser) ?? "chrome");
       setBsBrowserVersion(bs.browserVersion ?? "latest");
       setBsOs((bs.os as typeof bsOs) ?? "Windows");
       setBsOsVersion(bs.osVersion ?? (bs.os === "OS X" ? "Sonoma" : "11"));
-      // mobile fields
       setBsDeviceName(bs.deviceName ?? "");
       setBsAppUrl(bs.appUrl ?? "");
+    }
+    if (gitRes.ok) {
+      const gitBody = (await gitRes.json()) as {
+        ciConfig: { hasCiToken: boolean; ciTokenPreview: string | null; workflowFile: string } | null;
+      };
+      if (gitBody.ciConfig) {
+        setCiInfo(gitBody.ciConfig);
+        setWorkflowFile(gitBody.ciConfig.workflowFile);
+        if (gitBody.ciConfig.hasCiToken && p === "local") {
+          setProvider("github-ci");
+        }
+      }
     }
     setLoaded(true);
   }, [projectId]);
@@ -95,6 +118,31 @@ export function ProjectExecutionSettings({
       setTestResult({ ok: false, error: err instanceof Error ? err.message : "Test failed" });
     } finally {
       setTesting(false);
+    }
+  }
+
+  async function onSaveGithubCi(e: FormEvent) {
+    e.preventDefault();
+    setSavingCi(true);
+    try {
+      const payload: Record<string, string | null> = {
+        gitWorkflowFile: workflowFile.trim() || "run-tests.yml",
+      };
+      if (ciToken.trim().length > 0) payload.gitCiToken = ciToken.trim();
+      const res = await fetch(`/api/projects/${projectId}/git-config`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        toast.error(await readApiError(res, "Could not save GitHub CI settings"));
+        return;
+      }
+      setCiToken("");
+      await load();
+      toast.success("GitHub CI settings saved");
+    } finally {
+      setSavingCi(false);
     }
   }
 
@@ -156,11 +204,12 @@ export function ProjectExecutionSettings({
   }
 
   return (
+    <>
     <form onSubmit={(e) => void onSave(e)} className="space-y-4" data-testid="execution-settings-form">
       {/* Provider picker */}
       <div className="space-y-2">
         <p className="text-xs font-medium text-zinc-400">Execution provider</p>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           <ProviderCard
             active={provider === "local"}
             disabled={disabled || saving}
@@ -181,6 +230,16 @@ export function ProjectExecutionSettings({
                 : "Run tests on BrowserStack Automate across browsers via the cloud"
             }
           />
+          {platformType === "web" && (
+            <ProviderCard
+              active={provider === "github-ci"}
+              disabled={disabled || saving}
+              onClick={() => setProvider("github-ci")}
+              title="GitHub CI"
+              testId="execution-provider-github-ci-btn"
+              description="Trigger a GitHub Actions workflow_dispatch — tests run on your own CI runners"
+            />
+          )}
         </div>
       </div>
 
@@ -389,12 +448,79 @@ export function ProjectExecutionSettings({
         </div>
       )}
 
-      {!disabled && (
+      {provider !== "github-ci" && !disabled && (
         <button type="submit" disabled={saving} className="ui-btn-primary ui-btn-xs disabled:opacity-50" data-testid="execution-settings-save-btn">
           {saving ? "Saving…" : "Save execution settings"}
         </button>
       )}
     </form>
+
+    {/* GitHub CI config — outside the main form, has its own submit */}
+    {provider === "github-ci" && (
+      <form onSubmit={(e) => void onSaveGithubCi(e)} className="mt-4 space-y-4 rounded-xl border border-white/10 bg-ink-950/40 p-4 space-y-4" data-testid="github-ci-form">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-white">GitHub Actions settings</h3>
+          {ciInfo?.hasCiToken && (
+            <span className="flex items-center gap-1.5 text-[11px] text-emerald-300">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Token configured
+              {ciInfo.ciTokenPreview && (
+                <span className="font-mono text-zinc-500">{ciInfo.ciTokenPreview}</span>
+              )}
+            </span>
+          )}
+        </div>
+
+        <label className="block text-xs text-zinc-400">
+          Personal access token{" "}
+          <span className="text-zinc-500">
+            {ciInfo?.hasCiToken ? "(leave blank to keep current)" : "(required)"}
+          </span>
+          <input
+            type="password"
+            value={ciToken}
+            onChange={(e) => setCiToken(e.target.value)}
+            autoComplete="off"
+            placeholder={ciInfo?.hasCiToken ? "••••••••" : "ghp_…"}
+            disabled={disabled || savingCi}
+            className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 font-mono text-sm text-white disabled:opacity-50"
+            data-testid="github-ci-token-input"
+          />
+          <span className="mt-1 block text-[10px] text-zinc-500">
+            GitHub PAT with <code className="text-zinc-400">repo</code> + <code className="text-zinc-400">workflow</code> scopes.
+            Generate at GitHub → Settings → Developer settings → Personal access tokens.
+          </span>
+        </label>
+
+        <label className="block text-xs text-zinc-400">
+          Workflow file
+          <input
+            value={workflowFile}
+            onChange={(e) => setWorkflowFile(e.target.value)}
+            placeholder="run-tests.yml"
+            maxLength={200}
+            disabled={disabled || savingCi}
+            className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+            data-testid="github-ci-workflow-file-input"
+          />
+          <span className="mt-1 block text-[10px] text-zinc-500">
+            File name inside <code className="text-zinc-400">.github/workflows/</code> — default is <code className="text-zinc-400">run-tests.yml</code>, auto-generated when the project is created.
+          </span>
+        </label>
+
+        {!disabled && (
+          <button
+            type="submit"
+            disabled={savingCi}
+            className="ui-btn-primary ui-btn-xs disabled:opacity-50"
+            data-testid="github-ci-save-btn"
+          >
+            {savingCi ? "Saving…" : "Save GitHub CI settings"}
+          </button>
+        )}
+      </form>
+    )}
+    </>
   );
 }
 

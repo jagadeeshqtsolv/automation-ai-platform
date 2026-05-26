@@ -54,9 +54,8 @@ export function ProjectAISettings({
     }
     const body = (await res.json()) as { ai: AISettings };
     setSettings(body.ai);
-    const active = body.ai.activeProvider ?? "openai";
-    setSelectedTab(active);
-    setModel(body.ai[active].model);
+    setSelectedTab("openai");
+    setModel(body.ai.openai.model);
   }, [projectId, toast]);
 
   useEffect(() => {
@@ -148,8 +147,7 @@ export function ProjectAISettings({
       <div>
         <h3 className="text-sm font-semibold text-white">AI Provider</h3>
         <p className="mt-1 text-xs text-zinc-400">
-          Choose one provider. Whichever you save last becomes the active provider used for all
-          test generation.
+          Add your OpenAI API key. Used for all test plan, page object, and code generation.
         </p>
       </div>
 
@@ -169,30 +167,18 @@ export function ProjectAISettings({
         </div>
       )}
 
-      {/* Provider tabs */}
+      {/* Provider tabs — OpenAI only for now */}
       <div className="flex gap-2">
-        {(["openai", "claude"] as AIProvider[]).map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => handleTabChange(p)}
-            className={[
-              "flex items-center gap-2 rounded-lg border px-4 py-2 text-xs font-semibold transition-colors",
-              selectedTab === p
-                ? "border-accent/40 bg-accent/10 text-accent"
-                : "border-white/10 bg-transparent text-zinc-400 hover:border-white/20 hover:text-zinc-200",
-            ].join(" ")}
-            data-testid={`ai-provider-tab-${p}`}
-          >
-            {PROVIDER_LABELS[p]}
-            {settings[p].configured && (
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            )}
-            {active === p && !settings[p].configured && (
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
-            )}
-          </button>
-        ))}
+        <button
+          type="button"
+          className="flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-4 py-2 text-xs font-semibold text-accent"
+          data-testid="ai-provider-tab-openai"
+        >
+          OpenAI
+          {settings.openai.configured && (
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          )}
+        </button>
       </div>
 
       {/* Provider panel */}

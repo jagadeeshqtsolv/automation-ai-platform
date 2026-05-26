@@ -161,11 +161,30 @@ async function resolveFilesNeededForFailures(
   return filesNeeded;
 }
 
+export type HealChangedFile = {
+  path: string;
+  linesAdded: number;
+  linesRemoved: number;
+  after: string;
+};
+
 export type HealTestRunResult = {
   healedTestPaths: string[];
   healedPagePaths: string[];
   model: string;
+  changedFiles: HealChangedFile[];
 };
+
+function lineStats(before: string, after: string): { added: number; removed: number } {
+  const beforeSet = new Set(before.split("\n"));
+  const afterLines = after.split("\n");
+  const beforeLines = before.split("\n");
+  const afterSet = new Set(afterLines);
+  return {
+    added: afterLines.filter((l) => !beforeSet.has(l)).length,
+    removed: beforeLines.filter((l) => !afterSet.has(l)).length,
+  };
+}
 
 export async function healTestsFromRun(params: {
   projectId: string;
@@ -202,19 +221,15 @@ export async function healTestsFromRun(params: {
 
   await syncProjectWorkspaceToDisk(params.projectId);
 
-  const fileSnapshots: Array<{ path: string; content: string }> = [];
-  for (const rel of filesNeeded) {
-    const abs = resolveFrameworkFilePath(params.projectId, rel);
-    if (abs === null) {
-      continue;
-    }
-    try {
-      const content = await readFile(abs, "utf8");
-      fileSnapshots.push({ path: rel, content });
-    } catch {
-      throw new Error(`Could not read ${rel} from framework workspace`);
-    }
-  }
+  const fileSnapshots: Array<{ path: string; content: string }> = await Promise.all(
+    [...filesNeeded].map(async (rel) => {
+      const abs = resolveFrameworkFilePath(params.projectId, rel);
+      if (abs === null) return null;
+      const content = await readFile(abs, "utf8").catch(() => null);
+      if (content === null) throw new Error(`Could not read ${rel} from framework workspace`);
+      return { path: rel, content };
+    }),
+  ).then((results) => results.filter((r): r is { path: string; content: string } => r !== null));
 
   if (fileSnapshots.length === 0) {
     throw new Error("No readable spec files matched failing tests.");
@@ -226,6 +241,12 @@ export async function healTestsFromRun(params: {
     select: { modulePath: true, className: true, content: true, methodSummary: true },
   });
 
+  const specContent = fileSnapshots.map((f) => f.content).join("\n");
+  const relevantPages = pages.filter(
+    (p) => specContent.includes(p.className) || specContent.includes(p.modulePath),
+  );
+  const libraryForCatalog = relevantPages.length > 0 ? relevantPages : pages;
+
   const library: PageObjectLibraryEntry[] = pages.map((p) => ({
     modulePath: p.modulePath,
     className: p.className,
@@ -233,7 +254,14 @@ export async function healTestsFromRun(params: {
     methodSummary: p.methodSummary,
   }));
 
-  const catalog = buildPageObjectLibraryCatalog(library);
+  const catalog = buildPageObjectLibraryCatalog(
+    libraryForCatalog.map((p) => ({
+      modulePath: p.modulePath,
+      className: p.className,
+      content: p.content,
+      methodSummary: p.methodSummary,
+    })),
+  );
 
   const healLogText = [
     ...failures.map((f) => f.errorSnippet ?? ""),
@@ -264,7 +292,7 @@ export async function healTestsFromRun(params: {
     }
   }
 
-  const failureDigest = failures.slice(0, 60).map((f) => ({
+  const failureDigest = failures.slice(0, 20).map((f) => ({
     title: f.title,
     file: f.file,
     workspaceFile: normalizeTestRelative(f.file) ?? path.basename(stripLocationSuffix(f.file)),
@@ -288,34 +316,31 @@ export async function healTestsFromRun(params: {
 
   const { text: raw } = await generateText({
     model,
+    system: [
+      `You repair ${runnerName} TypeScript tests and page objects from Playwright failure output.`,
+      'Return JSON ONLY: { "testFiles": [...], "pageObjectFiles": [...] } — each entry { "path", "content" } with FULL file contents.',
+      "Include testFiles entries for EVERY failing spec listed under 'Specs to repair' (use exact paths like tests/foo.spec.ts).",
+      isWeb
+        ? "Include pageObjectFiles when locator or page-class fixes are required (paths under pageobjects/, e.g. pageobjects/LoginPage.ts). Use click*/fill*/check* methods and webLocator — never raw page.locator().click(). Checkboxes: checkWhenVisible via check{Key}/uncheck{Key}, not click*."
+        : "Include pageObjectFiles when locator or screen-class fixes are required (paths under pageobjects/, e.g. pageobjects/CatalogScreen.ts).",
+      "Playwright strict mode violation (locator matched multiple elements): update the matching entry in `private static readonly L` with `index: 0` to target the first match, or use a more specific strategy/css. Prefer pageObjectFiles over changing tests.",
+      "When the user provides a problem description, treat it as authoritative context for intent (expected UI, timing, environment) alongside stack traces.",
+      "Rules:",
+      "- Output complete file contents for each changed file.",
+      "- Preserve test() titles and tag arrays unless clearly wrong.",
+      isWeb
+        ? "- Fix isolation: each test reaches its UI from a known entry (page.goto or fixture navigation) — never rely on prior tests."
+        : "- Fix isolation: each test reaches its UI from app launch — never rely on prior tests.",
+      "- Use only fixture parameters from the catalog; never import page object classes in testFiles.",
+      "- Import { test, expect } from '../support/fixtures' unless expect is unused.",
+      isWeb
+        ? "- Web tests use the `page` fixture and page object fixtures (loginPage, etc.) — not `screen` or @mobilewright/core sleep."
+        : "- Call only methods that exist on fixtures per catalog — never invent expectElementVisible('Key').",
+      `- Environment and timeouts come from ${configName}.`,
+      "- No // or /* */ comments in generated TypeScript.",
+    ].join("\n"),
     temperature: 0.1,
     messages: [
-      {
-        role: "system",
-        content: [
-          `You repair ${runnerName} TypeScript tests and page objects from Playwright failure output.`,
-          'Return JSON ONLY: { "testFiles": [...], "pageObjectFiles": [...] } — each entry { "path", "content" } with FULL file contents.',
-          "Include testFiles entries for EVERY failing spec listed under 'Specs to repair' (use exact paths like tests/foo.spec.ts).",
-          isWeb
-            ? "Include pageObjectFiles when locator or page-class fixes are required (paths under pageobjects/, e.g. pageobjects/LoginPage.ts). Use click*/fill*/check* methods and webLocator — never raw page.locator().click(). Checkboxes: checkWhenVisible via check{Key}/uncheck{Key}, not click*."
-            : "Include pageObjectFiles when locator or screen-class fixes are required (paths under pageobjects/, e.g. pageobjects/CatalogScreen.ts).",
-          "Playwright strict mode violation (locator matched multiple elements): update the matching entry in `private static readonly L` with `index: 0` to target the first match, or use a more specific strategy/css. Prefer pageObjectFiles over changing tests.",
-          "When the user provides a problem description, treat it as authoritative context for intent (expected UI, timing, environment) alongside stack traces.",
-          "Rules:",
-          "- Output complete file contents for each changed file.",
-          "- Preserve test() titles and tag arrays unless clearly wrong.",
-          isWeb
-            ? "- Fix isolation: each test reaches its UI from a known entry (page.goto or fixture navigation) — never rely on prior tests."
-            : "- Fix isolation: each test reaches its UI from app launch — never rely on prior tests.",
-          "- Use only fixture parameters from the catalog; never import page object classes in testFiles.",
-          "- Import { test, expect } from '../support/fixtures' unless expect is unused.",
-          isWeb
-            ? "- Web tests use the `page` fixture and page object fixtures (loginPage, etc.) — not `screen` or @mobilewright/core sleep."
-            : "- Call only methods that exist on fixtures per catalog — never invent expectElementVisible('Key').",
-          `- Environment and timeouts come from ${configName}.`,
-          "- No // or /* */ comments in generated TypeScript.",
-        ].join("\n"),
-      },
       {
         role: "user",
         content: [
@@ -418,5 +443,21 @@ export async function healTestsFromRun(params: {
 
   await syncProjectWorkspaceToDisk(params.projectId);
 
-  return { healedTestPaths, healedPagePaths, model: modelId };
+  const changedFiles: HealChangedFile[] = [];
+
+  for (const [rel, after] of diskByRel) {
+    const before = fileSnapshots.find((f) => f.path === rel)?.content ?? "";
+    const { added, removed } = lineStats(before, after);
+    changedFiles.push({ path: rel, linesAdded: added, linesRemoved: removed, after });
+  }
+
+  for (const f of healed.pageObjectFiles) {
+    const rel = f.path.trim().replace(/^\.\//, "");
+    if (!healedPagePaths.some((p) => p.endsWith(rel) || rel.endsWith(p))) continue;
+    const before = library.find((p) => p.modulePath === rel)?.content ?? "";
+    const { added, removed } = lineStats(before, f.content);
+    changedFiles.push({ path: rel, linesAdded: added, linesRemoved: removed, after: f.content });
+  }
+
+  return { healedTestPaths, healedPagePaths, model: modelId, changedFiles };
 }

@@ -214,21 +214,22 @@ export function fixWebAppLaunchGotoPath(content: string): string {
   return out;
 }
 
-/** Playwright web: never use @mobilewright/core; use the built-in page fixture. */
+/** Playwright web: never use @mobilewright/core; strip raw timeout waits. */
 export function fixInvalidWaitCallsWeb(content: string): string {
   let out = content.replace(/\n?import\s+\{\s*sleep\s*\}\s+from\s+['"]@mobilewright\/core['"]\s*;?\n?/g, "\n");
-  out = out.replace(/await\s+(\w+)\.sleep\s*\(\s*(\d+)\s*\)\s*;/g, "await page.waitForTimeout($2);");
-  out = out.replace(/await\s+sleep\s*\(\s*(\d+)\s*\)\s*;/g, "await page.waitForTimeout($1);");
+  // Remove pure sleep/timeout calls — tests must wait for element state, not time
+  out = out.replace(/\s*await\s+(?:\w+)\.sleep\s*\(\s*\d+\s*\)\s*;\n?/g, "\n");
+  out = out.replace(/\s*await\s+sleep\s*\(\s*\d+\s*\)\s*;\n?/g, "\n");
+  out = out.replace(/\s*await\s+page\.waitForTimeout\s*\(\s*\d+\s*\)\s*;\n?/g, "\n");
   out = out.replace(/await\s+(\w+Page)\.page\.goto\s*\(/g, "await page.goto(");
   out = out.replace(/await\s+(\w+Page)\.page\.goBack\s*\(\s*\)/g, "await page.goBack()");
   out = out.replace(/(\w+Page)\.page\./g, "page.");
-  out = ensurePageFixtureInTests(out);
   return out;
 }
 
-/** Add `page` to test() fixture lists when bare page.waitForTimeout is used. */
+/** Add `page` to test() fixture lists when bare page.goto / page.goBack is used. */
 function ensurePageFixtureInTests(content: string): string {
-  if (!/\bpage\.(waitForTimeout|goto|goBack)/.test(content)) {
+  if (!/\bpage\.(goto|goBack)/.test(content)) {
     return content;
   }
   return content.replace(/async\s*\(\s*\{([^}]*)\}\s*\)/g, (match, params: string) => {
@@ -238,6 +239,17 @@ function ensurePageFixtureInTests(content: string): string {
     const trimmed = params.trim();
     return trimmed.length > 0 ? `async ({ ${trimmed}, page })` : `async ({ page })`;
   });
+}
+
+/**
+ * Remove test.step blocks that contain only a page.waitForTimeout / sleep call.
+ * These are pure delays with no assertion value and make tests slow and flaky.
+ */
+export function removePureTimeoutSteps(content: string): string {
+  return content.replace(
+    /\s*await\s+test\.step\(\s*['"][^'"]*['"]\s*,\s*async\s*\(\)\s*=>\s*\{\s*await\s+page\.waitForTimeout\s*\(\s*\d+\s*\)\s*;\s*\}\s*\)\s*;\n?/g,
+    "\n",
+  );
 }
 
 /** Prefer check* over click* when the page object exposes a matching check method (checkboxes). */
@@ -306,6 +318,7 @@ export function sanitizeGeneratedTestFileContent(
     out = fixInvalidScreenCallsInSpecs(out);
   } else {
     out = stripWebMobileArtifacts(out);
+    out = removePureTimeoutSteps(out);
     out = fixWebAppLaunchGotoPath(out);
     out = fixInvalidWebCountMatchers(out);
     if (pageObjectSources !== undefined && pageObjectSources.length > 0) {

@@ -53,6 +53,7 @@ export async function POST(req: Request) {
       requirementContent: requirement.content,
       projectId: requirement.projectId,
       platform: platformType === "web" ? "web" : "mobile",
+      testCaseTypes: parsed.data.testCaseTypes,
     });
 
     const saved = await prisma.testPlan.create({

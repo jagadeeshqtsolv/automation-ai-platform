@@ -183,24 +183,28 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   );
 
   const onGeneratePlan = useMemo(
-    () => async (requirementId: string) => {
-      setBusy(`plan:${requirementId}`);
-      try {
-        const res = await fetch("/api/generate/plan", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ requirementId }),
-        });
-        if (!res.ok) {
-          toast.error(await readApiError(res, "Plan generation failed"));
-          return;
+    () =>
+      async (
+        requirementId: string,
+        options?: { testCaseTypes?: string[] },
+      ) => {
+        setBusy(`plan:${requirementId}`);
+        try {
+          const res = await fetch("/api/generate/plan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ requirementId, ...options }),
+          });
+          if (!res.ok) {
+            toast.error(await readApiError(res, "Plan generation failed"));
+            return;
+          }
+          await load();
+          toast.success("Test plan generated");
+        } finally {
+          setBusy(null);
         }
-        await load();
-        toast.success("Test plan generated");
-      } finally {
-        setBusy(null);
-      }
-    },
+      },
     [load, toast],
   );
 
@@ -421,6 +425,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
               disabled={busy !== null}
               onRunFinished={(runId) => {
                 setReportsHighlightRunId(runId);
+                setActiveTab("test-reports");
               }}
             />
           ) : null}
@@ -762,7 +767,7 @@ function ProjectSetupSection(props: {
                   >
                     AI
                   </button>{" "}
-                  — Add an API key for OpenAI or Claude. Required for generating test plans, page objects, and test code.
+                  — Add your OpenAI API key. Required for generating test plans, page objects, and test code.
                 </li>
               )}
               <li>
@@ -807,11 +812,10 @@ function ProjectSetupSection(props: {
               key={tab.id}
               type="button"
               onClick={() => setSetupTab(tab.id)}
-              className={`rounded-t-lg px-4 py-2 text-sm font-medium transition-colors ${
-                setupTab === tab.id
+              className={`rounded-t-lg px-4 py-2 text-sm font-medium transition-colors ${setupTab === tab.id
                   ? "border border-b-0 border-white/10 bg-ink-950/60 text-white"
                   : "text-zinc-400 hover:text-zinc-200"
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -854,105 +858,105 @@ function ProjectSetupSection(props: {
         )}
 
         {setupTab === "environments" && <div className="space-y-3 rounded-xl border border-white/10 bg-ink-950/30 p-4">
-        <h3 className="text-sm font-semibold text-white">Environments</h3>
-        <ul className="space-y-2 text-sm text-zinc-300">
-          {project.environments.length === 0 ? <li className="text-zinc-500">No environments yet.</li> : null}
-          {project.environments.map((env) => {
-            let pretty = env.configJson;
-            try { pretty = JSON.stringify(JSON.parse(env.configJson) as unknown, null, 2); } catch { /* keep raw */ }
-            return (
-              <li key={env.id} className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-medium text-white">
-                    {env.name}{" "}
-                    <span className="text-xs font-normal text-zinc-500">({env.slug})</span>
-                  </p>
-                  <div className="flex shrink-0 gap-3">
-                    <button
-                      type="button"
-                      disabled={busy !== null}
-                      onClick={() => startEditEnvironment(env)}
-                      className="text-xs text-cyan-300 hover:underline disabled:opacity-40"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy !== null}
-                      onClick={() => void deleteEnvironment(env.id)}
-                      className="text-xs text-rose-300 hover:underline disabled:opacity-40"
-                    >
-                      Delete
-                    </button>
+          <h3 className="text-sm font-semibold text-white">Environments</h3>
+          <ul className="space-y-2 text-sm text-zinc-300">
+            {project.environments.length === 0 ? <li className="text-zinc-500">No environments yet.</li> : null}
+            {project.environments.map((env) => {
+              let pretty = env.configJson;
+              try { pretty = JSON.stringify(JSON.parse(env.configJson) as unknown, null, 2); } catch { /* keep raw */ }
+              return (
+                <li key={env.id} className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium text-white">
+                      {env.name}{" "}
+                      <span className="text-xs font-normal text-zinc-500">({env.slug})</span>
+                    </p>
+                    <div className="flex shrink-0 gap-3">
+                      <button
+                        type="button"
+                        disabled={busy !== null}
+                        onClick={() => startEditEnvironment(env)}
+                        className="text-xs text-cyan-300 hover:underline disabled:opacity-40"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy !== null}
+                        onClick={() => void deleteEnvironment(env.id)}
+                        className="text-xs text-rose-300 hover:underline disabled:opacity-40"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <pre className="mt-2 max-h-40 overflow-auto rounded-md bg-black/30 p-2 text-[11px] leading-relaxed text-zinc-400 whitespace-pre">{pretty}</pre>
-              </li>
-            );
-          })}
-        </ul>
+                  <pre className="mt-2 max-h-40 overflow-auto rounded-md bg-black/30 p-2 text-[11px] leading-relaxed text-zinc-400 whitespace-pre">{pretty}</pre>
+                </li>
+              );
+            })}
+          </ul>
 
-        <form className="space-y-2 border-t border-white/10 pt-3" onSubmit={saveEnvironment}>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <form className="space-y-2 border-t border-white/10 pt-3" onSubmit={saveEnvironment}>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="text-xs text-zinc-400">
+                Name
+                <input
+                  value={envName}
+                  onChange={(e) => setEnvName(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white"
+                  required
+                  maxLength={80}
+                />
+              </label>
+              <label className="text-xs text-zinc-400">
+                Slug
+                <input
+                  value={envSlug}
+                  onChange={(e) => setEnvSlug(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white"
+                  required
+                  maxLength={64}
+                  placeholder="staging"
+                  disabled={isEditing}
+                />
+              </label>
+            </div>
             <label className="text-xs text-zinc-400">
-              Name
-              <input
-                value={envName}
-                onChange={(e) => setEnvName(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white"
-                required
-                maxLength={80}
+              {runnerLabel} config JSON
+              <textarea
+                value={envConfig}
+                onChange={(e) => setEnvConfig(e.target.value)}
+                rows={10}
+                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 font-mono text-[11px] text-zinc-200"
               />
             </label>
-            <label className="text-xs text-zinc-400">
-              Slug
-              <input
-                value={envSlug}
-                onChange={(e) => setEnvSlug(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white"
-                required
-                maxLength={64}
-                placeholder="staging"
-                disabled={isEditing}
-              />
-            </label>
-          </div>
-          <label className="text-xs text-zinc-400">
-            {runnerLabel} config JSON
-            <textarea
-              value={envConfig}
-              onChange={(e) => setEnvConfig(e.target.value)}
-              rows={10}
-              className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 font-mono text-[11px] text-zinc-200"
-            />
-          </label>
-          <p className="text-[11px] text-zinc-500">
-            Select this environment in Test plans before generating tests.
-            {isWeb
-              ? ` Values such as baseURL and browser are merged into ${configLabel}.`
-              : " Optional: deepLinkPrefix for app-specific flows (not written to mobilewright.config.ts)."}
-          </p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <button
-              type="submit"
-              disabled={busy !== null}
-              className="ui-btn-secondary ui-btn-sm w-full"
-            >
-              {busy === "env" ? "Saving…" : isEditing ? "Save changes" : "Add environment"}
-            </button>
-            {isEditing ? (
+            <p className="text-[11px] text-zinc-500">
+              Select this environment in Test plans before generating tests.
+              {isWeb
+                ? ` Values such as baseURL and browser are merged into ${configLabel}.`
+                : " Optional: deepLinkPrefix for app-specific flows (not written to mobilewright.config.ts)."}
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
               <button
-                type="button"
+                type="submit"
                 disabled={busy !== null}
-                onClick={resetEnvironmentForm}
-                className="ui-btn-tertiary ui-btn-sm w-full"
+                className="ui-btn-secondary ui-btn-sm w-full"
               >
-                Cancel
+                {busy === "env" ? "Saving…" : isEditing ? "Save changes" : "Add environment"}
               </button>
-            ) : null}
-          </div>
-        </form>
-      </div>}
+              {isEditing ? (
+                <button
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={resetEnvironmentForm}
+                  className="ui-btn-tertiary ui-btn-sm w-full"
+                >
+                  Cancel
+                </button>
+              ) : null}
+            </div>
+          </form>
+        </div>}
       </div>
     </section>
   );

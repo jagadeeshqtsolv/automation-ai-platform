@@ -329,8 +329,20 @@ export function parseDomSnapshotPayloadDetailed(payload: unknown): ParseDomSnaps
   walkFlat(nodes, scored, new Set(), new Set(), "root");
   scored.sort((a, b) => b._priority - a._priority);
 
-  const totalMatched = scored.length;
-  const elements = scored
+  // Suppress repetitive low-priority elements (e.g. 40 nav links, product card buttons).
+  // Keep at most 3 elements that share the same tag+strategy pattern at priority < 30.
+  const REPETITIVE_LIMIT = 3;
+  const patternCount = new Map<string, number>();
+  const deduped = scored.filter((el) => {
+    if (el._priority >= 30) return true;
+    const pattern = `${el.tagName}:${el.strategy}`;
+    const count = (patternCount.get(pattern) ?? 0) + 1;
+    patternCount.set(pattern, count);
+    return count <= REPETITIVE_LIMIT;
+  });
+
+  const totalMatched = deduped.length;
+  const elements = deduped
     .slice(0, MAX_PARSED_DOM_ELEMENTS)
     .map(({ _priority: _ignored, ...el }) => el);
 

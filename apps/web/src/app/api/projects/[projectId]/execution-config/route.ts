@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateExecutionConfigBodySchema } from "@automation-ai/core";
+import { updateExecutionConfigBodySchema, ciRunConfigSchema, DEFAULT_CI_RUN_CONFIG } from "@automation-ai/core";
 import { z } from "zod";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import {
@@ -11,6 +11,8 @@ import {
 } from "@/lib/execution-config";
 import { maskSecret } from "@/lib/secret-crypto";
 import { prisma } from "@/lib/prisma";
+import { generateWorkflowTemplate } from "@/lib/project-git/workflow-template";
+import { writeFrameworkFiles } from "@/lib/local-framework/writer";
 
 const paramsSchema = z.object({
   projectId: z.string().uuid(),
@@ -44,6 +46,7 @@ export async function GET(_req: Request, context: { params: Promise<{ projectId:
   return NextResponse.json({
     config: doc.config,
     providerLabel: providerLabel(doc.config.provider),
+    ciRunConfig: doc.ciRunConfig ?? DEFAULT_CI_RUN_CONFIG,
     secrets: {
       saucelabsAccessKeyConfigured: sauceKey !== null,
       saucelabsAccessKeyPreview: sauceKey !== null ? maskSecret(sauceKey) : null,
@@ -72,15 +75,17 @@ export async function PATCH(req: Request, context: { params: Promise<{ projectId
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
-
-  const existing = parseExecutionConfigDocument(
-    (
-      await prisma.project.findUnique({
-        where: { id: parsedParams.data.projectId },
-        select: { executionConfigJson: true },
-      })
-    )?.executionConfigJson,
+  const parsedCiRunConfig = ciRunConfigSchema.optional().safeParse(
+    (json as Record<string, unknown> | null)?.ciRunConfig,
   );
+  const incomingCiRunConfig = parsedCiRunConfig.success ? parsedCiRunConfig.data : undefined;
+
+  const projectRow = await prisma.project.findUnique({
+    where: { id: parsedParams.data.projectId },
+    select: { executionConfigJson: true, platformType: true, name: true },
+  });
+
+  const existing = parseExecutionConfigDocument(projectRow?.executionConfigJson);
 
   const config = parsed.data.config;
   const nextSauceKey =
@@ -149,9 +154,12 @@ export async function PATCH(req: Request, context: { params: Promise<{ projectId
       parsed.data.lambdatestAccessKey === null ? null : encryptAccessKey(parsed.data.lambdatestAccessKey);
   }
 
+  const nextCiRunConfig = incomingCiRunConfig ?? existing.ciRunConfig ?? DEFAULT_CI_RUN_CONFIG;
+
   const doc = serializeExecutionConfigDocument({
     config: parsed.data.config,
     secrets,
+    ciRunConfig: nextCiRunConfig,
   });
 
   await prisma.project.update({
@@ -159,10 +167,22 @@ export async function PATCH(req: Request, context: { params: Promise<{ projectId
     data: { executionConfigJson: doc },
   });
 
+  if (incomingCiRunConfig !== undefined && projectRow?.platformType === "web") {
+    const yaml = generateWorkflowTemplate("github", "run-tests.yml", "web", nextCiRunConfig);
+    await writeFrameworkFiles({
+      projectId: parsedParams.data.projectId,
+      projectName: projectRow.name,
+      files: [{ relativePath: ".github/workflows/run-tests.yml", content: yaml }],
+      overwritePageObjects: false,
+      overwriteTests: false,
+    }).catch(() => undefined);
+  }
+
   const sauceKey = decryptAccessKey(secrets.saucelabsAccessKeyEnc);
   return NextResponse.json({
     config: parsed.data.config,
     providerLabel: providerLabel(parsed.data.config.provider),
+    ciRunConfig: nextCiRunConfig,
     secrets: {
       saucelabsAccessKeyConfigured: sauceKey !== null,
       saucelabsAccessKeyPreview: sauceKey !== null ? maskSecret(sauceKey) : null,

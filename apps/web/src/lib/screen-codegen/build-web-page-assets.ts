@@ -164,7 +164,6 @@ export function buildWebPageClassFile(pageName: string, elements: WebPageElement
 
   return [
     `import type { Page } from "@playwright/test";`,
-    `import { webLocator } from "../support/web-locate";`,
     WEB_ACTIONS_IMPORT_BLOCK,
     ``,
     `export class ${className} {`,

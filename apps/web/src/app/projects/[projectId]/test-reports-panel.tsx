@@ -17,6 +17,47 @@ import type {
   RunDetailBody,
 } from "./test-run-report-types";
 
+function HealChangesPanel({
+  changes,
+}: {
+  changes: Array<{ path: string; linesAdded: number; linesRemoved: number; after: string }>;
+}) {
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+
+  return (
+    <div className="space-y-2 rounded-xl border border-amber-500/25 bg-amber-950/15 p-3">
+      <p className="text-xs font-semibold text-amber-100">
+        Auto-heal changes — {changes.length} file{changes.length === 1 ? "" : "s"} updated
+      </p>
+      {changes.map((f, i) => (
+        <div key={f.path} className="rounded-lg border border-white/10 bg-black/30 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setOpenIdx(openIdx === i ? null : i)}
+            className="flex w-full items-center justify-between px-3 py-2 text-left"
+          >
+            <span className="font-mono text-[11px] text-zinc-300 truncate">{f.path}</span>
+            <span className="ml-3 shrink-0 flex items-center gap-2 text-[10px]">
+              {f.linesAdded > 0 && (
+                <span className="text-emerald-400">+{f.linesAdded}</span>
+              )}
+              {f.linesRemoved > 0 && (
+                <span className="text-rose-400">-{f.linesRemoved}</span>
+              )}
+              <span className="text-zinc-500">{openIdx === i ? "▴" : "▾"}</span>
+            </span>
+          </button>
+          {openIdx === i ? (
+            <pre className="max-h-96 overflow-auto border-t border-white/5 p-3 font-mono text-[10px] leading-relaxed text-zinc-300">
+              {f.after}
+            </pre>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ReportStepList({
   steps,
   depth = 0,
@@ -102,6 +143,7 @@ export function TestReportsPanel({
   const [healing, setHealing] = useState(false);
   const [healFormOpen, setHealFormOpen] = useState(false);
   const [healProblemDescription, setHealProblemDescription] = useState("");
+  const [healChanges, setHealChanges] = useState<Array<{ path: string; linesAdded: number; linesRemoved: number; after: string }> | null>(null);
   const [rerunning, setRerunning] = useState(false);
   const [loading, setLoading] = useState(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -146,6 +188,7 @@ export function TestReportsPanel({
       setFocusedRunId(run.id);
       setHealFormOpen(false);
       setHealProblemDescription("");
+      setHealChanges(null);
       setFocusedHtmlReportRel(run.htmlReportRel);
       setLastStatus(run.status);
       setResultsAnalysis(null);
@@ -408,6 +451,7 @@ export function TestReportsPanel({
         healedTestPaths?: string[];
         healedPagePaths?: string[];
         model?: string;
+        changedFiles?: Array<{ path: string; linesAdded: number; linesRemoved: number; after: string }>;
         error?: string;
       };
       if (!res.ok) {
@@ -418,11 +462,12 @@ export function TestReportsPanel({
       const pages = body.healedPagePaths ?? [];
       toast.success(
         tests.length + pages.length > 0
-          ? `Updated tests: ${tests.join(", ") || "—"}; page objects: ${pages.join(", ") || "—"}`
+          ? `Healed ${tests.length + pages.length} file(s)`
           : "Heal completed",
       );
       setHealFormOpen(false);
       setHealProblemDescription("");
+      setHealChanges(body.changedFiles ?? null);
       await loadRuns();
       const detailRes = await fetch(`/api/projects/${projectId}/test-runs/${focusedRunId}`);
       if (detailRes.ok) {
@@ -594,36 +639,17 @@ export function TestReportsPanel({
                     className="rounded-lg border border-white/15 bg-ink-950/60 px-3 py-1.5 text-xs font-medium text-accent hover:bg-white/5 disabled:opacity-50"
                     onClick={() =>
                       window.open(
-                        `/api/projects/${projectId}/framework/playwright-report/index.html`,
+                        focusedHtmlReportRel !== null && focusedHtmlReportRel.length > 0
+                          ? `/api/projects/${projectId}/test-runs/${focusedRunId}/html-report/`
+                          : `/api/projects/${projectId}/framework/playwright-report/index.html`,
                         "_blank",
                         "noopener,noreferrer",
                       )
                     }
-                    data-testid="reports-latest-html-btn"
+                    data-testid="reports-html-btn"
                   >
-                    Latest HTML report
+                    HTML report
                   </button>
-                  {focusedHtmlReportRel !== null && focusedHtmlReportRel.length > 0 ? (
-                    <button
-                      type="button"
-                      disabled={disabled}
-                      className="rounded-lg border border-white/15 bg-ink-950/60 px-3 py-1.5 text-xs font-medium text-sky-300 hover:bg-white/5 disabled:opacity-50"
-                      onClick={() =>
-                        window.open(
-                          `/api/projects/${projectId}/test-runs/${focusedRunId}/html-report/`,
-                          "_blank",
-                          "noopener,noreferrer",
-                        )
-                      }
-                      data-testid="reports-run-snapshot-btn"
-                    >
-                      This run snapshot (HTML)
-                    </button>
-                  ) : (
-                    <span className="text-[10px] text-zinc-500">
-                      No archived HTML for this run — use Latest or re-run to capture a snapshot.
-                    </span>
-                  )}
                   {analysisSummary !== undefined && analysisSummary.failed + analysisSummary.flaky > 0 ? (
                     <button
                       type="button"
@@ -795,6 +821,10 @@ export function TestReportsPanel({
                   No structured JSON report for this run. Sync an environment so reporters write{" "}
                   <code className="rounded bg-black/30 px-1">logs/playwright-report.json</code>, then re-run tests.
                 </p>
+              ) : null}
+
+              {healChanges !== null && healChanges.length > 0 ? (
+                <HealChangesPanel changes={healChanges} />
               ) : null}
 
               {runLog !== null ? (

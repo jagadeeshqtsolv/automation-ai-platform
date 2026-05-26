@@ -69,39 +69,52 @@ export function WorkspaceOverviewPanel({
       </div>
 
       <div className="ui-panel-body space-y-6">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {cards.map((c) => (
-          <button
-            key={c.label}
-            type="button"
-            onClick={() => onNavigate(c.tab)}
-            className="ui-metric text-left hover:border-accent/30"
-            data-testid={`overview-${c.tab}-metric-btn`}
-          >
-            <p className="ui-eyebrow">{c.label}</p>
-            <p className="ui-metric-value">{c.value}</p>
-          </button>
-        ))}
-      </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {cards.map((c) => (
+            <button
+              key={c.label}
+              type="button"
+              onClick={() => onNavigate(c.tab)}
+              className="ui-metric text-left hover:border-accent/30"
+              data-testid={`overview-${c.tab}-metric-btn`}
+            >
+              <p className="ui-eyebrow">{c.label}</p>
+              <p className="ui-metric-value">{c.value}</p>
+            </button>
+          ))}
+        </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        {shortcuts.map((s) => (
-          <button
-            key={`${s.tab}-${s.title}`}
-            type="button"
-            onClick={() => onNavigate(s.tab)}
-            className="rounded-xl border border-white/[0.08] bg-ink-950/40 p-4 text-left transition duration-200 hover:border-white/[0.14] hover:bg-white/[0.04]"
-            data-testid={`overview-shortcut-${s.tab}-btn`}
-          >
-            <p className="text-sm font-semibold tracking-tight text-white">{s.title}</p>
-            <p className="mt-1 text-xs leading-relaxed text-zinc-400">{s.body}</p>
-          </button>
-        ))}
-      </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {shortcuts.map((s) => (
+            <button
+              key={`${s.tab}-${s.title}`}
+              type="button"
+              onClick={() => onNavigate(s.tab)}
+              className="rounded-xl border border-white/[0.08] bg-ink-950/40 p-4 text-left transition duration-200 hover:border-white/[0.14] hover:bg-white/[0.04]"
+              data-testid={`overview-shortcut-${s.tab}-btn`}
+            >
+              <p className="text-sm font-semibold tracking-tight text-white">{s.title}</p>
+              <p className="mt-1 text-xs leading-relaxed text-zinc-400">{s.body}</p>
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
+
+type GeneratePlanOptions = { testCaseTypes?: string[] };
+
+const TEST_CASE_TYPE_OPTIONS: Array<{ value: string; label: string; description: string }> = [
+  { value: "smoke", label: "Smoke", description: "Critical P0 sanity checks" },
+  { value: "functional", label: "Functional", description: "Happy path & core flows" },
+  { value: "negative", label: "Negative", description: "Invalid inputs & error paths" },
+  { value: "edgecase", label: "Edge cases", description: "Boundaries & limits" },
+  { value: "e2e", label: "E2E", description: "Full user journeys" },
+];
+
+const ALL_TYPE_VALUES = TEST_CASE_TYPE_OPTIONS.map((o) => o.value);
+
 
 export function RequirementsWorkspacePanel({
   project,
@@ -119,7 +132,7 @@ export function RequirementsWorkspacePanel({
   project: ProjectPanelsData;
   projectId: string;
   busy: string | null;
-  onGeneratePlan: (requirementId: string) => Promise<void>;
+  onGeneratePlan: (requirementId: string, options?: GeneratePlanOptions) => Promise<void>;
   onCreatePlan: (requirementId: string, suiteName: string) => Promise<void>;
   onUpdateRequirement: (requirementId: string, title: string, content: string) => Promise<void>;
   onDeleteRequirement: (requirementId: string, title: string | null, planCount: number) => Promise<void>;
@@ -235,7 +248,7 @@ function JiraImportSection({
         const saved = body?.jira?.defaultJql ?? "";
         if (saved) setJql(saved);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [expanded, projectId, defaultJqlLoaded]);
 
   const onFetch = useCallback(async () => {
@@ -391,11 +404,10 @@ function JiraImportSection({
                     tabIndex={0}
                     onClick={() => toggleStory(story.key)}
                     onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") toggleStory(story.key); }}
-                    className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition hover:bg-white/[0.03] ${
-                      selected.has(story.key)
-                        ? "border-accent/30 bg-accent/5"
-                        : "border-transparent"
-                    }`}
+                    className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition hover:bg-white/[0.03] ${selected.has(story.key)
+                      ? "border-accent/30 bg-accent/5"
+                      : "border-transparent"
+                      }`}
                   >
                     <input
                       type="checkbox"
@@ -476,7 +488,7 @@ function SavedRequirementCard({
 }: {
   requirement: Requirement;
   busy: string | null;
-  onGeneratePlan: (requirementId: string) => Promise<void>;
+  onGeneratePlan: (requirementId: string, options?: GeneratePlanOptions) => Promise<void>;
   onCreatePlan: (requirementId: string, suiteName: string) => Promise<void>;
   onUpdateRequirement: (requirementId: string, title: string, content: string) => Promise<void>;
   onDeleteRequirement: (requirementId: string, title: string | null, planCount: number) => Promise<void>;
@@ -485,8 +497,28 @@ function SavedRequirementCard({
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(requirement.title ?? "");
   const [content, setContent] = useState(requirement.content);
+  const [showGenOptions, setShowGenOptions] = useState(false);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const saving = busy === `edit-req:${requirement.id}`;
   const deleting = busy === `delete-req:${requirement.id}`;
+  const generating = busy === `plan:${requirement.id}`;
+
+  function toggleType(value: string) {
+    setSelectedTypes((prev) =>
+      prev.includes(value) ? prev.filter((t) => t !== value) : [...prev, value],
+    );
+  }
+
+  async function submitGenerate() {
+    if (selectedTypes.length === 0) {
+      toast.error("Select at least one test case type");
+      return;
+    }
+    setShowGenOptions(false);
+    await onGeneratePlan(requirement.id, {
+      testCaseTypes: selectedTypes,
+    });
+  }
 
   function startEdit() {
     setTitle(requirement.title ?? "");
@@ -546,15 +578,22 @@ function SavedRequirementCard({
           >
             {busy === `create-plan:${requirement.id}` ? "Creating…" : "Create test plan"}
           </button>
-          <button
-            type="button"
-            disabled={busy !== null || editing}
-            onClick={() => void onGeneratePlan(requirement.id)}
-            className="ui-btn-primary ui-btn-xs disabled:cursor-not-allowed disabled:opacity-50"
-            data-testid={`requirement-generate-plan-btn-${requirement.id}`}
-          >
-            {busy === `plan:${requirement.id}` ? "Generating…" : "Generate test plan"}
-          </button>
+          {generating ? (
+            <button type="button" disabled className="ui-btn-primary ui-btn-xs opacity-50 cursor-not-allowed inline-flex items-center gap-1.5">
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current/20 border-t-current" />
+              Generating…
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={busy !== null || editing}
+              onClick={() => setShowGenOptions((v) => !v)}
+              className="ui-btn-primary ui-btn-xs disabled:cursor-not-allowed disabled:opacity-50"
+              data-testid={`requirement-generate-plan-btn-${requirement.id}`}
+            >
+              {showGenOptions ? "Cancel" : "Generate test plan"}
+            </button>
+          )}
           <button
             type="button"
             disabled={busy !== null || editing || deleting}
@@ -572,6 +611,93 @@ function SavedRequirementCard({
           </button>
         </div>
       </header>
+
+      {generating ? (
+        <div className="mt-4 rounded-xl border border-sky-500/30 bg-sky-950/20 p-4">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-sky-400/30 border-t-sky-400" />
+            <div>
+              <p className="text-sm font-semibold text-sky-100">Test Plan Generation using AI — in progress</p>
+              <p className="mt-1 text-xs text-zinc-400">
+                Analyzing your requirement and creating structured test cases. This may take up to a minute.
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 h-1 overflow-hidden rounded-full bg-sky-950/60">
+            <div className="h-full w-2/3 animate-pulse rounded-full bg-sky-500/50" />
+          </div>
+        </div>
+      ) : null}
+
+      {showGenOptions && !generating ? (
+        <div className="mt-3 rounded-xl border border-sky-500/20 bg-sky-950/15 p-4 space-y-4">
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-sky-100">Select test case types to generate</p>
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedTypes(
+                    selectedTypes.length === ALL_TYPE_VALUES.length ? [] : [...ALL_TYPE_VALUES],
+                  )
+                }
+                className="text-[11px] text-zinc-400 hover:text-zinc-200"
+              >
+                {selectedTypes.length === ALL_TYPE_VALUES.length ? "Clear all" : "Select all"}
+              </button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {TEST_CASE_TYPE_OPTIONS.map((opt) => {
+                const checked = selectedTypes.includes(opt.value);
+                return (
+                  <label
+                    key={opt.value}
+                    className={`flex cursor-pointer flex-col gap-2 rounded-lg border p-3 text-xs transition ${checked
+                      ? "border-sky-500/50 bg-sky-900/60 text-sky-100"
+                      : "border-white/10 bg-ink-950/60 text-zinc-300 hover:border-white/20"
+                      }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleType(opt.value)}
+                        className="h-4 w-4 rounded border-white/20 bg-ink-950 text-sky-400 accent-sky-400"
+                      />
+                      <span className="font-semibold">{opt.label}</span>
+                    </span>
+                    <span className="text-[10px] leading-snug text-zinc-400">{opt.description}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              type="button"
+              disabled={selectedTypes.length === 0}
+              onClick={() => void submitGenerate()}
+              className="ui-btn-primary ui-btn-xs disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Generate
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowGenOptions(false)}
+              className="text-xs text-zinc-400 hover:text-white"
+            >
+              Cancel
+            </button>
+            {selectedTypes.length === 0 ? (
+              <span className="text-xs text-rose-400">Select at least one type above</span>
+            ) : (
+              <span className="text-xs text-zinc-500">
+                {selectedTypes.length} type{selectedTypes.length === 1 ? "" : "s"} selected
+              </span>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       {editing ? (
         <form

@@ -36,6 +36,7 @@ export const WEB_ACTION_EXPORTS = [
   "waitForNewPage",
   "waitForVisible",
   "waitMs",
+  "webLocator",
 ] as const;
 
 export const WEB_ACTIONS_IMPORT_BLOCK = `import {

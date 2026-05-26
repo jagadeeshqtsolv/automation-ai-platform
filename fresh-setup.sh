@@ -95,6 +95,14 @@ fi
 step "Installing dependencies (npm install)"
 npm install
 
+# ── 4b. Build local packages and sync to node_modules ─────────────────────────
+step "Building @automation-ai/core from source"
+npm run build --workspace=@jagadeeshqtsolv/core
+# Sync the freshly built dist into the registry-installed location so the
+# Next.js build picks up local schema changes (e.g. new fields) immediately.
+cp -r packages/core/dist/* node_modules/@automation-ai/core/dist/
+echo "  Synced packages/core/dist → node_modules/@automation-ai/core/dist"
+
 # ── 5. Database ────────────────────────────────────────────────────────────────
 if [[ "$RESET_DATA" == true ]]; then
   step "Resetting database and frameworks data"

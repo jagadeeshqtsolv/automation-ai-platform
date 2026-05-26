@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "packages/core/web"
   ],
   "scripts": {
     "dev": "npm run dev --workspace @automation-ai/web",

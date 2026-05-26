@@ -267,7 +267,7 @@ function CreateProjectForm({
 }) {
   const toast = useToast();
   const [name, setName] = useState("");
-  const [platformType, setPlatformType] = useState<ProjectPlatformType>("mobile");
+  const [platformType, setPlatformType] = useState<ProjectPlatformType>("web");
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: FormEvent) {
@@ -300,29 +300,35 @@ function CreateProjectForm({
       <fieldset className="space-y-2">
         <legend className="text-xs font-medium text-zinc-400">Platform</legend>
         <div className="flex gap-2">
-          {(["mobile", "web"] as const).map((value) => (
-            <label
-              key={value}
-              className={`flex flex-1 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
-                platformType === value
-                  ? "border-accent/50 bg-accent/10 text-white"
-                  : "border-white/10 text-zinc-400 hover:border-white/20"
-              }`}
-            >
-              <input
-                type="radio"
-                name="platformType"
-                value={value}
-                checked={platformType === value}
-                onChange={() => setPlatformType(value)}
-                className="sr-only"
-              />
-              {projectPlatformLabel(value)}
-            </label>
-          ))}
+          {/* Web — available */}
+          <label
+            className={`flex flex-1 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
+              platformType === "web"
+                ? "border-accent/50 bg-accent/10 text-white"
+                : "border-white/10 text-zinc-400 hover:border-white/20"
+            }`}
+          >
+            <input
+              type="radio"
+              name="platformType"
+              value="web"
+              checked={platformType === "web"}
+              onChange={() => setPlatformType("web")}
+              className="sr-only"
+            />
+            {projectPlatformLabel("web")}
+          </label>
+
+          {/* Mobile — coming soon */}
+          <div className="flex flex-1 cursor-not-allowed items-center justify-between gap-2 rounded-lg border border-white/5 px-3 py-2 text-xs text-zinc-600 select-none">
+            {projectPlatformLabel("mobile")}
+            <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-zinc-500">
+              Coming soon
+            </span>
+          </div>
         </div>
         <p className="text-[10px] text-zinc-500">
-          Mobile automation runs on real devices using Mobilewright. Web automation runs in the browser using Playwright. This cannot be changed after the project is created.
+          Web automation runs in the browser using Playwright. This cannot be changed after the project is created.
         </p>
       </fieldset>
       <label className="block text-xs font-medium text-zinc-400">

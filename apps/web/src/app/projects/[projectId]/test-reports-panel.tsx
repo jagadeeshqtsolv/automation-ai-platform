@@ -468,6 +468,7 @@ export function TestReportsPanel({
               disabled={disabled}
               onClick={() => void loadRuns()}
               className="text-xs font-medium text-zinc-400 hover:text-white disabled:opacity-50"
+              data-testid="reports-refresh-btn"
             >
               Refresh
             </button>
@@ -487,6 +488,7 @@ export function TestReportsPanel({
                         ? "border-accent/40 bg-accent/10 text-zinc-200"
                         : "border-transparent text-zinc-400 hover:border-white/10 hover:bg-white/5"
                     }`}
+                    data-testid={`reports-run-item-${r.id}`}
                   >
                     <span
                       className={
@@ -552,6 +554,7 @@ export function TestReportsPanel({
                     disabled={disabled}
                     onClick={() => void stopExecution()}
                     className="rounded-lg border border-rose-500/40 bg-rose-950/50 px-3 py-1.5 text-xs font-medium text-rose-100 hover:bg-rose-950/80 disabled:opacity-50"
+                    data-testid="reports-stop-btn"
                   >
                     Stop
                   </button>
@@ -563,6 +566,7 @@ export function TestReportsPanel({
                       disabled={disabled}
                       className="rounded-lg border border-emerald-500/40 bg-emerald-950/50 px-3 py-1.5 text-xs font-medium text-emerald-100 hover:bg-emerald-950/80 disabled:opacity-50"
                       onClick={() => void rerunAll()}
+                      data-testid="reports-rerun-all-btn"
                     >
                       Rerun all
                     </button>
@@ -576,6 +580,7 @@ export function TestReportsPanel({
                       }
                       className="rounded-lg border border-amber-500/35 bg-amber-950/40 px-3 py-1.5 text-xs font-medium text-amber-100 hover:bg-amber-950/60 disabled:cursor-not-allowed disabled:opacity-40"
                       onClick={() => void rerunFailuresOnly()}
+                      data-testid="reports-rerun-failures-btn"
                     >
                       Rerun failures only
                     </button>
@@ -594,6 +599,7 @@ export function TestReportsPanel({
                         "noopener,noreferrer",
                       )
                     }
+                    data-testid="reports-latest-html-btn"
                   >
                     Latest HTML report
                   </button>
@@ -609,6 +615,7 @@ export function TestReportsPanel({
                           "noopener,noreferrer",
                         )
                       }
+                      data-testid="reports-run-snapshot-btn"
                     >
                       This run snapshot (HTML)
                     </button>
@@ -623,6 +630,7 @@ export function TestReportsPanel({
                       disabled={disabled || healing}
                       className="rounded-lg border border-amber-500/40 bg-amber-950/40 px-3 py-1.5 text-xs font-medium text-amber-100 hover:bg-amber-950/70 disabled:opacity-50"
                       onClick={() => setHealFormOpen((open) => !open)}
+                      data-testid="reports-autoheal-toggle-btn"
                     >
                       {healFormOpen ? "Hide auto-heal" : "Auto-heal failures (AI)"}
                     </button>
@@ -666,6 +674,7 @@ export function TestReportsPanel({
                       maxLength={4000}
                       placeholder="e.g. Login button label changed to Sign in; tests time out waiting for Catalog tab; flaky scroll on product list…"
                       className="mt-1.5 w-full resize-y rounded-lg border border-amber-500/20 bg-ink-950/60 px-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500/40 focus:outline-none disabled:opacity-50"
+                      data-testid="reports-heal-description-textarea"
                     />
                     <span className="mt-1 block text-[10px] text-amber-100/50 tabular-nums">
                       {healProblemDescription.length}/4000
@@ -677,6 +686,7 @@ export function TestReportsPanel({
                       disabled={disabled || healing}
                       className="rounded-lg bg-amber-600/90 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-600 disabled:opacity-50"
                       onClick={() => void submitHeal()}
+                      data-testid="reports-heal-submit-btn"
                     >
                       {healing ? "Healing…" : "Submit auto-heal"}
                     </button>
@@ -688,6 +698,7 @@ export function TestReportsPanel({
                         setHealFormOpen(false);
                         setHealProblemDescription("");
                       }}
+                      data-testid="reports-heal-cancel-btn"
                     >
                       Cancel
                     </button>

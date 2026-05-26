@@ -97,7 +97,7 @@ export function RegisterForm({ inviteToken }: { inviteToken: string }) {
         <p className="text-sm text-zinc-400">
           Ask your administrator for an invite link, or sign in if you already have an account.
         </p>
-        <Link href="/login" className="ui-btn-secondary inline-flex text-sm">
+        <Link href="/login" className="ui-btn-secondary inline-flex text-sm" data-testid="register-signin-link">
           Sign in
         </Link>
       </div>
@@ -105,7 +105,7 @@ export function RegisterForm({ inviteToken }: { inviteToken: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form onSubmit={onSubmit} className="space-y-5" data-testid="register-form">
       <div className="rounded-xl border border-accent/25 bg-accent/10 px-4 py-3">
         <p className="text-sm font-medium text-zinc-100">
           Join <span className="text-accent">{invite.organization.name}</span>
@@ -123,6 +123,7 @@ export function RegisterForm({ inviteToken }: { inviteToken: string }) {
           className={authFieldClassName}
           placeholder="Optional"
           maxLength={120}
+          data-testid="register-name-input"
         />
       </label>
 
@@ -135,6 +136,7 @@ export function RegisterForm({ inviteToken }: { inviteToken: string }) {
           readOnly
           className={`${authFieldClassName} cursor-not-allowed opacity-80`}
           required
+          data-testid="register-email-input"
         />
       </label>
 
@@ -149,6 +151,7 @@ export function RegisterForm({ inviteToken }: { inviteToken: string }) {
           placeholder="At least 8 characters"
           minLength={8}
           required
+          data-testid="register-password-input"
         />
       </label>
 
@@ -161,7 +164,7 @@ export function RegisterForm({ inviteToken }: { inviteToken: string }) {
         </div>
       ) : null}
 
-      <button type="submit" disabled={busy} className="ui-btn-primary w-full">
+      <button type="submit" disabled={busy} className="ui-btn-primary w-full" data-testid="register-submit-btn">
         {busy ? (
           <>
             <span
@@ -180,7 +183,7 @@ export function RegisterForm({ inviteToken }: { inviteToken: string }) {
 
       <p className="text-center text-sm text-zinc-500">
         Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-accent transition hover:text-accent-dim">
+        <Link href="/login" className="font-semibold text-accent transition hover:text-accent-dim" data-testid="register-login-link">
           Sign in
         </Link>
       </p>

@@ -178,6 +178,7 @@ function DashboardContent({
                       <Link
                         href={`/projects/${p.id}`}
                         className="ui-btn-secondary ui-btn-xs text-center"
+                        data-testid={`project-open-link-${p.id}`}
                       >
                         Open
                       </Link>
@@ -252,6 +253,7 @@ function DeleteProjectButton({
       disabled={busy}
       onClick={() => void handleDelete()}
       className="rounded-lg border border-rose-500/25 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/10 disabled:opacity-50"
+      data-testid={`project-delete-btn-${projectId}`}
     >
       {busy ? "…" : "Delete"}
     </button>
@@ -296,7 +298,7 @@ function CreateProjectForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3">
+    <form onSubmit={onSubmit} className="space-y-3" data-testid="create-project-form">
       <fieldset className="space-y-2">
         <legend className="text-xs font-medium text-zinc-400">Platform</legend>
         <div className="flex gap-2">
@@ -315,6 +317,7 @@ function CreateProjectForm({
               checked={platformType === "web"}
               onChange={() => setPlatformType("web")}
               className="sr-only"
+              data-testid="create-project-platform-web-radio"
             />
             {projectPlatformLabel("web")}
           </label>
@@ -340,12 +343,14 @@ function CreateProjectForm({
           placeholder="Checkout redesign"
           required
           maxLength={120}
+          data-testid="create-project-name-input"
         />
       </label>
       <button
         type="submit"
         disabled={busy}
         className="ui-btn-primary ui-btn-sm w-full"
+        data-testid="create-project-submit-btn"
       >
         {busy ? "Creating…" : "Create project"}
       </button>

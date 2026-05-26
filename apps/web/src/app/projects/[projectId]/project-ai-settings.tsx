@@ -182,6 +182,7 @@ export function ProjectAISettings({
                 ? "border-accent/40 bg-accent/10 text-accent"
                 : "border-white/10 bg-transparent text-zinc-400 hover:border-white/20 hover:text-zinc-200",
             ].join(" ")}
+            data-testid={`ai-provider-tab-${p}`}
           >
             {PROVIDER_LABELS[p]}
             {settings[p].configured && (
@@ -226,7 +227,7 @@ export function ProjectAISettings({
         </dl>
 
         {settings.canEdit ? (
-          <form onSubmit={onSubmit} className="space-y-3 border-t border-white/10 pt-3">
+          <form onSubmit={onSubmit} className="space-y-3 border-t border-white/10 pt-3" data-testid="ai-settings-form">
             <label className="block text-xs text-zinc-400">
               API key{" "}
               {!providerSettings.configured && (
@@ -246,6 +247,7 @@ export function ProjectAISettings({
                     : "sk-ant-…"
                 }
                 className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 font-mono text-sm text-white"
+                data-testid="ai-settings-apikey-input"
               />
             </label>
             <label className="block text-xs text-zinc-400">
@@ -256,6 +258,7 @@ export function ProjectAISettings({
                 placeholder={providerSettings.suggestedModel}
                 maxLength={80}
                 className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white"
+                data-testid="ai-settings-model-input"
               />
             </label>
             <div className="flex flex-wrap gap-2">
@@ -263,6 +266,7 @@ export function ProjectAISettings({
                 type="submit"
                 disabled={disabled || busy}
                 className="ui-btn-primary ui-btn-xs disabled:opacity-50"
+                data-testid="ai-settings-save-btn"
               >
                 {busy ? "Saving…" : `Save & activate ${PROVIDER_LABELS[selectedTab]}`}
               </button>
@@ -272,6 +276,7 @@ export function ProjectAISettings({
                   disabled={disabled || busy}
                   onClick={() => void removeKey()}
                   className="rounded-lg border border-rose-500/30 px-3 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
+                  data-testid="ai-settings-remove-key-btn"
                 >
                   Remove saved key
                 </button>

@@ -111,7 +111,7 @@ export function PageObjectEditor({
           <h2 id="page-object-editor-title" className="text-sm font-semibold text-white">
             Edit {page.className}
           </h2>
-          <button type="button" onClick={onClose} className="text-xs text-zinc-400 hover:text-white">
+          <button type="button" onClick={onClose} className="text-xs text-zinc-400 hover:text-white" data-testid="page-object-editor-close-btn">
             Close
           </button>
         </div>
@@ -125,6 +125,7 @@ export function PageObjectEditor({
               onChange={(e) => setContent(e.target.value)}
               rows={22}
               className="w-full rounded-lg border border-white/10 bg-black/40 px-2 py-2 font-mono text-[11px] leading-relaxed text-zinc-100 outline-none ring-accent/30 focus:ring-2"
+              data-testid="page-object-editor-content-textarea"
             />
           )}
         </div>
@@ -134,6 +135,7 @@ export function PageObjectEditor({
             disabled={disabled || saving || loading}
             onClick={() => void save()}
             className="ui-btn-primary ui-btn-xs disabled:opacity-50"
+            data-testid="page-object-editor-save-btn"
           >
             {saving ? "Saving…" : "Save"}
           </button>
@@ -142,6 +144,7 @@ export function PageObjectEditor({
             disabled={saving}
             onClick={onClose}
             className="ui-btn-secondary ui-btn-xs"
+            data-testid="page-object-editor-cancel-btn"
           >
             Cancel
           </button>
@@ -150,6 +153,7 @@ export function PageObjectEditor({
             disabled={disabled || saving}
             onClick={() => void remove()}
             className="ml-auto rounded-lg border border-rose-500/30 px-3 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
+            data-testid="page-object-editor-delete-btn"
           >
             Delete
           </button>

@@ -274,6 +274,7 @@ export function ProjectGitSettings({
               type="button"
               onClick={() => { setEditingRepo(true); setRepoSaveError(null); }}
               className="shrink-0 rounded-lg border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-zinc-400 hover:bg-white/[0.06] hover:text-white transition"
+              data-testid="git-repo-edit-btn"
             >
               Edit
             </button>
@@ -311,7 +312,7 @@ export function ProjectGitSettings({
           </div>
         ) : (
           /* Owner editable form */
-          <form onSubmit={onSaveRepo} className="space-y-3">
+          <form onSubmit={onSaveRepo} className="space-y-3" data-testid="git-repo-form">
             {repoConfigured && editingRepo && (
               <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
                 Changing the repository URL or base branch while team members are active will break their local setup.
@@ -327,6 +328,7 @@ export function ProjectGitSettings({
                 required
                 disabled={savingRepo}
                 className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                data-testid="git-remote-url-input"
               />
             </label>
             <label className="block text-xs text-zinc-400">
@@ -338,6 +340,7 @@ export function ProjectGitSettings({
                 maxLength={100}
                 disabled={savingRepo}
                 className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                data-testid="git-base-branch-input"
               />
             </label>
             <div className="flex items-center gap-2">
@@ -345,6 +348,7 @@ export function ProjectGitSettings({
                 type="submit"
                 disabled={savingRepo}
                 className="ui-btn-primary ui-btn-xs disabled:opacity-50"
+                data-testid="git-repo-save-btn"
               >
                 {savingRepo ? <><Spinner />Saving…</> : "Save repository settings"}
               </button>
@@ -353,6 +357,7 @@ export function ProjectGitSettings({
                   type="button"
                   onClick={() => { setEditingRepo(false); setRemoteUrl(projectConfig.remoteUrl ?? ""); setBaseBranch(projectConfig.baseBranch); setRepoSaveError(null); }}
                   className="text-xs text-zinc-500 hover:text-zinc-300"
+                  data-testid="git-repo-cancel-btn"
                 >
                   Cancel
                 </button>
@@ -374,7 +379,7 @@ export function ProjectGitSettings({
           </p>
         </div>
 
-        <form onSubmit={onSaveIdentity} className="space-y-3">
+        <form onSubmit={onSaveIdentity} className="space-y-3" data-testid="git-identity-form">
           <label className="block text-xs text-zinc-400">
             Your working branch <span className="text-rose-300">(required)</span>
             <input
@@ -385,6 +390,7 @@ export function ProjectGitSettings({
               required
               disabled={disabled || savingIdentity || initialising}
               className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+              data-testid="git-branch-input"
             />
             <span className="mt-1 block text-[10px] text-zinc-500">
               Push here, then raise a PR → <code className="text-zinc-400">{projectConfig.baseBranch}</code>.
@@ -405,6 +411,7 @@ export function ProjectGitSettings({
               maxLength={120}
               disabled={disabled || savingIdentity || initialising}
               className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+              data-testid="git-author-name-input"
             />
           </label>
 
@@ -418,6 +425,7 @@ export function ProjectGitSettings({
               maxLength={200}
               disabled={disabled || savingIdentity || initialising}
               className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+              data-testid="git-author-email-input"
             />
           </label>
 
@@ -437,6 +445,7 @@ export function ProjectGitSettings({
               placeholder={userConfig.hasToken ? "••••••••" : "ghp_…"}
               disabled={disabled || savingIdentity || initialising}
               className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 font-mono text-sm text-white disabled:opacity-50"
+              data-testid="git-token-input"
             />
           </label>
 
@@ -444,6 +453,7 @@ export function ProjectGitSettings({
             type="submit"
             disabled={disabled || savingIdentity || initialising || branchConflicts}
             className="ui-btn-primary ui-btn-xs disabled:opacity-50"
+            data-testid="git-identity-save-btn"
           >
             {initialising ? <><Spinner />Setting up branch…</> : savingIdentity ? <><Spinner />Saving…</> : "Save settings"}
           </button>
@@ -475,6 +485,7 @@ export function ProjectGitSettings({
             onClick={() => void onTest()}
             disabled={testing}
             className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/[0.07] disabled:opacity-50 transition"
+            data-testid="git-test-connection-btn"
           >
             {testing ? <><Spinner />Testing…</> : "Test connection"}
           </button>
@@ -518,7 +529,7 @@ export function ProjectGitSettings({
             </div>
           )}
 
-          <form onSubmit={onSaveCiConfig} className="space-y-3">
+          <form onSubmit={onSaveCiConfig} className="space-y-3" data-testid="git-ci-form">
             <label className="block text-xs text-zinc-400">
               CI API token{" "}
               <span className="text-zinc-500">
@@ -532,6 +543,7 @@ export function ProjectGitSettings({
                 placeholder={ciConfig?.hasCiToken ? "••••••••" : "ghp_… / glpat-… / App password"}
                 disabled={savingCi}
                 className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 font-mono text-sm text-white disabled:opacity-50"
+                data-testid="git-ci-token-input"
               />
               <span className="mt-1 block text-[10px] text-zinc-500">
                 GitHub: PAT with <code className="text-zinc-400">repo</code> +{" "}
@@ -549,6 +561,7 @@ export function ProjectGitSettings({
                 maxLength={200}
                 disabled={savingCi}
                 className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                data-testid="git-workflow-file-input"
               />
               <span className="mt-1 block text-[10px] text-zinc-500">
                 GitHub: file name in <code className="text-zinc-400">.github/workflows/</code> · GitLab/Bitbucket: ignored (pipeline is triggered by ref)
@@ -560,6 +573,7 @@ export function ProjectGitSettings({
                 type="submit"
                 disabled={savingCi}
                 className="ui-btn-primary ui-btn-xs disabled:opacity-50"
+                data-testid="git-ci-save-btn"
               >
                 {savingCi ? <><Spinner />Saving…</> : "Save CI settings"}
               </button>
@@ -567,6 +581,7 @@ export function ProjectGitSettings({
                 type="button"
                 onClick={downloadWorkflowTemplate}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-white/[0.07] transition"
+                data-testid="git-ci-download-template-btn"
               >
                 Download workflow template
               </button>
@@ -591,6 +606,7 @@ export function ProjectGitSettings({
             onClick={() => void onPushToMain()}
             disabled={pushing}
             className="inline-flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-xs font-semibold text-accent hover:bg-accent/15 disabled:opacity-50 transition"
+            data-testid="git-push-to-main-btn"
           >
             {pushing ? <><Spinner />Pushing to {projectConfig.baseBranch}…</> : <><RocketIcon />Push to {projectConfig.baseBranch}</>}
           </button>

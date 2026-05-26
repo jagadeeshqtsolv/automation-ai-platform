@@ -213,6 +213,7 @@ export function GitPushPanel({
                   disabled={fetching || pushing}
                   onClick={() => void onFetch()}
                   className="inline-flex items-center gap-1 rounded-lg border border-sky-500/25 bg-sky-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-500/15 disabled:opacity-50 transition"
+                  data-testid="git-push-fetch-btn"
                 >
                   <FetchIcon />
                   {fetching ? "Fetching…" : "Fetch"}
@@ -222,6 +223,7 @@ export function GitPushPanel({
                   onClick={onClose}
                   className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/[0.06] hover:text-white"
                   aria-label="Close"
+                  data-testid="git-push-close-btn"
                 >
                   <CloseIcon />
                 </button>
@@ -253,6 +255,7 @@ export function GitPushPanel({
                   type="button"
                   onClick={() => void loadFiles()}
                   className="mt-2 rounded-lg border border-white/10 px-3 py-1.5 font-semibold text-zinc-300 hover:bg-white/[0.04]"
+                  data-testid="git-push-retry-btn"
                 >
                   Retry
                 </button>
@@ -265,7 +268,7 @@ export function GitPushPanel({
               <>
                 <div className="flex items-center justify-between text-[11px] text-zinc-500">
                   <span>{files.length} file{files.length === 1 ? "" : "s"} changed</span>
-                  <button type="button" onClick={toggleAll} className="text-zinc-400 hover:text-white">
+                  <button type="button" onClick={toggleAll} className="text-zinc-400 hover:text-white" data-testid="git-push-toggle-all-btn">
                     {selected.size === files.length ? "Deselect all" : "Select all"}
                   </button>
                 </div>
@@ -319,6 +322,7 @@ export function GitPushPanel({
                 placeholder="chore: sync test framework"
                 maxLength={500}
                 className="mt-1.5 w-full rounded-lg border border-white/10 bg-ink-950/60 px-3 py-2 text-sm text-white placeholder-zinc-600 focus:border-accent/40 focus:outline-none"
+                data-testid="git-push-commit-message-input"
               />
             </label>
 
@@ -328,6 +332,7 @@ export function GitPushPanel({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 rounded-xl border border-accent/25 bg-accent/10 px-4 py-3 text-sm font-medium text-accent hover:bg-accent/15"
+                data-testid="git-push-create-pr-link"
               >
                 <PrIcon />
                 Create pull request →
@@ -343,6 +348,7 @@ export function GitPushPanel({
                 onClick={() => void onPush()}
                 disabled={pushing || files.length === 0 || selected.size === 0}
                 className="ui-btn-primary flex-1 disabled:opacity-50"
+                data-testid="git-push-submit-btn"
               >
                 {pushing ? (
                   <>
@@ -362,6 +368,7 @@ export function GitPushPanel({
                 disabled={loading || pushing}
                 className="ui-btn-secondary !px-3 disabled:opacity-50"
                 title="Refresh"
+                data-testid="git-push-refresh-btn"
               >
                 <RefreshIcon />
               </button>
@@ -397,6 +404,7 @@ export function GitPushPanel({
                 onClick={() => { setPreviewFile(null); setPreviewDiff(null); }}
                 className="shrink-0 rounded-lg p-1.5 text-zinc-500 hover:bg-white/[0.06] hover:text-white"
                 aria-label="Close diff"
+                data-testid="git-push-close-diff-btn"
               >
                 <CloseIcon />
               </button>

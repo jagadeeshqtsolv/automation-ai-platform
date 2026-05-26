@@ -297,7 +297,7 @@ export function AdminWorkspace() {
           self-register without an invite link.
         </p>
         <div className="mt-4 flex gap-2">
-          <Link href="/dashboard" className="ui-btn-secondary ui-btn-sm">
+          <Link href="/dashboard" className="ui-btn-secondary ui-btn-sm" data-testid="admin-dashboard-link">
             Dashboard
           </Link>
         </div>
@@ -307,7 +307,7 @@ export function AdminWorkspace() {
         {/* Sidebar — org list */}
         <aside className="ui-panel p-4">
           <h2 className="text-sm font-semibold text-white">Create organization</h2>
-          <form onSubmit={createOrg} className="mt-3 space-y-2">
+          <form onSubmit={createOrg} className="mt-3 space-y-2" data-testid="admin-create-org-form">
             <input
               value={newOrgName}
               onChange={(e) => setNewOrgName(e.target.value)}
@@ -315,8 +315,9 @@ export function AdminWorkspace() {
               placeholder="Acme QA"
               required
               maxLength={120}
+              data-testid="admin-create-org-name-input"
             />
-            <button type="submit" disabled={busy !== null} className="ui-btn-primary ui-btn-sm w-full">
+            <button type="submit" disabled={busy !== null} className="ui-btn-primary ui-btn-sm w-full" data-testid="admin-create-org-submit-btn">
               {busy === "org" ? "Creating…" : "Create"}
             </button>
           </form>
@@ -338,6 +339,7 @@ export function AdminWorkspace() {
                           ? "bg-rose-950/20 text-zinc-400 hover:bg-white/5"
                           : "text-zinc-300 hover:bg-white/5"
                     }`}
+                    data-testid={`admin-org-item-${o.id}`}
                   >
                     <span className="flex items-center gap-2">
                       <span className="block font-medium text-white">{o.name}</span>
@@ -390,6 +392,7 @@ export function AdminWorkspace() {
                         ? "border-emerald-500/30 bg-emerald-950/40 text-emerald-200 hover:bg-emerald-500/10"
                         : "border-amber-500/30 bg-amber-950/40 text-amber-200 hover:bg-amber-500/10"
                     }`}
+                    data-testid="admin-org-toggle-btn"
                   >
                     {busy === "toggle-org"
                       ? "Saving…"
@@ -399,7 +402,7 @@ export function AdminWorkspace() {
                   </button>
                 </div>
 
-                <form onSubmit={sendInvite} className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+                <form onSubmit={sendInvite} className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end" data-testid="admin-invite-form">
                   <label className="ui-label">
                     Invite by email
                     <input
@@ -409,6 +412,7 @@ export function AdminWorkspace() {
                       className="ui-input"
                       placeholder="user@company.com"
                       required
+                      data-testid="admin-invite-email-input"
                     />
                   </label>
                   <label className="ui-label">
@@ -417,12 +421,13 @@ export function AdminWorkspace() {
                       value={inviteRole}
                       onChange={(e) => setInviteRole(e.target.value as "member" | "owner")}
                       className="ui-select w-full"
+                      data-testid="admin-invite-role-select"
                     >
                       <option value="member">Member</option>
                       <option value="owner">Owner</option>
                     </select>
                   </label>
-                  <button type="submit" disabled={busy !== null} className="ui-btn-primary ui-btn-sm">
+                  <button type="submit" disabled={busy !== null} className="ui-btn-primary ui-btn-sm" data-testid="admin-invite-submit-btn">
                     {busy === "invite" ? "…" : "Create invite"}
                   </button>
                 </form>
@@ -430,7 +435,7 @@ export function AdminWorkspace() {
                 {lastInviteUrl !== null ? (
                   <div className="mt-3 flex flex-col gap-2 rounded-lg border border-accent/20 bg-accent/5 p-3 sm:flex-row sm:items-center">
                     <code className="min-w-0 flex-1 truncate text-[11px] text-zinc-300">{lastInviteUrl}</code>
-                    <button type="button" onClick={() => void copyInviteUrl()} className="ui-btn-secondary ui-btn-xs shrink-0">
+                    <button type="button" onClick={() => void copyInviteUrl()} className="ui-btn-secondary ui-btn-xs shrink-0" data-testid="admin-invite-copy-link-btn">
                       Copy link
                     </button>
                   </div>
@@ -441,7 +446,7 @@ export function AdminWorkspace() {
               <section className="ui-panel p-5">
                 <h3 className="text-sm font-semibold text-white">Assign existing user</h3>
                 <p className="mt-1 text-xs text-zinc-500">For accounts that already signed up via another invite.</p>
-                <form onSubmit={assignMember} className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+                <form onSubmit={assignMember} className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end" data-testid="admin-assign-form">
                   <label className="ui-label">
                     Email
                     <input
@@ -450,6 +455,7 @@ export function AdminWorkspace() {
                       onChange={(e) => setAssignEmail(e.target.value)}
                       className="ui-input"
                       required
+                      data-testid="admin-assign-email-input"
                     />
                   </label>
                   <label className="ui-label">
@@ -458,12 +464,13 @@ export function AdminWorkspace() {
                       value={assignRole}
                       onChange={(e) => setAssignRole(e.target.value as "member" | "owner")}
                       className="ui-select w-full"
+                      data-testid="admin-assign-role-select"
                     >
                       <option value="member">Member</option>
                       <option value="owner">Owner</option>
                     </select>
                   </label>
-                  <button type="submit" disabled={busy !== null} className="ui-btn-secondary ui-btn-sm">
+                  <button type="submit" disabled={busy !== null} className="ui-btn-secondary ui-btn-sm" data-testid="admin-assign-submit-btn">
                     {busy === "assign" ? "…" : "Assign"}
                   </button>
                 </form>
@@ -513,6 +520,7 @@ export function AdminWorkspace() {
                             }
                             title={isSelf ? "You cannot change your own role" : undefined}
                             className="ui-select !py-1 !text-xs w-28 shrink-0 disabled:opacity-50"
+                            data-testid={`admin-member-role-select-${m.user.id}`}
                           >
                             <option value="member">Member</option>
                             <option value="owner">Owner</option>
@@ -526,6 +534,7 @@ export function AdminWorkspace() {
                               onClick={() => void removeMember(m.user.id, m.user.email)}
                               title={isSelf ? "You cannot remove yourself" : "Remove from this organization"}
                               className="inline-flex items-center gap-1 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-amber-300 hover:bg-amber-500/20 disabled:opacity-40 transition"
+                              data-testid={`admin-member-remove-btn-${m.user.id}`}
                             >
                               <RemoveIcon />
                               Remove
@@ -536,6 +545,7 @@ export function AdminWorkspace() {
                               onClick={() => void deleteUser(m.user.id, m.user.email)}
                               title={isSelf ? "You cannot delete your own account" : "Permanently delete user account"}
                               className="inline-flex items-center gap-1 rounded-lg border border-rose-500/25 bg-rose-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-rose-300 hover:bg-rose-500/20 disabled:opacity-40 transition"
+                              data-testid={`admin-member-delete-btn-${m.user.id}`}
                             >
                               <TrashIcon />
                               Delete
@@ -569,6 +579,7 @@ export function AdminWorkspace() {
                       disabled={busy !== null}
                       onClick={() => void deleteAllInvites()}
                       className="inline-flex items-center gap-1 rounded-lg border border-rose-500/25 bg-rose-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-rose-300 hover:bg-rose-500/20 disabled:opacity-40 transition"
+                      data-testid="admin-invites-delete-all-btn"
                     >
                       <TrashIcon />
                       Delete all
@@ -610,6 +621,7 @@ export function AdminWorkspace() {
                             onClick={() => void deleteInvite(i.id, i.email)}
                             title="Delete this invite"
                             className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-rose-500/25 bg-rose-500/10 px-2 py-1.5 text-[11px] font-semibold text-rose-300 hover:bg-rose-500/20 disabled:opacity-40 transition"
+                            data-testid={`admin-invite-delete-btn-${i.id}`}
                           >
                             <TrashIcon />
                             Delete

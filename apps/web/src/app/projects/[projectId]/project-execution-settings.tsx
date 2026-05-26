@@ -156,7 +156,7 @@ export function ProjectExecutionSettings({
   }
 
   return (
-    <form onSubmit={(e) => void onSave(e)} className="space-y-4">
+    <form onSubmit={(e) => void onSave(e)} className="space-y-4" data-testid="execution-settings-form">
       {/* Provider picker */}
       <div className="space-y-2">
         <p className="text-xs font-medium text-zinc-400">Execution provider</p>
@@ -167,12 +167,14 @@ export function ProjectExecutionSettings({
             onClick={() => setProvider("local")}
             title="Local"
             description={`Run ${configLabel} tests on this server using your environment config`}
+            testId="execution-provider-local-btn"
           />
           <ProviderCard
             active={provider === "browserstack"}
             disabled={disabled || saving}
             onClick={() => setProvider("browserstack")}
             title="BrowserStack"
+            testId="execution-provider-browserstack-btn"
             description={
               platformType === "mobile"
                 ? "Run tests on BrowserStack real devices and emulators via the cloud"
@@ -209,6 +211,7 @@ export function ProjectExecutionSettings({
                 placeholder="your-bs-username"
                 disabled={disabled || saving}
                 className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                data-testid="execution-bs-username-input"
               />
             </label>
             <label className="block text-xs text-zinc-400">
@@ -226,6 +229,7 @@ export function ProjectExecutionSettings({
                 placeholder={response?.secrets.browserstackAccessKeyConfigured ? "••••••••" : "Your access key"}
                 disabled={disabled || saving}
                 className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 font-mono text-sm text-white disabled:opacity-50"
+                data-testid="execution-bs-accesskey-input"
               />
             </label>
           </div>
@@ -358,6 +362,7 @@ export function ProjectExecutionSettings({
               onClick={() => void onTestBrowserStack()}
               disabled={testing || saving || disabled || (!bsUsername.trim() && !response?.secrets.browserstackAccessKeyConfigured)}
               className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/[0.07] disabled:opacity-50 transition"
+              data-testid="execution-bs-test-btn"
             >
               {testing ? <><BsSpinner />Testing…</> : "Test connection"}
             </button>
@@ -385,7 +390,7 @@ export function ProjectExecutionSettings({
       )}
 
       {!disabled && (
-        <button type="submit" disabled={saving} className="ui-btn-primary ui-btn-xs disabled:opacity-50">
+        <button type="submit" disabled={saving} className="ui-btn-primary ui-btn-xs disabled:opacity-50" data-testid="execution-settings-save-btn">
           {saving ? "Saving…" : "Save execution settings"}
         </button>
       )}
@@ -399,12 +404,14 @@ function ProviderCard({
   onClick,
   title,
   description,
+  testId,
 }: {
   active: boolean;
   disabled: boolean;
   onClick: () => void;
   title: string;
   description: string;
+  testId?: string;
 }) {
   return (
     <button
@@ -416,6 +423,7 @@ function ProviderCard({
           ? "border-accent/40 bg-accent/10 ring-1 ring-accent/30"
           : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
       }`}
+      data-testid={testId}
     >
       <p className={`text-sm font-semibold ${active ? "text-accent" : "text-zinc-200"}`}>{title}</p>
       <p className="mt-0.5 text-xs text-zinc-400">{description}</p>

@@ -76,6 +76,7 @@ export function WorkspaceOverviewPanel({
             type="button"
             onClick={() => onNavigate(c.tab)}
             className="ui-metric text-left hover:border-accent/30"
+            data-testid={`overview-${c.tab}-metric-btn`}
           >
             <p className="ui-eyebrow">{c.label}</p>
             <p className="ui-metric-value">{c.value}</p>
@@ -90,6 +91,7 @@ export function WorkspaceOverviewPanel({
             type="button"
             onClick={() => onNavigate(s.tab)}
             className="rounded-xl border border-white/[0.08] bg-ink-950/40 p-4 text-left transition duration-200 hover:border-white/[0.14] hover:bg-white/[0.04]"
+            data-testid={`overview-shortcut-${s.tab}-btn`}
           >
             <p className="text-sm font-semibold tracking-tight text-white">{s.title}</p>
             <p className="mt-1 text-xs leading-relaxed text-zinc-400">{s.body}</p>
@@ -138,6 +140,7 @@ export function RequirementsWorkspacePanel({
             type="button"
             onClick={onViewTestPlans}
             className="font-medium text-accent underline-offset-2 hover:underline"
+            data-testid="requirements-view-testplans-link"
           >
             Test plans
           </button>{" "}
@@ -165,6 +168,7 @@ export function RequirementsWorkspacePanel({
               type="button"
               onClick={onRefresh}
               className="text-xs font-semibold text-zinc-400 underline-offset-4 hover:text-white hover:underline"
+              data-testid="requirements-refresh-btn"
             >
               Refresh
             </button>
@@ -306,6 +310,7 @@ function JiraImportSection({
         type="button"
         onClick={() => setExpanded((v) => !v)}
         className="flex w-full items-center justify-between px-5 py-4 text-left"
+        data-testid="jira-import-toggle-btn"
       >
         <span className="flex items-center gap-2">
           <JiraIcon />
@@ -327,6 +332,7 @@ function JiraImportSection({
                 disabled={fetching}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void onFetch(); } }}
                 className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                data-testid="jira-jql-input"
               />
             </label>
             <button
@@ -334,6 +340,7 @@ function JiraImportSection({
               onClick={() => void onFetch()}
               disabled={fetching || !jql.trim()}
               className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-white/[0.07] disabled:opacity-50 transition whitespace-nowrap"
+              data-testid="jira-fetch-stories-btn"
             >
               {fetching ? <><JiraSpinner />Fetching…</> : "Fetch stories"}
             </button>
@@ -349,6 +356,7 @@ function JiraImportSection({
               maxLength={4000}
               placeholder="e.g. These are mobile checkout user stories. Focus on edge cases and error handling."
               className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white"
+              data-testid="jira-instructions-textarea"
             />
           </label>
 
@@ -369,6 +377,7 @@ function JiraImportSection({
                   onClick={() => void onImport()}
                   disabled={importing || selected.size === 0}
                   className="ui-btn-primary ui-btn-sm disabled:opacity-50"
+                  data-testid="jira-import-selected-btn"
                 >
                   {importing ? <><JiraSpinner />Importing…</> : `Import selected (${selected.size})`}
                 </button>
@@ -523,6 +532,7 @@ function SavedRequirementCard({
               disabled={busy !== null}
               onClick={startEdit}
               className="rounded-lg border border-white/10 bg-ink-950/60 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+              data-testid={`requirement-edit-btn-${requirement.id}`}
             >
               Edit
             </button>
@@ -532,6 +542,7 @@ function SavedRequirementCard({
             disabled={busy !== null || editing}
             onClick={() => void onCreatePlan(requirement.id, defaultSuiteNameForRequirement(requirement.title))}
             className="rounded-lg border border-white/10 bg-ink-950/60 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+            data-testid={`requirement-create-plan-btn-${requirement.id}`}
           >
             {busy === `create-plan:${requirement.id}` ? "Creating…" : "Create test plan"}
           </button>
@@ -540,6 +551,7 @@ function SavedRequirementCard({
             disabled={busy !== null || editing}
             onClick={() => void onGeneratePlan(requirement.id)}
             className="ui-btn-primary ui-btn-xs disabled:cursor-not-allowed disabled:opacity-50"
+            data-testid={`requirement-generate-plan-btn-${requirement.id}`}
           >
             {busy === `plan:${requirement.id}` ? "Generating…" : "Generate test plan"}
           </button>
@@ -554,6 +566,7 @@ function SavedRequirementCard({
               )
             }
             className="rounded-lg border border-rose-500/30 bg-rose-950/40 px-3 py-1.5 text-xs font-semibold text-rose-200 hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            data-testid={`requirement-delete-btn-${requirement.id}`}
           >
             {deleting ? "Deleting…" : "Delete"}
           </button>
@@ -567,6 +580,7 @@ function SavedRequirementCard({
             e.preventDefault();
             void saveEdit();
           }}
+          data-testid={`requirement-edit-form-${requirement.id}`}
         >
           <label className="block text-xs font-medium text-zinc-400">
             Title (optional)
@@ -576,6 +590,7 @@ function SavedRequirementCard({
               onChange={(e) => setTitle(e.target.value)}
               maxLength={200}
               className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-3 py-2 text-sm text-white outline-none ring-accent/30 focus:ring-2"
+              data-testid="requirement-title-input"
             />
           </label>
           <label className="block text-xs font-medium text-zinc-400">
@@ -589,10 +604,11 @@ function SavedRequirementCard({
               maxLength={48_000}
               rows={10}
               className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-3 py-2 text-sm text-white outline-none ring-accent/30 focus:ring-2"
+              data-testid="requirement-content-textarea"
             />
           </label>
           <div className="flex flex-wrap gap-2">
-            <button type="submit" disabled={saving} className="ui-btn-primary ui-btn-sm">
+            <button type="submit" disabled={saving} className="ui-btn-primary ui-btn-sm" data-testid="requirement-save-btn">
               {saving ? "Saving…" : "Save changes"}
             </button>
             <button
@@ -600,6 +616,7 @@ function SavedRequirementCard({
               disabled={saving}
               onClick={cancelEdit}
               className="ui-btn-secondary ui-btn-sm"
+              data-testid="requirement-cancel-btn"
             >
               Cancel
             </button>

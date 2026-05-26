@@ -37,7 +37,7 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form onSubmit={onSubmit} className="space-y-5" data-testid="login-form">
       <div className="space-y-4">
         <label className={authLabelClassName}>
           Email
@@ -49,6 +49,7 @@ export function LoginForm() {
             className={authFieldClassName}
             placeholder="you@company.com"
             required
+            data-testid="login-email-input"
           />
         </label>
         <label className={authLabelClassName}>
@@ -61,6 +62,7 @@ export function LoginForm() {
             className={authFieldClassName}
             placeholder="••••••••"
             required
+            data-testid="login-password-input"
           />
         </label>
       </div>
@@ -78,6 +80,7 @@ export function LoginForm() {
         type="submit"
         disabled={busy}
         className="ui-btn-primary w-full"
+        data-testid="login-submit-btn"
       >
         {busy ? (
           <>

@@ -346,6 +346,7 @@ export function TestExecutionPanel({
               onChange={(e) => setSelectedProvider(e.target.value as ExecutionProvider)}
               disabled={disabled || running}
               className="mt-1 block w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+              data-testid="execution-provider-select"
             >
               {availableProviders.map((p) => (
                 <option key={p.provider} value={p.provider}>{p.label}</option>
@@ -378,6 +379,7 @@ export function TestExecutionPanel({
               onClick={() => void load()}
               disabled={disabled || running}
               className="text-xs font-medium text-zinc-400 hover:text-white disabled:opacity-50"
+              data-testid="execution-refresh-specs-btn"
             >
               Refresh list
             </button>
@@ -388,6 +390,7 @@ export function TestExecutionPanel({
                   onClick={selectAll}
                   disabled={disabled || running}
                   className="text-xs font-medium text-accent hover:underline disabled:opacity-50"
+                  data-testid="execution-select-all-btn"
                 >
                   Select all
                 </button>
@@ -396,6 +399,7 @@ export function TestExecutionPanel({
                   onClick={clearSelection}
                   disabled={disabled || running}
                   className="text-xs font-medium text-zinc-400 hover:underline disabled:opacity-50"
+                  data-testid="execution-clear-selection-btn"
                 >
                   Clear
                 </button>
@@ -436,6 +440,7 @@ export function TestExecutionPanel({
             disabled={disabled}
             onChange={(e) => setEnvironmentId(e.target.value)}
             className="mt-1 block w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white"
+            data-testid="execution-environment-select"
           >
             <option value="">Default from {testConfigFileName(platformType)}</option>
             {environments.map((env) => (
@@ -453,6 +458,7 @@ export function TestExecutionPanel({
             onChange={(e) => setGrep(e.target.value)}
             placeholder="@smoke"
             className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white"
+            data-testid="execution-grep-input"
           />
         </label>
         <div className="flex shrink-0 flex-wrap gap-2">
@@ -462,6 +468,7 @@ export function TestExecutionPanel({
               disabled={disabled}
               onClick={() => void stopExecution()}
               className="rounded-lg border border-rose-500/40 bg-rose-950/50 px-4 py-2 text-sm font-medium text-rose-100 hover:bg-rose-950/80 disabled:opacity-50"
+              data-testid="execution-stop-btn"
             >
               Stop
             </button>
@@ -471,6 +478,7 @@ export function TestExecutionPanel({
             disabled={disabled || running}
             onClick={() => void runTests()}
             className="ui-btn-primary"
+            data-testid="execution-run-btn"
           >
             {running
               ? "Running…"
@@ -482,6 +490,7 @@ export function TestExecutionPanel({
               disabled={disabled || running}
               onClick={() => void runViaCi()}
               className="inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/15 disabled:opacity-50 transition"
+              data-testid="execution-run-ci-btn"
             >
               <PipelineIcon />
               Run via {ciProviderLabel(ciPipeline.provider)}

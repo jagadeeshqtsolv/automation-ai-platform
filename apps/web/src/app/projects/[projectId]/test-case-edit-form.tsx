@@ -310,7 +310,7 @@ export function TestCaseEditForm({
   const primaryLabel = submitLabel ?? (isNew ? "Add test case" : "Save changes");
 
   return (
-    <form className="space-y-4 border-t border-white/5 px-3 pb-3 pt-3" onSubmit={handleSubmit}>
+    <form className="space-y-4 border-t border-white/5 px-3 pb-3 pt-3" onSubmit={handleSubmit} data-testid="test-case-edit-form">
       {isNew ? (
         <label className="block text-xs font-medium text-zinc-400">
           Case id
@@ -324,6 +324,7 @@ export function TestCaseEditForm({
             title="Letters, numbers, dots, underscores, hyphens"
             className={`${inputClass} font-mono text-xs`}
             placeholder="auto-generated from title if left as default"
+            data-testid="test-case-id-input"
           />
         </label>
       ) : null}
@@ -336,6 +337,7 @@ export function TestCaseEditForm({
           required
           maxLength={500}
           className={inputClass}
+          data-testid="test-case-title-input"
         />
       </label>
 
@@ -347,6 +349,7 @@ export function TestCaseEditForm({
             disabled={disabled}
             onChange={(e) => update({ priority: e.target.value as TestCase["priority"] })}
             className={inputClass}
+            data-testid="test-case-priority-select"
           >
             <option value="P0">P0</option>
             <option value="P1">P1</option>
@@ -388,6 +391,7 @@ export function TestCaseEditForm({
           rows={3}
           className={inputClass}
           placeholder="User is on Catalog page"
+          data-testid="test-case-preconditions-textarea"
         />
       </label>
 
@@ -399,6 +403,7 @@ export function TestCaseEditForm({
           onChange={(e) => setTagsText(e.target.value)}
           className={inputClass}
           placeholder="navigation, menu"
+          data-testid="test-case-tags-input"
         />
       </label>
 
@@ -410,6 +415,7 @@ export function TestCaseEditForm({
             disabled={disabled}
             onClick={addStep}
             className="text-xs font-semibold text-accent hover:underline disabled:opacity-40"
+            data-testid="test-case-add-step-btn"
           >
             + Add step
           </button>
@@ -437,6 +443,7 @@ export function TestCaseEditForm({
                     disabled={disabled || draft.steps.length <= 1}
                     onClick={() => removeStep(index)}
                     className="text-[11px] text-rose-300 hover:underline disabled:opacity-40"
+                    data-testid={`test-case-remove-step-btn-${index}`}
                   >
                     Remove
                   </button>
@@ -595,10 +602,10 @@ export function TestCaseEditForm({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        <button type="submit" disabled={disabled} className="ui-btn-primary ui-btn-sm">
+        <button type="submit" disabled={disabled} className="ui-btn-primary ui-btn-sm" data-testid="test-case-submit-btn">
           {disabled ? "Saving…" : primaryLabel}
         </button>
-        <button type="button" disabled={disabled} onClick={onCancel} className="ui-btn-secondary ui-btn-sm">
+        <button type="button" disabled={disabled} onClick={onCancel} className="ui-btn-secondary ui-btn-sm" data-testid="test-case-cancel-btn">
           Cancel
         </button>
       </div>

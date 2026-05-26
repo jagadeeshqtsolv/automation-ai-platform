@@ -116,6 +116,7 @@ export function ProjectChatPanel({
         className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-accent/40 bg-ink-900 text-lg shadow-lg shadow-black/40 transition hover:border-accent hover:bg-ink-950"
         aria-label={open ? "Close project assistant" : "Open project assistant"}
         title="Project assistant"
+        data-testid="chat-toggle-btn"
       >
         {open ? "×" : "?"}
       </button>
@@ -155,6 +156,7 @@ export function ProjectChatPanel({
                 disabled={sending}
                 onClick={() => setInput(c)}
                 className="rounded-md border border-white/10 px-1.5 py-0.5 text-[10px] text-zinc-400 hover:border-white/20 hover:text-zinc-200"
+                data-testid={`chat-chip-${c.replace(/\s+/g, "-")}`}
               >
                 {c}
               </button>
@@ -167,6 +169,7 @@ export function ProjectChatPanel({
               e.preventDefault();
               void send();
             }}
+            data-testid="chat-form"
           >
             <input
               value={input}
@@ -175,11 +178,13 @@ export function ProjectChatPanel({
               disabled={sending}
               maxLength={2000}
               className="min-w-0 flex-1 rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-xs text-white placeholder:text-zinc-600"
+              data-testid="chat-input"
             />
             <button
               type="submit"
               disabled={sending || input.trim().length === 0}
               className="ui-btn-secondary ui-btn-sm shrink-0"
+              data-testid="chat-send-btn"
             >
               Send
             </button>

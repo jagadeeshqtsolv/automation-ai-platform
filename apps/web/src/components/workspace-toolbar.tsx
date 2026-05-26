@@ -149,6 +149,7 @@ export function WorkspaceToolbar({
             value={organizationId ?? orgs[0]?.id ?? ""}
             onChange={(e) => handleOrgSelect(e.target.value)}
             className="ui-select max-w-[240px]"
+            data-testid="nav-org-select"
           >
             {orgs.map((o) => (
               <option key={o.id} value={o.id}>
@@ -167,14 +168,14 @@ export function WorkspaceToolbar({
           {displayName}
         </span>
         {user?.isPlatformAdmin === true ? (
-          <Link href="/admin" className="ui-btn-ghost !px-3 !py-2 text-xs">
+          <Link href="/admin" className="ui-btn-ghost !px-3 !py-2 text-xs" data-testid="nav-admin-link">
             Admin
           </Link>
         ) : null}
-        <Link href="/" className="ui-btn-ghost !px-3 !py-2 text-xs">
+        <Link href="/" className="ui-btn-ghost !px-3 !py-2 text-xs" data-testid="nav-home-link">
           Home
         </Link>
-        <button type="button" onClick={() => void handleLogout()} className="ui-btn-secondary !px-3 !py-2 text-xs">
+        <button type="button" onClick={() => void handleLogout()} className="ui-btn-secondary !px-3 !py-2 text-xs" data-testid="nav-signout-btn">
           Sign out
         </button>
       </div>

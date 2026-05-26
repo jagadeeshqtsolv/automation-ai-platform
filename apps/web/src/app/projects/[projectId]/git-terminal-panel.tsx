@@ -142,6 +142,7 @@ export function GitTerminalPanel({
                 type="button"
                 onClick={() => setLines([])}
                 className="rounded-lg px-2 py-1 text-[11px] text-zinc-500 hover:bg-white/[0.06] hover:text-zinc-300"
+                data-testid="git-terminal-clear-btn"
               >
                 Clear
               </button>
@@ -151,6 +152,7 @@ export function GitTerminalPanel({
               onClick={onClose}
               className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/[0.06] hover:text-white"
               aria-label="Close"
+              data-testid="git-terminal-close-btn"
             >
               <CloseIcon />
             </button>
@@ -166,6 +168,7 @@ export function GitTerminalPanel({
               disabled={running}
               onClick={() => void run(cmd)}
               className="rounded-md bg-white/[0.04] px-2 py-1 font-mono text-[10px] text-zinc-400 hover:bg-white/[0.08] hover:text-zinc-200 disabled:opacity-40 transition"
+              data-testid={`git-terminal-quick-cmd-${cmd.replace(/\s+/g, "-")}`}
             >
               {cmd}
             </button>
@@ -234,12 +237,14 @@ export function GitTerminalPanel({
               spellCheck={false}
               autoComplete="off"
               className="min-w-0 flex-1 bg-transparent font-mono text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none disabled:opacity-50"
+              data-testid="git-terminal-input"
             />
             <button
               type="button"
               onClick={() => void run(input)}
               disabled={running || !input.trim()}
               className="shrink-0 rounded-md bg-accent/20 px-2 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent/30 disabled:opacity-40 transition"
+              data-testid="git-terminal-run-btn"
             >
               Run
             </button>

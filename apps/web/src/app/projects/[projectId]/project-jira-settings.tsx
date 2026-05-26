@@ -112,7 +112,7 @@ export function ProjectJiraSettings({
       {/* Config form */}
       <div className="rounded-xl border border-white/10 bg-ink-950/30 p-4 space-y-3">
         <h3 className="text-sm font-semibold text-white">Configuration</h3>
-        <form onSubmit={(e) => void onSubmit(e)} className="space-y-3">
+        <form onSubmit={(e) => void onSubmit(e)} className="space-y-3" data-testid="jira-settings-form">
           <label className="block text-xs text-zinc-400">
             Jira base URL <span className="text-rose-300">(required)</span>
             <input
@@ -123,6 +123,7 @@ export function ProjectJiraSettings({
               maxLength={500}
               disabled={saving || disabled}
               className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+              data-testid="jira-settings-baseurl-input"
             />
           </label>
 
@@ -136,6 +137,7 @@ export function ProjectJiraSettings({
               maxLength={200}
               disabled={saving || disabled}
               className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+              data-testid="jira-settings-email-input"
             />
           </label>
 
@@ -155,6 +157,7 @@ export function ProjectJiraSettings({
               placeholder={config.hasApiToken ? "••••••••" : "Paste Atlassian API token"}
               disabled={saving || disabled}
               className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 font-mono text-sm text-white disabled:opacity-50"
+              data-testid="jira-settings-apitoken-input"
             />
             <span className="mt-1 block text-[10px] text-zinc-500">
               Create at{" "}
@@ -163,6 +166,7 @@ export function ProjectJiraSettings({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-accent underline-offset-2 hover:underline"
+                data-testid="jira-settings-apitoken-link"
               >
                 id.atlassian.com → Security → API tokens
               </a>
@@ -179,6 +183,7 @@ export function ProjectJiraSettings({
               maxLength={500}
               disabled={saving || disabled}
               className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+              data-testid="jira-settings-defaultjql-input"
             />
           </label>
 
@@ -187,6 +192,7 @@ export function ProjectJiraSettings({
               type="submit"
               disabled={saving}
               className="ui-btn-primary ui-btn-xs disabled:opacity-50"
+              data-testid="jira-settings-save-btn"
             >
               {saving ? <><Spinner />Saving…</> : "Save Jira settings"}
             </button>
@@ -208,6 +214,7 @@ export function ProjectJiraSettings({
             onClick={() => void onTest()}
             disabled={testing || disabled}
             className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/[0.07] disabled:opacity-50 transition"
+            data-testid="jira-settings-test-btn"
           >
             {testing ? <><Spinner />Testing…</> : "Test connection"}
           </button>

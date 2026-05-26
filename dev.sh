@@ -38,7 +38,14 @@ npx --yes tsc -p packages/core/web/tsconfig.build.json --watch --preserveWatchOu
   | sed 's/^/[web-support] /' &
 WEB_WATCH_PID=$!
 
+# After each web-support rebuild, auto-sync dist to _shared-web and all
+# existing project frameworks so running projects pick up changes immediately.
+echo -e "  Watching packages/core/web/dist → sync to framework projects…"
+node scripts/sync-web-support.mjs --watch 2>&1 \
+  | sed 's/^/[sync] /' &
+SYNC_PID=$!
+
 # Terminate background watchers when the dev server exits
-trap "kill \$CORE_WATCH_PID \$WEB_WATCH_PID 2>/dev/null; exit" INT TERM EXIT
+trap "kill \$CORE_WATCH_PID \$WEB_WATCH_PID \$SYNC_PID 2>/dev/null; exit" INT TERM EXIT
 
 exec npm run dev

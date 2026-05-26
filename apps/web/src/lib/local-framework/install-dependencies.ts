@@ -219,6 +219,10 @@ async function ensureSharedWebDependencyCache(): Promise<{ ok: boolean; error?: 
       return { ok: false, error: "Shared web cache install finished but @playwright/test is missing" };
     }
 
+    // Sync the latest web-support dist into the shared cache so every project
+    // that copies from it gets the current version without needing a publish.
+    await syncWebSupportDistToProject(cacheRoot);
+
     return { ok: true };
   } finally {
     installInFlight.delete(SHARED_WEB_CACHE_KEY);

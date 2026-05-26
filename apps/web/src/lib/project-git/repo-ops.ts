@@ -369,6 +369,13 @@ export async function initRepo(params: {
         await git(root, ["symbolic-ref", "HEAD", `refs/heads/${params.branch}`], undefined, gitDir);
       }
       await git(root, ["reset", "--hard", `origin/${params.baseBranch}`], undefined, gitDir);
+    } else if (isOrphan) {
+      // Fresh empty repo (admin first-time init): just ensure the branch name is correct.
+      // We cannot `checkout -b` because git sees the unborn branch as already existing.
+      // commitAndPush will make the first commit — no checkout or reset needed here.
+      if (currentBranch !== params.branch) {
+        await git(root, ["symbolic-ref", "HEAD", `refs/heads/${params.branch}`], undefined, gitDir);
+      }
     } else {
       // Check if the user's branch already exists locally
       const { stdout: localList } = await git(
@@ -448,17 +455,17 @@ export async function initRepo(params: {
     }
   }
 
-  // Confirm the branch has at least one commit (not an orphan with no parent).
-  // git branch shows no output for orphan branches, which is confusing.
-  const { stdout: headOut } = await git(root, ["rev-parse", "HEAD"], undefined, gitDir)
-    .catch(() => ({ stdout: "" }));
-  if (!headOut.trim()) {
-    throw new Error(
-      `Branch "${params.branch}" was created but has no commits. ` +
-      (params.baseBranch
-        ? `Ask the admin to push to "${params.baseBranch}" first, then re-save your settings.`
-        : "Make an initial commit before initialising."),
-    );
+  // Confirm the branch has at least one commit when a baseBranch was expected.
+  // For admin first-push (no baseBranch), the orphan state is intentional — commitAndPush follows.
+  if (params.baseBranch) {
+    const { stdout: headOut } = await git(root, ["rev-parse", "HEAD"], undefined, gitDir)
+      .catch(() => ({ stdout: "" }));
+    if (!headOut.trim()) {
+      throw new Error(
+        `Branch "${params.branch}" was created but has no commits. ` +
+        `Ask the admin to push to "${params.baseBranch}" first, then re-save your settings.`,
+      );
+    }
   }
 }
 

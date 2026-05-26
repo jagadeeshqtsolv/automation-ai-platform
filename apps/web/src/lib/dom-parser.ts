@@ -110,6 +110,9 @@ function locatorPriority(node: DomNodeLike, locator: Pick<WebPageElement, "strat
   return 5;
 }
 
+// 75 chars leaves room for a 2-digit dedup suffix while staying within the 80-char schema limit.
+const KEY_BASE_MAX_LEN = 75;
+
 function slugKey(raw: string): string {
   const cleaned = raw
     .replace(/[^a-zA-Z0-9]+/g, " ")
@@ -118,9 +121,9 @@ function slugKey(raw: string): string {
     .filter((p) => p.length > 0)
     .map((p, i) => (i === 0 ? p.toLowerCase() : p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()))
     .join("");
-  if (cleaned.length === 0) return "element";
-  if (/^\d/.test(cleaned)) return `el${cleaned}`;
-  return cleaned;
+  let slug = cleaned.length === 0 ? "element" : /^\d/.test(cleaned) ? `el${cleaned}` : cleaned;
+  if (slug.length > KEY_BASE_MAX_LEN) slug = slug.slice(0, KEY_BASE_MAX_LEN);
+  return slug;
 }
 
 function cssEscapeIdentifier(id: string): string {

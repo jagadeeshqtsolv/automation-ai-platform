@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ExecutionConfig } from "@automation-ai/core";
 import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
@@ -239,6 +239,16 @@ function buildExecutionMobilewrightConfig(params: {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export async function deleteExecutionSecrets(projectId: string): Promise<void> {
+  const paths = [
+    resolveFrameworkFilePath(projectId, "execution/.env.execution"),
+    resolveFrameworkFilePath(projectId, "browserstack.yml", "web"),
+  ];
+  await Promise.allSettled(
+    paths.filter(Boolean).map((p) => rm(p!, { force: true })),
+  );
 }
 
 export async function ensureExecutionSetupScripts(projectId: string): Promise<void> {

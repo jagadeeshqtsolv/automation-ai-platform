@@ -5,6 +5,7 @@ import { runProjectTests } from "@/lib/test-execution/run-tests";
 import { loadPlaywrightReportAnalysis } from "@/lib/test-execution/playwright-report-analysis";
 import { PLAYWRIGHT_HTML_REPORT_DIR } from "@/lib/test-execution/playwright-html-report";
 import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
+import { deleteExecutionSecrets } from "@/lib/test-execution/write-execution-artifacts";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 
@@ -104,6 +105,7 @@ export async function executeTestRunInBackground(runId: string, params: RunTests
         ...(htmlReportRel !== null ? { htmlReportRel } : {}),
       },
     });
+    await deleteExecutionSecrets(params.projectId);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Test run failed";
     output = trimOutput(`${output}\n${message}\n`);
@@ -122,5 +124,6 @@ export async function executeTestRunInBackground(runId: string, params: RunTests
         ...(htmlReportRel !== null ? { htmlReportRel } : {}),
       },
     });
+    await deleteExecutionSecrets(params.projectId);
   }
 }

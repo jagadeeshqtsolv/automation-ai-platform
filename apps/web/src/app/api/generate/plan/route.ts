@@ -9,6 +9,8 @@ import { ZodError } from "zod";
 import { syncTestPlanToDisk } from "@/lib/local-framework/sync-workspace-to-disk";
 import { getProjectPlatformType } from "@/lib/project-platform";
 
+const generatingProjects = new Set<string>();
+
 export async function POST(req: Request) {
   const json: unknown = await req.json().catch(() => null);
   const parsed = generatePlanBodySchema.safeParse(json);
@@ -35,8 +37,16 @@ export async function POST(req: Request) {
     return guard.error;
   }
 
+  if (generatingProjects.has(requirement.projectId)) {
+    return NextResponse.json(
+      { error: "A generation is already in progress for this project" },
+      { status: 409 },
+    );
+  }
+
   const platformType = await getProjectPlatformType(requirement.projectId);
 
+  generatingProjects.add(requirement.projectId);
   try {
     const { plan, model } = await generateTestPlanFromRequirement({
       requirementTitle: requirement.title,
@@ -74,5 +84,7 @@ export async function POST(req: Request) {
     const status =
       err instanceof ZodError ? 422 : aiGenerationErrorStatus(message);
     return NextResponse.json({ error: message }, { status });
+  } finally {
+    generatingProjects.delete(requirement.projectId);
   }
 }

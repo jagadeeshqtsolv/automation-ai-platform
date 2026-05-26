@@ -3,10 +3,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        # GitHub Packages token — needed to install @jagadeeshqtsolv/core during build
-        # Add GITHUB_TOKEN=<your-pat> to your .env file
-        GITHUB_TOKEN: "${GITHUB_TOKEN}"
+      # GitHub Packages token is passed as a BuildKit secret — never stored in
+      # image layers. Add GITHUB_TOKEN=<your-pat> to your .env file.
+      secrets:
+        - github_token
     ports:
       - "${PORT:-3000}:3000"
     environment:
@@ -31,3 +31,7 @@ services:
 
 volumes:
   app-data:
+
+secrets:
+  github_token:
+    environment: GITHUB_TOKEN

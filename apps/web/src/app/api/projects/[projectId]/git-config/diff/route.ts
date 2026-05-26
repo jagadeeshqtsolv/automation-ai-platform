@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
-import { getProjectFrameworkRoot, getProjectUserGitDir } from "@/lib/local-framework/paths";
+import { getProjectFrameworkRoot, getProjectUserGitDir, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
 import { prisma } from "@/lib/prisma";
 
 const execFile = promisify(_execFile);
@@ -31,7 +31,7 @@ export async function GET(req: Request, context: { params: Promise<{ projectId: 
   if ("error" in guard) return guard.error;
 
   const filePath = new URL(req.url).searchParams.get("path");
-  if (!filePath || filePath.includes("..")) {
+  if (!filePath) {
     return NextResponse.json({ error: "Invalid path" }, { status: 400 });
   }
 
@@ -41,10 +41,15 @@ export async function GET(req: Request, context: { params: Promise<{ projectId: 
   });
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const root = getProjectFrameworkRoot(
-    params.data.projectId,
-    project.platformType as "web" | "mobile",
-  );
+  const platformType = project.platformType as "web" | "mobile";
+
+  // Use allowlist-based path validator — rejects traversal and paths outside permitted prefixes
+  const resolvedPath = resolveFrameworkFilePath(params.data.projectId, filePath, platformType);
+  if (resolvedPath === null) {
+    return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+  }
+
+  const root = getProjectFrameworkRoot(params.data.projectId, platformType);
   if (!existsSync(root)) return NextResponse.json({ error: "Project directory not found" }, { status: 404 });
 
   const userGitDir = getProjectUserGitDir(
@@ -72,7 +77,7 @@ export async function GET(req: Request, context: { params: Promise<{ projectId: 
   if (isUntracked) {
     // New untracked file — show full content prefixed with +
     try {
-      const content = await readFile(join(root, filePath), "utf-8");
+      const content = await readFile(resolvedPath, "utf-8");
       diff = content
         .split("\n")
         .map((l) => `+${l}`)

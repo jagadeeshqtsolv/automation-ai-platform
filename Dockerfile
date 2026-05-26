@@ -4,12 +4,13 @@ FROM node:20-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
-# GitHub Packages auth — needed to install @jagadeeshqtsolv/core
-# Pass via: docker build --build-arg GITHUB_TOKEN=<pat>
-# or set GITHUB_TOKEN in your .env and use docker-compose (see docker-compose.yml)
-ARG GITHUB_TOKEN
-RUN if [ -n "$GITHUB_TOKEN" ]; then \
-      echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> /root/.npmrc; \
+# GitHub Packages auth — token is mounted as a BuildKit secret so it never
+# appears in any image layer or in `docker history`.
+# Pass via: docker compose up --build  (docker-compose.yml uses secrets: section)
+# Or manually: docker build --secret id=github_token,src=<(echo $GITHUB_TOKEN) .
+RUN --mount=type=secret,id=github_token \
+    if [ -f /run/secrets/github_token ] && [ -s /run/secrets/github_token ]; then \
+      echo "//npm.pkg.github.com/:_authToken=$(cat /run/secrets/github_token)" >> /root/.npmrc; \
     fi
 
 COPY .npmrc ./

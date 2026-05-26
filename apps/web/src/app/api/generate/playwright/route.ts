@@ -18,6 +18,8 @@ import { generateTestFixturesSource, TEST_FIXTURES_MODULE_PATH } from "@/lib/gen
 import { aiGenerationErrorStatus } from "@/lib/ai-generation-error-status";
 import { getProjectPlatformType } from "@/lib/project-platform";
 
+const generatingProjects = new Set<string>();
+
 function parseStoredPlans(rows: Array<{ json: string }>) {
   const plans = [];
   for (const row of rows) {
@@ -64,6 +66,13 @@ export async function POST(req: Request) {
   const guard = await withAuthAndProject(projectId);
   if ("error" in guard) {
     return guard.error;
+  }
+
+  if (generatingProjects.has(projectId)) {
+    return NextResponse.json(
+      { error: "A generation is already in progress for this project" },
+      { status: 409 },
+    );
   }
 
   const platform = await getProjectPlatformType(projectId);
@@ -121,6 +130,7 @@ export async function POST(req: Request) {
     environmentDisk = { slug: env.slug, configJson: env.configJson };
   }
 
+  generatingProjects.add(projectId);
   try {
     const { bundle, model } = await generatePlaywrightWebPomBundle({
       plan: planForGeneration,
@@ -229,5 +239,7 @@ export async function POST(req: Request) {
     const message = err instanceof Error ? err.message : "Generation failed";
     const status = aiGenerationErrorStatus(message);
     return NextResponse.json({ error: message }, { status });
+  } finally {
+    generatingProjects.delete(projectId);
   }
 }

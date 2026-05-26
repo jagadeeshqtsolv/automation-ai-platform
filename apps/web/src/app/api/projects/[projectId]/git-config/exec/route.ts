@@ -12,11 +12,14 @@ const execFile = promisify(_execFile);
 const paramsSchema = z.object({ projectId: z.string().uuid() });
 const bodySchema = z.object({ command: z.string().min(1).max(500) });
 
-const BLOCKED = new Set([
-  "credential",
-  "filter-branch",
-  "fast-import",
-  "fast-export",
+// Explicit allowlist — every permitted git subcommand must appear here.
+const ALLOWED = new Set([
+  "status", "log", "diff", "show", "blame", "shortlog", "describe", "rev-parse",
+  "branch", "tag", "remote",
+  "add", "commit", "push", "pull", "fetch",
+  "checkout", "switch", "restore", "stash", "reset",
+  "rebase", "merge", "cherry-pick", "revert",
+  "init", "config",
 ]);
 
 export async function POST(req: Request, context: { params: Promise<{ projectId: string }> }) {
@@ -37,7 +40,7 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
   const subcommand = args[0]?.toLowerCase() ?? "";
   if (!subcommand) return NextResponse.json({ error: "Empty command" }, { status: 400 });
 
-  if (BLOCKED.has(subcommand)) {
+  if (!ALLOWED.has(subcommand)) {
     return NextResponse.json(
       { stdout: "", stderr: `git ${subcommand}: not permitted`, exitCode: 1 },
     );

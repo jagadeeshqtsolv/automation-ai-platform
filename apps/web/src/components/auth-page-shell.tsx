@@ -4,8 +4,8 @@ import { BRAND_TAGLINE } from "@/lib/brand";
 import { BrandLogo } from "@/components/brand-logo";
 
 const AUTH_FEATURES = [
-  "Requirements → test plans → Mobilewright specs",
-  "Device recorder and page object library",
+  "Requirements → test plans → Playwright test code",
+  "Browser recorder and page-object library",
   "Per-organization projects and access control",
 ] as const;
 

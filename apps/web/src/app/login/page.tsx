@@ -7,7 +7,7 @@ export default function LoginPage() {
   return (
     <AuthPageShell
       title="Welcome back"
-      subtitle="Sign in to manage requirements, environments, and generated Mobilewright tests across your organization."
+      subtitle="Sign in to manage requirements, environments, and AI-generated Playwright tests across your organization."
       footer={
         <>
           <Link href="/" className="text-zinc-400 transition hover:text-white">

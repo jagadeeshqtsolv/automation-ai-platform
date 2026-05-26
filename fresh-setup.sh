@@ -119,7 +119,13 @@ else
   npm run db:push
 fi
 
-# ── 6. Create admin (optional) ────────────────────────────────────────────────
+# ── 6. Create admin ───────────────────────────────────────────────────────────
+# Auto-prompt when the DB was wiped (no existing admin) unless --create-admin
+# was already passed (avoids double-prompt).
+if [[ "$WIPE_DB" == true || "$RESET_DATA" == true ]]; then
+  CREATE_ADMIN=true
+fi
+
 if [[ "$CREATE_ADMIN" == true ]]; then
   step "Creating platform admin"
   echo -n "  Admin email: "
@@ -140,10 +146,6 @@ fi
 echo -e "\n${bold}${green}✓ Setup complete${reset}\n"
 echo "  Start dev server:  ./dev.sh"
 echo "  Start prod server: npm start"
-if [[ "$RESET_DATA" == true && "$CREATE_ADMIN" == false ]]; then
-  echo ""
-  echo "  Create admin:      npm run db:create-admin -- --email you@example.com --password 'yourpass'"
-fi
 echo ""
 
 if [[ "$RUN_DEV" == true ]]; then

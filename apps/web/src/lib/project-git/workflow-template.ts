@@ -59,7 +59,7 @@ on:
       grep:
         description: "Test title filter (e.g. @smoke)"
         required: false
-        default: "${cfg.defaultTag}"
+        default: ""
       callback_url:
         description: "AutomationAI webhook URL to post results back"
         required: true
@@ -116,7 +116,7 @@ ${installBrowsersStep}
               \\"status\\": \\"\${STATUS}\\",
               \\"run_id\\": \\"\${{ inputs.run_id }}\\",
               \\"pipelineUrl\\": \\"\${{ github.server_url }}/\${{ github.repository }}/actions/runs/\${{ github.run_id }}\\"
-            }"
+            }" || true
 `;
 }
 

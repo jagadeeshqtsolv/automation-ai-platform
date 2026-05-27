@@ -103,6 +103,17 @@ ${installBrowsersStep}
         continue-on-error: true
         id: run
 
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-\${{ inputs.run_id }}
+          path: |
+            playwright-report/
+            logs/playwright-report.json
+          retention-days: 7
+          if-no-files-found: warn
+
       - name: Report results to AutomationAI
         if: always()
         run: |

@@ -32,7 +32,7 @@ export async function syncWebSupportHelpersToDisk(projectId: string): Promise<vo
 const WEB_SUPPORT_PACKAGE_JSON = JSON.stringify(
   {
     name: "@jagadeeshqtsolv/web-support",
-    version: "1.0.2",
+    version: "1.0.4",
     type: "module",
     exports: {
       "./web-actions": {

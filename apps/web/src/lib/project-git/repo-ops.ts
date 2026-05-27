@@ -10,7 +10,7 @@ import type { ProjectPlatformType } from "@automation-ai/core";
 const execFile = promisify(_execFile);
 
 const GIT_TIMEOUT_MS = 30_000;   // local ops (add, commit, status, config)
-const GIT_NETWORK_TIMEOUT_MS = 60_000; // remote ops (fetch, push, pull)
+const GIT_NETWORK_TIMEOUT_MS = 120_000; // remote ops (fetch, push, pull)
 
 /**
  * Build a "Create pull request" URL from a plain remote URL, working branch, and base branch.

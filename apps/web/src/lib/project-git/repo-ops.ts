@@ -9,7 +9,8 @@ import type { ProjectPlatformType } from "@automation-ai/core";
 
 const execFile = promisify(_execFile);
 
-const GIT_TIMEOUT_MS = 30_000;
+const GIT_TIMEOUT_MS = 30_000;   // local ops (add, commit, status, config)
+const GIT_NETWORK_TIMEOUT_MS = 60_000; // remote ops (fetch, push, pull)
 
 /**
  * Build a "Create pull request" URL from a plain remote URL, working branch, and base branch.
@@ -51,19 +52,44 @@ async function git(
   args: string[],
   env?: Record<string, string>,
   gitDir?: string,
+  timeoutMs = GIT_TIMEOUT_MS,
 ): Promise<{ stdout: string; stderr: string }> {
   const fullArgs = gitDir
     ? ["--git-dir", gitDir, "--work-tree", cwd, ...args]
     : args;
-  return execFile("git", fullArgs, {
-    cwd,
-    timeout: GIT_TIMEOUT_MS,
-    env: {
-      ...process.env,
-      GIT_TERMINAL_PROMPT: "0",
-      ...env,
-    },
-  });
+  try {
+    return await execFile("git", fullArgs, {
+      cwd,
+      timeout: timeoutMs,
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: "0",
+        ...env,
+      },
+    });
+  } catch (err: unknown) {
+    // When git is killed (timeout), stderr is empty and err.message is just
+    // "Command failed: git ...". Replace it with something actionable.
+    if (
+      err instanceof Error &&
+      "killed" in err && (err as NodeJS.ErrnoException & { killed?: boolean }).killed &&
+      "stderr" in err && !String((err as { stderr: unknown }).stderr).trim()
+    ) {
+      const op = args[0] ?? "operation";
+      throw Object.assign(new Error(`Git ${op} timed out after ${timeoutMs / 1000}s — check your network connection and try again.`), { stderr: "" });
+    }
+    throw err;
+  }
+}
+
+/** Like git() but uses the longer network timeout — for fetch, push, pull. */
+function gitNet(
+  cwd: string,
+  args: string[],
+  env?: Record<string, string>,
+  gitDir?: string,
+): Promise<{ stdout: string; stderr: string }> {
+  return git(cwd, args, env, gitDir, GIT_NETWORK_TIMEOUT_MS);
 }
 
 export type RepoStatus = {
@@ -212,7 +238,7 @@ export async function fetchRemote(params: {
     await git(root, ["remote", "add", "origin", authUrl], undefined, resolvedGitDir);
   }
 
-  const { stdout, stderr } = await git(root, ["fetch", "--prune", "origin"], undefined, resolvedGitDir);
+  const { stdout, stderr } = await gitNet(root, ["fetch", "--prune", "origin"], undefined, resolvedGitDir);
   const output = (stdout + stderr).trim();
   const newCommits = output.length > 0;
   return { newCommits, output: output || "Already up to date." };
@@ -325,7 +351,7 @@ export async function initRepo(params: {
   // Propagate auth/network errors so the caller gets useful feedback;
   // only stay silent when the remote is genuinely empty (no refs yet).
   try {
-    await git(root, ["fetch", "origin", "--quiet"], undefined, gitDir);
+    await gitNet(root, ["fetch", "origin", "--quiet"], undefined, gitDir);
   } catch (fetchErr) {
     const fetchStderr = getStderr(fetchErr);
     // Only surface clear auth / network failures. Ignore warnings and empty-repo
@@ -575,7 +601,7 @@ export async function commitAndPush(params: {
       await git(root, ["commit", "-m", params.message ?? `chore: sync test framework [${new Date().toISOString()}]`], undefined, resolvedGitDir);
     }
 
-    await git(root, ["fetch", "origin"], undefined, resolvedGitDir);
+    await gitNet(root, ["fetch", "origin"], undefined, resolvedGitDir);
 
     let remoteBranchExists = false;
     try {
@@ -594,11 +620,11 @@ export async function commitAndPush(params: {
       pulled = true;
     }
 
-    await git(root, ["push", "--set-upstream", "origin", params.branch], undefined, resolvedGitDir);
+    await gitNet(root, ["push", "--set-upstream", "origin", params.branch], undefined, resolvedGitDir);
   } else {
     // Normal user push: try once, on non-fast-forward stash → rebase → pop → retry.
     try {
-      await git(root, ["push", "--set-upstream", "origin", params.branch], undefined, resolvedGitDir);
+      await gitNet(root, ["push", "--set-upstream", "origin", params.branch], undefined, resolvedGitDir);
     } catch (firstErr) {
       if (!isNonFastForward(firstErr)) throw firstErr;
 
@@ -606,7 +632,7 @@ export async function commitAndPush(params: {
       // If the branch is brand-new on the remote side there is nothing to rebase against
       // and `git pull --rebase origin <branch>` would fail with
       // "fatal: couldn't find remote ref <branch>".
-      const { stdout: remoteRef } = await git(
+      const { stdout: remoteRef } = await gitNet(
         root,
         ["ls-remote", "--heads", "origin", params.branch],
         undefined,
@@ -628,7 +654,7 @@ export async function commitAndPush(params: {
         const didStash = !stashOut.trim().startsWith("No local changes");
 
         try {
-          await git(root, ["pull", "--rebase", "origin", params.branch], undefined, resolvedGitDir);
+          await gitNet(root, ["pull", "--rebase", "origin", params.branch], undefined, resolvedGitDir);
           pulled = true;
         } finally {
           if (didStash) {
@@ -637,7 +663,7 @@ export async function commitAndPush(params: {
         }
       }
 
-      await git(root, ["push", "--set-upstream", "origin", params.branch], undefined, resolvedGitDir);
+      await gitNet(root, ["push", "--set-upstream", "origin", params.branch], undefined, resolvedGitDir);
     }
   }
 

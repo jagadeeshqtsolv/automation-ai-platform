@@ -22,6 +22,7 @@ export async function upsertWebPageObjectContent(params: {
 
   const enrichedContent = sanitizeWebPageObjectFileContent(
     enrichWebPageObjectWithFlowMethods(normalized.content),
+    normalized.className,
   );
   const methodSummary = appendWebFlowMethodsToMethodSummary(
     inferMethodSummary(enrichedContent),

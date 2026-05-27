@@ -109,7 +109,7 @@ export async function POST(req: Request) {
   const pages = await prisma.pageObject.findMany({
     where: { projectId },
     orderBy: { modulePath: "asc" },
-    select: { modulePath: true, className: true, content: true, methodSummary: true },
+    select: { modulePath: true, className: true, content: true, methodSummary: true, screenName: true },
   });
 
   const pageObjects: PageObjectLibraryEntry[] = pages.map((p) => ({
@@ -117,6 +117,7 @@ export async function POST(req: Request) {
     className: p.className,
     content: p.content,
     methodSummary: p.methodSummary,
+    screenName: p.screenName,
   }));
 
   let environment: EnvironmentLibraryEntry | null = null;

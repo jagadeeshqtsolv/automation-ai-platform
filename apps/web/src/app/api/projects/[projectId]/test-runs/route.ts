@@ -80,10 +80,19 @@ export async function GET(_req: Request, context: { params: Promise<{ projectId:
   if (doc.config.custom?.hubUrl) {
     availableProviders.push({ provider: "custom", label: "Custom hub" });
   }
+  if (ciConfig?.hasCiToken === true && ciProvider !== null) {
+    availableProviders.push({ provider: "github-ci", label: "GitHub CI" });
+  }
+
+  // Default to github-ci in the panel when it's configured and no other cloud provider is saved
+  const effectiveProvider =
+    ciConfig?.hasCiToken === true && ciProvider !== null && doc.config.provider === "local"
+      ? "github-ci"
+      : doc.config.provider;
 
   return NextResponse.json({
     specs,
-    config: doc.config,
+    config: { ...doc.config, provider: effectiveProvider },
     availableProviders,
     ciPipeline: {
       configured: ciConfig?.hasCiToken === true,

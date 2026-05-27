@@ -33,6 +33,7 @@ export type PageObjectLibraryEntry = {
   className: string;
   content: string;
   methodSummary: string;
+  screenName?: string | null;
 };
 
 export type EnvironmentLibraryEntry = {
@@ -112,7 +113,7 @@ export function normalizeRequirementSpecBundle(
   const enrichedPageObjects = keptPageObjects.map((f) => ({
     ...f,
     content: isWeb
-      ? sanitizeWebPageObjectFileContent(enrichWebPageObjectWithFlowMethods(f.content))
+      ? sanitizeWebPageObjectFileContent(enrichWebPageObjectWithFlowMethods(f.content), f.path)
       : sanitizePageObjectFileContent(
         enrichPageObjectWithExpectVisibilityMethods(enrichPageObjectWithFlowMethods(f.content)),
       ),

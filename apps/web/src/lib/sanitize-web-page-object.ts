@@ -1,6 +1,30 @@
 import { WEB_ACTIONS_IMPORT_BLOCK } from "@/lib/screen-codegen/web-actions-helper";
 import { enrichWebPageObjectWithStepMethods } from "@/lib/enrich-web-page-object-step-methods";
 
+/**
+ * When the LLM generates only the `private static readonly L = {...}` block without
+ * an `export class` wrapper, this function reconstructs the full class around it.
+ * The className hint must be a valid PascalCase identifier (e.g. "CommonPage").
+ */
+function repairOrphanedLBlock(content: string, className: string): string {
+  if (/export\s+class\s+\w+/.test(content)) return content;
+  const m = content.match(/private\s+static\s+readonly\s+L\s*=\s*\{([\s\S]*?)\}\s+as\s+const/);
+  if (m === null) return content;
+  const inner = m[1].replace(/\s+$/, "");
+  return [
+    `import type { Page } from "@playwright/test";`,
+    WEB_ACTIONS_IMPORT_BLOCK,
+    ``,
+    `export class ${className} {`,
+    `  private static readonly L = {${inner}`,
+    `  } as const;`,
+    ``,
+    `  constructor(private readonly page: Page) {}`,
+    `}`,
+    ``,
+  ].join("\n");
+}
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -65,7 +89,9 @@ function ensureActionKindInLBlock(content: string): string {
     },
   );
 
-  return `${lMatch[1]}${body}${lMatch[3]}`;
+  if (body === lMatch[2]) return content;
+  const idx = lMatch.index!;
+  return content.slice(0, idx) + lMatch[1] + body + lMatch[3] + content.slice(idx + lMatch[0].length);
 }
 
 /** Removes click* for checkbox keys; adds check* using checkWhenVisible when missing. */
@@ -134,12 +160,22 @@ function ensureWebImports(content: string): string {
 
 /**
  * Normalizes LLM- or heal-generated web page objects: actionKind on L, checkbox → check* + checkWhenVisible.
+ * Pass `classNameHint` (a file path like "pageobjects/CommonPage.ts" or a class name) so orphaned L blocks
+ * that the LLM emitted without an `export class` wrapper can be reconstructed automatically.
  */
-export function sanitizeWebPageObjectFileContent(content: string): string {
-  const classMatch = content.match(/export class (\w+)/);
+export function sanitizeWebPageObjectFileContent(content: string, classNameHint?: string): string {
+  let out = content;
+  if (classNameHint !== undefined && !/export\s+class\s+\w+/.test(out)) {
+    const raw = classNameHint.includes("/") || classNameHint.includes("\\")
+      ? (classNameHint.split(/[/\\]/).pop()?.replace(/\.ts$/i, "") ?? "")
+      : classNameHint;
+    if (/^[A-Z][A-Za-z0-9]*$/.test(raw)) {
+      out = repairOrphanedLBlock(out, raw);
+    }
+  }
+  const classMatch = out.match(/export class (\w+)/);
   const className = classMatch?.[1] ?? "";
 
-  let out = content;
   out = ensureActionKindInLBlock(out);
   out = ensureWebImports(out);
   out = fixCheckboxInteractionMethods(out, className);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useToast } from "@/components/toast-provider";
 import { readApiError } from "@/lib/api-response";
 import { PageObjectEditor } from "./page-object-editor";
@@ -33,6 +33,60 @@ export function GeneratePomSection({
 }) {
   const toast = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const text = await file.text();
+      let bundle: unknown;
+
+      if (file.name.endsWith(".ts") || file.name.endsWith(".tsx")) {
+        // Single TypeScript page-object file — wrap it in the bundle format
+        const classMatch = /export\s+class\s+(\w+)/.exec(text);
+        if (!classMatch) {
+          toast.error("Import failed — no exported class found in the TypeScript file");
+          return;
+        }
+        const className = classMatch[1];
+        const modulePath = `pageobjects/${className}.ts`;
+        bundle = { pageObjects: [{ className, modulePath, content: text }] };
+      } else {
+        // JSON bundle (recorder export)
+        try {
+          bundle = JSON.parse(text) as unknown;
+        } catch {
+          toast.error("Import failed — file is not valid JSON. Upload a .ts page object file or a .json bundle.");
+          return;
+        }
+      }
+
+      const res = await fetch(`/api/projects/${projectId}/page-objects/import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bundle),
+      });
+      const data = (await res.json()) as { imported?: number; errors?: string[] };
+      if (!res.ok) {
+        toast.error(await readApiError(res, "Import failed"));
+        return;
+      }
+      if (data.errors && data.errors.length > 0) {
+        toast.error(`Import errors: ${data.errors.join("; ")}`);
+      }
+      toast.success(`Imported ${data.imported ?? 0} page object${(data.imported ?? 0) !== 1 ? "s" : ""}`);
+      await onReloadProject();
+      onFrameworkRefresh();
+    } catch {
+      toast.error("Import failed — unexpected error reading the file");
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   async function deletePageObject(page: PageObjectRow) {
     const confirmed = window.confirm(
@@ -58,12 +112,31 @@ export function GeneratePomSection({
 
   return (
     <section className="space-y-4 rounded-2xl border border-white/10 bg-ink-900/40 p-6">
-      <header>
-        <h2 className="text-lg font-semibold text-white">Page object library</h2>
-        <p className="mt-1 text-sm text-zinc-400">
-          Classes saved from the recorder or test codegen. Edit locators (<code className="text-zinc-300">L</code>) or
-          methods, then save to sync <code className="text-zinc-300">frameworks/</code>.
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-white">Page object library</h2>
+          <p className="mt-1 text-sm text-zinc-400">
+            Classes saved from the recorder or test codegen. Edit locators (<code className="text-zinc-300">L</code>) or
+            methods, then save to sync <code className="text-zinc-300">frameworks/</code>.
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,.ts,.tsx"
+            className="hidden"
+            onChange={(e) => void handleImport(e)}
+          />
+          <button
+            type="button"
+            disabled={importing}
+            onClick={() => fileInputRef.current?.click()}
+            className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-white/10 disabled:opacity-50"
+          >
+            {importing ? "Importing…" : "⬆ Import from Recorder"}
+          </button>
+        </div>
       </header>
 
       {pageObjects.length === 0 ? (

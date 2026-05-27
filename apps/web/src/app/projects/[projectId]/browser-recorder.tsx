@@ -17,6 +17,7 @@ type ParsedElement = {
   frame?: string;
   shadowHost?: string;
   actionKind: WebPageElementActionKind;
+  selected: boolean;
 };
 
 function domSnapshotTextFromCaptureResponse(body: {
@@ -291,12 +292,16 @@ export function BrowserRecorderPanel({
         return;
       }
       const data = (await res.json()) as {
-        elements?: ParsedElement[];
+        elements?: Omit<ParsedElement, "selected">[];
         truncated?: boolean;
         totalMatched?: number;
         maxElements?: number;
       };
-      setElements(Array.isArray(data.elements) ? data.elements : []);
+      setElements(
+        Array.isArray(data.elements)
+          ? data.elements.map((el) => ({ ...el, selected: true }))
+          : [],
+      );
       if (data.truncated === true && typeof data.totalMatched === "number") {
         const max = data.maxElements ?? 80;
         toast.info(
@@ -316,7 +321,7 @@ export function BrowserRecorderPanel({
       toast.error("Page name is required (e.g. Login)");
       return;
     }
-    const payloadElements: WebPageElement[] = elements.map((el) => ({
+    const payloadElements: WebPageElement[] = elements.filter((el) => el.selected).map((el) => ({
       key: el.suggestedKey,
       strategy: el.strategy,
       value: el.value,
@@ -326,7 +331,7 @@ export function BrowserRecorderPanel({
       actionKind: el.actionKind,
     }));
     if (payloadElements.length === 0) {
-      toast.error("Parse the DOM and keep at least one element");
+      toast.error("Select at least one element before saving — use the checkboxes to include elements.");
       return;
     }
 
@@ -361,6 +366,26 @@ export function BrowserRecorderPanel({
 
   function updateElementKey(nodeId: string, key: string) {
     setElements((prev) => prev.map((el) => (el.nodeId === nodeId ? { ...el, suggestedKey: key } : el)));
+  }
+
+  function toggleElement(nodeId: string) {
+    setElements((prev) =>
+      prev.map((el) => (el.nodeId === nodeId ? { ...el, selected: !el.selected } : el)),
+    );
+  }
+
+  function selectAll() {
+    setElements((prev) => prev.map((el) => ({ ...el, selected: true })));
+  }
+
+  function deselectAll() {
+    setElements((prev) => prev.map((el) => ({ ...el, selected: false })));
+  }
+
+  function deselectTextFields() {
+    setElements((prev) =>
+      prev.map((el) => (el.actionKind === "textbox" ? { ...el, selected: false } : el)),
+    );
   }
 
   return (
@@ -530,7 +555,16 @@ export function BrowserRecorderPanel({
             />
           </label>
 
-          <ElementsTable elements={elements} disabled={disabled} busy={busy} onKeyChange={updateElementKey} />
+          <ElementsTable
+            elements={elements}
+            disabled={disabled}
+            busy={busy}
+            onKeyChange={updateElementKey}
+            onToggle={toggleElement}
+            onSelectAll={selectAll}
+            onDeselectAll={deselectAll}
+            onDeselectTextFields={deselectTextFields}
+          />
 
           <p className="text-[11px] text-zinc-500">
             Saves pageobjects/LoginPage.ts with Playwright Page + webLocator helpers.
@@ -581,43 +615,106 @@ function ElementsTable({
   disabled,
   busy,
   onKeyChange,
+  onToggle,
+  onSelectAll,
+  onDeselectAll,
+  onDeselectTextFields,
 }: {
   elements: ParsedElement[];
   disabled: boolean;
   busy: boolean;
   onKeyChange: (nodeId: string, key: string) => void;
+  onToggle: (nodeId: string) => void;
+  onSelectAll: () => void;
+  onDeselectAll: () => void;
+  onDeselectTextFields: () => void;
 }) {
+  const selectedCount = elements.filter((el) => el.selected).length;
+  const textFieldCount = elements.filter((el) => el.actionKind === "textbox").length;
+
   return (
-    <div className="max-h-56 overflow-auto rounded-lg border border-white/10 bg-black/30 p-2">
-      <table className="w-full text-left text-[11px] text-zinc-300">
-        <thead className="text-zinc-500">
-          <tr>
-            <th className="p-1">Key</th>
-            <th className="p-1">Strategy</th>
-            <th className="p-1">Value</th>
-            <th className="p-1">Kind</th>
-            <th className="p-1">Tag</th>
-          </tr>
-        </thead>
-        <tbody>
-          {elements.map((el) => (
-            <tr key={el.nodeId} className="border-t border-white/5">
-              <td className="p-1">
-                <input
-                  value={el.suggestedKey}
-                  disabled={disabled || busy}
-                  onChange={(e) => onKeyChange(el.nodeId, e.target.value)}
-                  className="w-full rounded border border-white/10 bg-ink-950/60 px-1 py-0.5 text-white"
-                />
-              </td>
-              <td className="p-1">{el.strategy}</td>
-              <td className="p-1 font-mono">{el.value}</td>
-              <td className="p-1 text-zinc-500">{el.actionKind}</td>
-              <td className="p-1 text-zinc-500">{el.tagName ?? "—"}</td>
+    <div className="space-y-2">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[11px] text-zinc-400">
+          <span className="font-medium text-white">{selectedCount}</span> of{" "}
+          <span className="font-medium text-white">{elements.length}</span> elements selected
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            disabled={disabled || busy}
+            onClick={onSelectAll}
+            className="rounded border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-300 hover:bg-white/10 disabled:opacity-50"
+          >
+            Select all
+          </button>
+          <button
+            type="button"
+            disabled={disabled || busy}
+            onClick={onDeselectAll}
+            className="rounded border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-300 hover:bg-white/10 disabled:opacity-50"
+          >
+            Deselect all
+          </button>
+          {textFieldCount > 0 && (
+            <button
+              type="button"
+              disabled={disabled || busy}
+              onClick={onDeselectTextFields}
+              className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
+            >
+              Exclude text fields ({textFieldCount})
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="max-h-64 overflow-auto rounded-lg border border-white/10 bg-black/30 p-2">
+        <table className="w-full text-left text-[11px] text-zinc-300">
+          <thead className="text-zinc-500">
+            <tr>
+              <th className="p-1 w-6" />
+              <th className="p-1">Key</th>
+              <th className="p-1">Strategy</th>
+              <th className="p-1">Value</th>
+              <th className="p-1">Kind</th>
+              <th className="p-1">Tag</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {elements.map((el) => (
+              <tr
+                key={el.nodeId}
+                className={`border-t border-white/5 ${el.selected ? "" : "opacity-40"}`}
+              >
+                <td className="p-1">
+                  <input
+                    type="checkbox"
+                    checked={el.selected}
+                    disabled={disabled || busy}
+                    onChange={() => onToggle(el.nodeId)}
+                    className="accent-violet-500 cursor-pointer disabled:cursor-default"
+                  />
+                </td>
+                <td className="p-1">
+                  <input
+                    value={el.suggestedKey}
+                    disabled={disabled || busy || !el.selected}
+                    onChange={(e) => onKeyChange(el.nodeId, e.target.value)}
+                    className="w-full rounded border border-white/10 bg-ink-950/60 px-1 py-0.5 text-white disabled:opacity-50"
+                  />
+                </td>
+                <td className="p-1">{el.strategy}</td>
+                <td className="p-1 font-mono break-all">{el.value}</td>
+                <td className="p-1 text-zinc-500">{el.actionKind}</td>
+                <td className="p-1 text-zinc-500">{el.tagName ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

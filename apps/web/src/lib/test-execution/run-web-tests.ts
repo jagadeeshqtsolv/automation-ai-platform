@@ -1,6 +1,6 @@
-import { access, mkdir } from "node:fs/promises";
+import { access, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { getProjectFrameworkRoot } from "@/lib/local-framework/paths";
+import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
 import { getProjectPlatformType } from "@/lib/project-platform";
 import { installFrameworkDependencies } from "@/lib/local-framework/install-dependencies";
 import type {
@@ -11,6 +11,7 @@ import type {
 } from "@/lib/test-execution/run-tests";
 import { writePlaywrightWebConfig } from "@/lib/local-framework/web-scaffold";
 import { syncWebSupportHelpersToDisk } from "@/lib/local-framework/sync-web-support-helpers";
+import { writeExecutionArtifacts } from "@/lib/test-execution/write-execution-artifacts";
 import { spawnTrackedTestProcess } from "@/lib/test-execution/spawn-tracked-test-process";
 
 /** Run Playwright browser tests for a web project (`frameworks/web/<id>/`). */
@@ -46,6 +47,15 @@ export async function runWebProjectTests(
   log("Syncing playwright.config.ts (video + trace on failure)…\n");
   await writePlaywrightWebConfig(params.projectId, params.environmentConfigJson);
 
+  log("Preparing execution config…\n");
+  await writeExecutionArtifacts({
+    projectId: params.projectId,
+    platformType: "web",
+    config: params.config,
+    environmentConfigJson: params.environmentConfigJson,
+    secrets: params.secrets,
+  });
+
   log("Installing dependencies (npm install)…\n");
   const install = await installFrameworkDependencies(params.projectId);
   if (!install.ok) {
@@ -62,16 +72,39 @@ export async function runWebProjectTests(
 
   await mkdir(path.join(root, "logs"), { recursive: true });
 
-  const args = ["playwright", "test", ...params.specPaths];
+  // Build env: start from process env, then layer in execution/.env.execution
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  env.AUTOM_EXECUTION_PROVIDER = params.config.provider;
+
+  const envFile = resolveFrameworkFilePath(params.projectId, "execution/.env.execution", "web");
+  if (envFile !== null) {
+    try {
+      const content = await readFile(envFile, "utf8");
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim();
+        if (trimmed.length === 0 || trimmed.startsWith("#")) continue;
+        const eq = trimmed.indexOf("=");
+        if (eq <= 0) continue;
+        env[trimmed.slice(0, eq)] = trimmed.slice(eq + 1);
+      }
+    } catch {
+      // no env file — local run, fine
+    }
+  }
+
+  // BrowserStack web: run through the BrowserStack SDK which reads browserstack.yml
+  // and routes all Playwright sessions to the BrowserStack Automate grid.
+  const isBrowserStack = params.config.provider === "browserstack";
+  const args = isBrowserStack
+    ? ["browserstack-node-sdk", "playwright", "test", ...params.specPaths]
+    : ["playwright", "test", ...params.specPaths];
+
   if (params.grep !== undefined && params.grep.length > 0) {
     args.push("--grep", params.grep);
   }
 
   const command = `npx ${args.map(shellQuoteArg).join(" ")}`;
   log(`\n$ ${command}\n\n`);
-
-  const env: NodeJS.ProcessEnv = { ...process.env };
-  env.AUTOM_EXECUTION_PROVIDER = params.config.provider;
 
   if (options?.runId === undefined) {
     throw new Error("runId is required for tracked test execution");

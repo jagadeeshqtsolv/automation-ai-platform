@@ -67,8 +67,8 @@ const WEB_POM_RULES = [
   "Do not add @ios or @android tags — web tests are browser-only.",
   "Never use `page.locator(...)` or raw `expect(page.locator(...))` in testFiles — every interaction must call a page-object fixture method.",
   "Put all locators in pageObjectFiles under `private static readonly L` with methods (click*, fill*, expect*).",
-  "When no screen-specific page exists, add locators and methods to CommonPage (pageobjects/CommonPage.ts, fixture commonPage).",
-  "If a step targets a named screen, prefer that screen's page class; otherwise use CommonPage.",
+  "Page object class assignment: if a test flow touches multiple distinct pages of the application under test (e.g. Home, Search Results, Product Detail, Cart, Checkout), create a DEDICATED page object class for each distinct page — never group locators from different pages into CommonPage. Only use CommonPage for elements that are truly global across every page (site-wide nav bar, header, footer, global toast/snackbar). If ALL steps of a test belong to a single page that has no existing page object, create one dedicated class for it.",
+  "Page-to-class matching priority: (1) match an existing page class by its callable methods or module path; (2) infer from action context — search-bar/search-button → SearchPage or HomePage; search results list → SearchResultsPage; product detail/add-to-cart/buy-now → ProductPage; cart/quantity/remove → CartPage; login form/sign-in → LoginPage; checkout/payment → CheckoutPage; (3) only if an element is genuinely site-wide (top-nav, global toast) → CommonPage. Always include new classes in pageObjectFiles with their own fixture parameter.",
 ].join("\n");
 
 function extractJsonFromResponse(text: string): string {

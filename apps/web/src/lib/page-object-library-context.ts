@@ -1,5 +1,6 @@
 import { pageObjectFixtureName } from "@/lib/generate-test-fixtures";
 import type { PageObjectLibraryEntry } from "@/lib/generate-mobilewright-bundle";
+import { enrichWebPageObjectWithStepMethods } from "@/lib/enrich-web-page-object-step-methods";
 
 export function extractAsyncMethodNames(content: string): string[] {
   const names: string[] = [];
@@ -26,12 +27,18 @@ export function buildPageObjectLibraryCatalog(pages: PageObjectLibraryEntry[]): 
 
   for (const page of pages) {
     const fixture = pageObjectFixtureName(page.className);
-    const methods = extractAsyncMethodNames(page.content);
+    let methods = extractAsyncMethodNames(page.content);
+    if (methods.length === 0) {
+      methods = extractAsyncMethodNames(enrichWebPageObjectWithStepMethods(page.content));
+    }
     const methodLine =
-      methods.length > 0 ? methods.join(", ") : page.methodSummary.trim() || "(see methodSummary)";
+      methods.length > 0 ? methods.join(", ") : page.methodSummary.trim() || "(none)";
 
     lines.push(`### ${page.className}`);
-    lines.push(`- Fixture parameter: \`${fixture}\` (inject in test callback: async ({ screen, ${fixture}, ... })`);
+    if (page.screenName !== undefined && page.screenName !== null && page.screenName.trim().length > 0) {
+      lines.push(`- Handles screen: ${page.screenName.trim()}`);
+    }
+    lines.push(`- Fixture parameter: \`${fixture}\` (inject in test callback: async ({ ${fixture}, ... })`);
     lines.push(`- Module: ${page.modulePath}`);
     lines.push(`- Callable methods: ${methodLine}`);
     lines.push("");

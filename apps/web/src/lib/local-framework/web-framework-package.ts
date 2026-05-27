@@ -2,7 +2,6 @@
 export const WEB_FRAMEWORK_PACKAGE_JSON = `{
   "name": "playwright-web-framework",
   "private": true,
-  "type": "module",
   "scripts": {
     "test": "playwright test",
     "test:bs": "browserstack-node-sdk playwright test",

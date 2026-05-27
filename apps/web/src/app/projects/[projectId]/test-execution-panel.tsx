@@ -35,7 +35,7 @@ export function TestExecutionPanel({
   const [specs, setSpecs] = useState<SpecFile[]>([]);
   const [config, setConfig] = useState<ExecutionConfig | null>(null);
   const [availableProviders, setAvailableProviders] = useState<Array<{ provider: string; label: string }>>([]);
-  const [selectedProvider, setSelectedProvider] = useState<ExecutionProvider | "">("");
+  const [selectedProvider, setSelectedProvider] = useState<ExecutionProvider | "github-ci" | "">("");
   const [loadError, setLoadError] = useState(false);
   const [ciPipeline, setCiPipeline] = useState<{ configured: boolean; provider: CiProvider | null }>({
     configured: false,
@@ -78,8 +78,7 @@ export function TestExecutionPanel({
     setConfig(body.config ?? { provider: "local" });
     if (body.availableProviders) {
       setAvailableProviders(body.availableProviders);
-      // Default selection to the saved provider
-      setSelectedProvider((body.config?.provider ?? "local") as ExecutionProvider);
+      setSelectedProvider((body.config?.provider ?? "local") as ExecutionProvider | "github-ci");
     }
     if (body.ciPipeline) setCiPipeline(body.ciPipeline);
   }, [projectId, toast]);
@@ -275,7 +274,7 @@ export function TestExecutionPanel({
           specPaths: [...selected],
           ...(environmentId.length > 0 ? { environmentId } : {}),
           ...(grep.trim().length > 0 ? { grep: grep.trim() } : {}),
-          ...(selectedProvider.length > 0 ? { provider: selectedProvider } : {}),
+          ...(selectedProvider.length > 0 && selectedProvider !== "github-ci" ? { provider: selectedProvider } : {}),
         }),
       });
       const body = (await res.json()) as {
@@ -343,7 +342,7 @@ export function TestExecutionPanel({
             Execution provider
             <select
               value={selectedProvider}
-              onChange={(e) => setSelectedProvider(e.target.value as ExecutionProvider)}
+              onChange={(e) => setSelectedProvider(e.target.value as ExecutionProvider | "github-ci")}
               disabled={disabled || running}
               className="mt-1 block w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
               data-testid="execution-provider-select"
@@ -357,7 +356,11 @@ export function TestExecutionPanel({
           <p className="text-sm text-zinc-400">
             Provider:{" "}
             <span className="font-medium text-white">
-              {selectedProvider ? executionProviderLabel(selectedProvider as ExecutionProvider) : executionProviderLabel(config.provider)}
+              {selectedProvider === "github-ci"
+                ? "GitHub CI"
+                : selectedProvider
+                ? executionProviderLabel(selectedProvider as ExecutionProvider)
+                : executionProviderLabel(config.provider)}
             </span>
           </p>
         )}
@@ -476,15 +479,18 @@ export function TestExecutionPanel({
           <button
             type="button"
             disabled={disabled || running}
-            onClick={() => void runTests()}
+            onClick={() => selectedProvider === "github-ci" ? void runViaCi() : void runTests()}
             className="ui-btn-primary"
             data-testid="execution-run-btn"
           >
             {running
               ? "Running…"
+              : selectedProvider === "github-ci"
+              ? `Run via GitHub CI`
               : `Run on ${executionProviderLabel((selectedProvider || config.provider) as ExecutionProvider)}`}
           </button>
-          {ciPipeline.configured && ciPipeline.provider !== null && !running && (
+          {ciPipeline.configured && ciPipeline.provider !== null && !running &&
+            !availableProviders.some((p) => p.provider === "github-ci") && (
             <button
               type="button"
               disabled={disabled || running}

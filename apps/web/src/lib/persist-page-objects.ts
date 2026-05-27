@@ -58,6 +58,7 @@ export async function upsertPageObjectFromHeal(params: {
     platform === "web"
       ? sanitizeWebPageObjectFileContent(
           enrichPageObjectWithFlowMethods(normalized.content),
+          className,
         )
       : enrichPageObjectWithExpectVisibilityMethods(
           enrichPageObjectWithFlowMethods(normalized.content),

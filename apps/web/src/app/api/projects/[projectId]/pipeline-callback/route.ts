@@ -5,6 +5,8 @@ import { pipelineCallbackBodySchema } from "@automation-ai/core";
 import { prisma } from "@/lib/prisma";
 import { getProjectGitConfigView, getProjectCiToken } from "@/lib/project-git/git-config";
 import { fetchAndSaveCiReport } from "@/lib/project-git/fetch-ci-report";
+import { parseExecutionConfigDocument } from "@/lib/execution-config";
+import { sendReportEmail } from "@/lib/send-report-email";
 
 const paramsSchema = z.object({ projectId: z.string().uuid() });
 
@@ -23,6 +25,12 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
   const run = await prisma.testRun.findFirst({
     where: { projectId, callbackToken: token },
     select: { id: true, status: true, finishedAt: true },
+  });
+
+  // Load project info (name + ciRunConfig for reportEmails) in parallel
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { name: true, executionConfigJson: true },
   });
 
   if (!run) {
@@ -94,6 +102,27 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
       ...(reportAnalysis !== undefined ? { resultsAnalysis: reportAnalysis } : {}),
     },
   });
+
+  // Send report email(s) if configured
+  const ciRunConfig = parseExecutionConfigDocument(project?.executionConfigJson).ciRunConfig;
+  const reportEmails = ciRunConfig?.reportEmails?.trim() ?? "";
+  if (reportEmails.length > 0) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin;
+    // Cast stored JSON back to analysis type — it was written by parsePlaywrightReportJson
+    const analysisForEmail = (reportAnalysis ?? null) as import("@/lib/test-execution/playwright-report-analysis").TestRunResultsAnalysis | null;
+    sendReportEmail({
+      to: reportEmails,
+      status,
+      projectName: project?.name ?? projectId,
+      runId: run.id,
+      pipelineUrl: pipelineLink,
+      appUrl,
+      projectId,
+      analysis: analysisForEmail,
+    }).catch((err: unknown) => {
+      console.error("[report-email] Failed to send:", err instanceof Error ? err.message : err);
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }

@@ -427,6 +427,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                 setReportsHighlightRunId(runId);
                 setActiveTab("test-reports");
               }}
+              onNavigate={setActiveTab}
             />
           ) : null}
 
@@ -438,6 +439,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
               onRunFinished={(runId) => {
                 setReportsHighlightRunId(runId);
               }}
+              onNavigate={setActiveTab}
             />
           ) : null}
 

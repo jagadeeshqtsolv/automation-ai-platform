@@ -20,6 +20,49 @@ export type TriggerParams = {
 
 export type TriggerResult = { ok: true } | { ok: false; error: string };
 
+/**
+ * Polls the GitHub Actions API to find the workflow run that was just dispatched.
+ * Returns the run's HTML URL once found, or null if not found within the timeout.
+ * Call this fire-and-forget after a successful workflow_dispatch.
+ */
+export async function findLatestGitHubRunUrl(params: {
+  remoteUrl: string;
+  ciToken: string;
+  workflowFile: string;
+  branch: string;
+  /** Timestamp just before the dispatch call was made, used to filter stale runs. */
+  triggeredAt: Date;
+}): Promise<string | null> {
+  const repo = parseGitHubRepo(params.remoteUrl);
+  if (!repo) return null;
+
+  const apiUrl =
+    `https://api.github.com/repos/${repo.owner}/${repo.repo}/actions/workflows/` +
+    `${encodeURIComponent(params.workflowFile)}/runs` +
+    `?branch=${encodeURIComponent(params.branch)}&event=workflow_dispatch&per_page=5`;
+
+  const res = await fetch(apiUrl, {
+    headers: {
+      Authorization: `Bearer ${params.ciToken}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  });
+
+  if (!res.ok) return null;
+
+  const data = (await res.json()) as {
+    workflow_runs?: Array<{ html_url: string; created_at: string }>;
+  };
+
+  // Allow 90s of slack for clock skew between machines
+  const cutoff = new Date(params.triggeredAt.getTime() - 90_000);
+  const run = (data.workflow_runs ?? []).find(
+    (r) => new Date(r.created_at) >= cutoff,
+  );
+  return run?.html_url ?? null;
+}
+
 export async function triggerCiPipeline(params: TriggerParams): Promise<TriggerResult> {
   const url = params.remoteUrl.toLowerCase();
   if (url.includes("github.com")) return triggerGitHub(params);

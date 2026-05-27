@@ -23,6 +23,7 @@ export function TestExecutionPanel({
   environments,
   disabled,
   onRunFinished,
+  onNavigate,
 }: {
   projectId: string;
   platformType?: ProjectPlatformType;
@@ -30,6 +31,8 @@ export function TestExecutionPanel({
   disabled: boolean;
   /** Called when a run leaves the running state (for Test Reports highlight). */
   onRunFinished?: (runId: string, status: string) => void;
+  /** Called to navigate to another workspace tab. */
+  onNavigate?: (tab: import("./project-workspace-nav").WorkspaceTab) => void;
 }) {
   const toast = useToast();
   const [specs, setSpecs] = useState<SpecFile[]>([]);
@@ -47,6 +50,7 @@ export function TestExecutionPanel({
   const [running, setRunning] = useState(false);
   const [output, setOutput] = useState<string | null>(null);
   const [lastStatus, setLastStatus] = useState<string | null>(null);
+  const [activePipelineUrl, setActivePipelineUrl] = useState<string | null>(null);
   const logRef = useRef<HTMLPreElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activeRunIdRef = useRef<string | null>(null);
@@ -113,6 +117,7 @@ export function TestExecutionPanel({
           : body.output;
       setOutput(display.length > 0 ? display : "Waiting for output…\n");
       setLastStatus(body.status);
+      if (body.pipelineUrl) setActivePipelineUrl(body.pipelineUrl);
 
       if (body.running) {
         return true;
@@ -331,8 +336,14 @@ export function TestExecutionPanel({
         <h2 className="text-lg font-semibold text-white">Test execution</h2>
         <p className="mt-1 text-sm text-zinc-400">
           Select specs and stream live CLI output here. When a run finishes, open{" "}
-          <strong className="font-medium text-zinc-300">Test reports</strong> for HTML, pass/fail tables, and step
-          details.
+          <button
+            type="button"
+            onClick={() => onNavigate?.("test-reports")}
+            className="font-medium text-zinc-300 underline-offset-2 hover:underline"
+          >
+            Test reports
+          </button>{" "}
+          for HTML, pass/fail tables, and step details.
         </p>
       </header>
 
@@ -527,6 +538,21 @@ export function TestExecutionPanel({
         </p>
       ) : null}
 
+      {activePipelineUrl !== null ? (
+        <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-ink-950/40 px-3 py-2 text-xs text-zinc-400">
+          <CiLinkIcon />
+          <span>CI run:</span>
+          <a
+            href={activePipelineUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="truncate font-mono text-accent hover:underline"
+          >
+            {activePipelineUrl}
+          </a>
+        </div>
+      ) : null}
+
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-white">Live log</h3>
         {output !== null ? (
@@ -555,6 +581,14 @@ function PipelineIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+    </svg>
+  );
+}
+
+function CiLinkIcon() {
+  return (
+    <svg className="h-3.5 w-3.5 shrink-0 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
     </svg>
   );
 }

@@ -33,3 +33,4 @@ export async function withAuthAndProject(
   }
   return { user: session.user, projectId };
 }
+

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionFromCookies, type SessionPayload } from "@/lib/auth/session";
+import { getSessionFromCookies } from "@/lib/auth/session";
 
 export type AuthUser = {
   id: string;
   email: string;
   name: string | null;
+  isPlatformAdmin: boolean;
 };
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
@@ -19,7 +20,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 export async function getUserById(userId: string): Promise<AuthUser | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true },
+    select: { id: true, email: true, name: true, isPlatformAdmin: true },
   });
   return user;
 }

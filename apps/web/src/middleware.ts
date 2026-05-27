@@ -6,8 +6,17 @@ const PUBLIC_PAGE_PATHS = new Set(["/", "/get-started", "/login", "/register"]);
 
 const PUBLIC_API_PREFIXES = ["/api/auth/login", "/api/auth/register", "/api/auth/invite"];
 
+// Routes that carry their own token-based auth and must be reachable without a session
+// (e.g. called by GitHub Actions / external CI runners).
+const PUBLIC_API_PATTERNS = [
+  /^\/api\/projects\/[0-9a-f-]+\/pipeline-callback(\/.*)?$/,
+];
+
 function isPublicApi(pathname: string): boolean {
-  return PUBLIC_API_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  return (
+    PUBLIC_API_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) ||
+    PUBLIC_API_PATTERNS.some((pattern) => pattern.test(pathname))
+  );
 }
 
 export async function middleware(request: NextRequest) {

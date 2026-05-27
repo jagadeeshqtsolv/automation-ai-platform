@@ -12,6 +12,8 @@ export async function upsertWebPageObjectContent(params: {
   content: string;
   className: string;
   screenName: string | null;
+  /** When set, the written file is attributed to this user for git change-tracking. */
+  userId?: string;
 }): Promise<void> {
   const normalized = normalizePageObjectFile({
     path: params.modulePath,
@@ -55,5 +57,6 @@ export async function upsertWebPageObjectContent(params: {
     modulePath: normalized.path,
     content: enrichedContent,
     overwrite: true,
+    userId: params.userId,
   });
 }

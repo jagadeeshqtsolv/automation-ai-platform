@@ -40,6 +40,8 @@ function githubTemplate(workflowFile: string, testCmd: string, platformType: "we
   const installBrowsersStep = platformType === "web"
     ? `\n      - run: npx playwright install --with-deps ${browsersArg}\n`
     : "";
+  const reportEmails = cfg.reportEmails?.trim() ?? "";
+  // Email sending is handled server-side via the callback — no extra step needed in the YML.
   return `# .github/workflows/${workflowFile}
 # Triggered by AutomationAI via workflow_dispatch.
 # Requires: Node.js, npm, and test dependencies installed.

@@ -37,6 +37,7 @@ export async function GET(
       environmentId: true,
       resultsAnalysis: true,
       htmlReportRel: true,
+      pipelineUrl: true,
       createdAt: true,
       finishedAt: true,
     },
@@ -61,5 +62,6 @@ export async function GET(
     resultsAnalysis: run.resultsAnalysis,
     analysisSummary: summarizeResultsAnalysis(run.resultsAnalysis),
     htmlReportRel: run.htmlReportRel,
+    pipelineUrl: run.pipelineUrl ?? null,
   });
 }

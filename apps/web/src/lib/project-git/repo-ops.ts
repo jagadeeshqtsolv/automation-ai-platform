@@ -1,6 +1,6 @@
 import { execFile as _execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { getProjectFrameworkRoot, getProjectUserGitDir } from "@/lib/local-framework/paths";
@@ -668,4 +668,82 @@ export async function commitAndPush(params: {
   }
 
   return { committed, pushed: true, pulled, summary };
+}
+
+
+/**
+ * Discards local changes for the given file paths.
+ * - Tracked files (modified/added/deleted/staged): `git restore --staged <file>` then `git restore <file>`
+ * - Untracked files ("??"): deleted from disk directly
+ * Files that don't exist in the changed list are silently skipped.
+ */
+export async function discardFiles(params: {
+  projectId: string;
+  platformType: ProjectPlatformType;
+  userId: string;
+  /** Paths relative to the framework root to discard */
+  files: string[];
+}): Promise<{ discarded: string[] }> {
+  const { projectId, platformType, userId, files } = params;
+  if (files.length === 0) return { discarded: [] };
+
+  const root = getProjectFrameworkRoot(projectId, platformType);
+  const gitDir = getProjectUserGitDir(projectId, platformType, userId);
+  const hasUserGitDir = existsSync(gitDir) && existsSync(path.join(gitDir, "HEAD"));
+  const hasLegacyGit = existsSync(`${root}/.git`);
+  const resolvedGitDir = hasUserGitDir ? gitDir : undefined;
+
+  // Get current status so we know which files are untracked vs tracked
+  let untrackedSet = new Set<string>();
+  if (hasUserGitDir || hasLegacyGit) {
+    try {
+      const { stdout } = await git(root, ["status", "--porcelain", "-u"], undefined, resolvedGitDir);
+      untrackedSet = new Set(
+        stdout
+          .split("\n")
+          .filter((l) => l.startsWith("??"))
+          .map((l) => l.slice(3).trim()),
+      );
+    } catch {
+      // ignore — treat all as tracked
+    }
+  }
+
+  const discarded: string[] = [];
+
+  for (const filePath of files) {
+    // Basic path safety — reject anything with ".." or absolute paths
+    if (filePath.includes("..") || path.isAbsolute(filePath)) continue;
+
+    const abs = path.join(root, filePath);
+    // Ensure the file is inside the framework root
+    if (!abs.startsWith(root + path.sep) && abs !== root) continue;
+
+    if (untrackedSet.has(filePath)) {
+      // Untracked — delete the file (and remove from disk completely)
+      try {
+        const s = await stat(abs);
+        if (s.isDirectory()) {
+          await rm(abs, { recursive: true, force: true });
+        } else {
+          await rm(abs, { force: true });
+        }
+        discarded.push(filePath);
+      } catch {
+        // file already gone — count as discarded
+        discarded.push(filePath);
+      }
+    } else if (hasUserGitDir || hasLegacyGit) {
+      // Tracked — unstage then restore
+      try {
+        await git(root, ["restore", "--staged", filePath], undefined, resolvedGitDir).catch(() => undefined);
+        await git(root, ["restore", filePath], undefined, resolvedGitDir);
+        discarded.push(filePath);
+      } catch {
+        // ignore individual file errors
+      }
+    }
+  }
+
+  return { discarded };
 }

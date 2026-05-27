@@ -3,6 +3,11 @@ import { z } from "zod";
 import { requireApiUser, requireProjectAccess } from "@/lib/auth/api-auth";
 import { deleteProjectFrameworkDir } from "@/lib/local-framework/delete-project";
 import { prisma } from "@/lib/prisma";
+import { PROJECT_NAME_MAX } from "@automation-ai/core";
+
+const renameBodySchema = z.object({
+  name: z.string().min(1, "Name cannot be empty").max(PROJECT_NAME_MAX).trim(),
+});
 
 const paramsSchema = z.object({
   projectId: z.string().uuid(),
@@ -80,6 +85,46 @@ export async function GET(_req: Request, context: { params: Promise<{ projectId:
   });
 
   return NextResponse.json({ ...project, currentUserRole: membership?.role ?? "member" });
+}
+
+export async function PATCH(req: Request, context: { params: Promise<{ projectId: string }> }) {
+  const auth = await requireApiUser();
+  if (auth instanceof NextResponse) return auth;
+
+  const params = paramsSchema.safeParse(await context.params);
+  if (!params.success) return NextResponse.json({ error: "Invalid project id" }, { status: 400 });
+
+  const access = await requireProjectAccess(auth.id, params.data.projectId);
+  if (access instanceof NextResponse) return access;
+
+  // Only owners can rename
+  const project = await prisma.project.findUnique({
+    where: { id: params.data.projectId },
+    select: { organizationId: true },
+  });
+  if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const membership = await prisma.organizationMember.findUnique({
+    where: { organizationId_userId: { organizationId: project.organizationId, userId: auth.id } },
+    select: { role: true },
+  });
+  if (membership?.role !== "owner") {
+    return NextResponse.json({ error: "Only project owners can rename projects" }, { status: 403 });
+  }
+
+  const json: unknown = await req.json().catch(() => ({}));
+  const body = renameBodySchema.safeParse(json);
+  if (!body.success) {
+    return NextResponse.json({ error: body.error.issues[0]?.message ?? "Invalid name" }, { status: 400 });
+  }
+
+  const updated = await prisma.project.update({
+    where: { id: params.data.projectId },
+    data: { name: body.data.name },
+    select: { id: true, name: true },
+  });
+
+  return NextResponse.json({ ok: true, name: updated.name });
 }
 
 export async function DELETE(_req: Request, context: { params: Promise<{ projectId: string }> }) {

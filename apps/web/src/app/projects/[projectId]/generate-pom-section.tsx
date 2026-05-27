@@ -69,19 +69,26 @@ export function GeneratePomSection({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(bundle),
       });
-      const data = (await res.json()) as { imported?: number; errors?: string[] };
       if (!res.ok) {
         toast.error(await readApiError(res, "Import failed"));
         return;
       }
+      const data = (await res.json()) as { imported?: number; errors?: string[] };
       if (data.errors && data.errors.length > 0) {
         toast.error(`Import errors: ${data.errors.join("; ")}`);
       }
-      toast.success(`Imported ${data.imported ?? 0} page object${(data.imported ?? 0) !== 1 ? "s" : ""}`);
-      await onReloadProject();
-      onFrameworkRefresh();
-    } catch {
-      toast.error("Import failed — unexpected error reading the file");
+      if ((data.imported ?? 0) > 0) {
+        toast.success(`Imported ${data.imported ?? 0} page object${(data.imported ?? 0) !== 1 ? "s" : ""}`);
+      }
+      try {
+        await onReloadProject();
+        onFrameworkRefresh();
+      } catch {
+        /* reload failure is non-fatal — the import itself succeeded */
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      toast.error(msg.length > 0 ? `Import failed — ${msg}` : "Import failed — unexpected error");
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

@@ -17,9 +17,14 @@ type CiInfo = {
   workflowFile: string;
 };
 
+type CiRunConfigResponse = {
+  reportEmails?: string;
+};
+
 type ConfigResponse = {
   config: ExecutionConfig;
   secrets: SecretsInfo;
+  ciRunConfig?: CiRunConfigResponse;
 };
 
 type Provider = "local" | "browserstack" | "github-ci";
@@ -42,6 +47,7 @@ export function ProjectExecutionSettings({
   const [ciInfo, setCiInfo] = useState<CiInfo | null>(null);
   const [ciToken, setCiToken] = useState("");
   const [workflowFile, setWorkflowFile] = useState("run-tests.yml");
+  const [reportEmails, setReportEmails] = useState("");
   const [savingCi, setSavingCi] = useState(false);
 
   // BrowserStack fields — shared
@@ -79,6 +85,9 @@ export function ProjectExecutionSettings({
       setBsOsVersion(bs.osVersion ?? (bs.os === "OS X" ? "Sonoma" : "11"));
       setBsDeviceName(bs.deviceName ?? "");
       setBsAppUrl(bs.appUrl ?? "");
+    }
+    if (body.ciRunConfig?.reportEmails !== undefined) {
+      setReportEmails(body.ciRunConfig.reportEmails);
     }
     if (gitRes.ok) {
       const gitBody = (await gitRes.json()) as {
@@ -125,6 +134,7 @@ export function ProjectExecutionSettings({
     e.preventDefault();
     setSavingCi(true);
     try {
+      // Save token + workflow file
       const payload: Record<string, string | null> = {
         gitWorkflowFile: workflowFile.trim() || "run-tests.yml",
       };
@@ -138,6 +148,17 @@ export function ProjectExecutionSettings({
         toast.error(await readApiError(res, "Could not save GitHub CI settings"));
         return;
       }
+
+      // Save reportEmails as part of ciRunConfig
+      await fetch(`/api/projects/${projectId}/execution-config`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          config: response?.config ?? { provider: "local" },
+          ciRunConfig: { reportEmails: reportEmails.trim() },
+        }),
+      });
+
       setCiToken("");
       await load();
       toast.success("GitHub CI settings saved");
@@ -505,6 +526,23 @@ export function ProjectExecutionSettings({
           />
           <span className="mt-1 block text-[10px] text-zinc-500">
             File name inside <code className="text-zinc-400">.github/workflows/</code> — default is <code className="text-zinc-400">run-tests.yml</code>, auto-generated when the project is created.
+          </span>
+        </label>
+
+        <label className="block text-xs text-zinc-400">
+          Report emails
+          <input
+            value={reportEmails}
+            onChange={(e) => setReportEmails(e.target.value)}
+            placeholder="alice@example.com, bob@example.com"
+            maxLength={1000}
+            disabled={disabled || savingCi}
+            className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+            data-testid="github-ci-report-emails-input"
+          />
+          <span className="mt-1 block text-[10px] text-zinc-500">
+            Comma-separated email addresses. The workflow will email the test report to these addresses after each run.
+            Requires GitHub secrets: <code className="text-zinc-400">MAIL_SERVER</code>, <code className="text-zinc-400">MAIL_PORT</code>, <code className="text-zinc-400">MAIL_USERNAME</code>, <code className="text-zinc-400">MAIL_PASSWORD</code>.
           </span>
         </label>
 

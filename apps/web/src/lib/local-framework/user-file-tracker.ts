@@ -73,6 +73,44 @@ export async function getUserOwnedPaths(
 }
 
 /**
+ * Removes paths from the per-user owned-files list and from the project-level
+ * last-written-by map. Call this when files are deleted so they no longer appear
+ * as pending changes in the git panel.
+ */
+export async function removeUserFiles(
+  projectId: string,
+  platformType: ProjectPlatformType,
+  userId: string,
+  paths: string[],
+): Promise<void> {
+  if (paths.length === 0) return;
+  const toRemove = new Set(paths);
+
+  // Update per-user owned-files list
+  const file = trackerPath(projectId, platformType, userId);
+  try {
+    const raw = await readFile(file, "utf-8");
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      const filtered = (parsed as string[]).filter((p) => !toRemove.has(p));
+      await writeFile(file, JSON.stringify(filtered, null, 2) + "\n", "utf-8");
+    }
+  } catch { /* tracker doesn't exist — nothing to remove */ }
+
+  // Update project-level last-writer map
+  const lwFile = lastWriterPath(projectId, platformType);
+  try {
+    const raw = await readFile(lwFile, "utf-8");
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const lwMap = parsed as Record<string, string>;
+      for (const p of paths) delete lwMap[p];
+      await writeFile(lwFile, JSON.stringify(lwMap, null, 2) + "\n", "utf-8");
+    }
+  } catch { /* map doesn't exist — nothing to remove */ }
+}
+
+/**
  * Returns a map of filePath → userId for the user who last wrote each tracked file.
  * Files not in this map were never written by the AI (e.g. manual edits, config files).
  */

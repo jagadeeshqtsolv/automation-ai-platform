@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { updatePageObjectBodySchema } from "@automation-ai/core";
@@ -6,7 +7,45 @@ import { prisma } from "@/lib/prisma";
 import { inferMethodSummary } from "@/lib/page-object-utils";
 import { alignPageObjectClassInContent, normalizePageClassName } from "@/lib/page-object-naming";
 import { deleteFrameworkFile } from "@/lib/local-framework/delete-project";
-import { syncPageObjectToDisk } from "@/lib/local-framework/writer";
+import { syncPageObjectToDisk, writeFrameworkFiles } from "@/lib/local-framework/writer";
+import { generateTestFixturesSource, TEST_FIXTURES_MODULE_PATH } from "@/lib/generate-test-fixtures";
+import { getProjectPlatformType } from "@/lib/project-platform";
+import { resolveFrameworkFilePath } from "@/lib/local-framework/paths";
+import { removeUserFiles } from "@/lib/local-framework/user-file-tracker";
+
+async function readCurrentFixtures(projectId: string): Promise<string | null> {
+  const fixturePath = resolveFrameworkFilePath(projectId, TEST_FIXTURES_MODULE_PATH);
+  if (fixturePath === null) return null;
+  try {
+    return await readFile(fixturePath, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+function classInFixtures(fixturesContent: string, className: string): boolean {
+  return fixturesContent.includes(`{ ${className} }`);
+}
+
+async function regenerateFixtures(projectId: string, projectName: string): Promise<void> {
+  try {
+    const allPageObjects = await prisma.pageObject.findMany({
+      where: { projectId },
+      select: { className: true, modulePath: true },
+      orderBy: { className: "asc" },
+    });
+    const platformType = await getProjectPlatformType(projectId);
+    await writeFrameworkFiles({
+      projectId,
+      projectName,
+      files: [{ relativePath: TEST_FIXTURES_MODULE_PATH, content: generateTestFixturesSource(allPageObjects, platformType) }],
+      overwritePageObjects: false,
+      overwriteTests: false,
+    });
+  } catch {
+    // Non-fatal
+  }
+}
 
 const paramsSchema = z.object({
   projectId: z.string().uuid(),
@@ -126,6 +165,15 @@ export async function PATCH(req: Request, context: { params: Promise<{ projectId
     });
   }
 
+  // Regenerate fixtures when className changes only if the old name was present
+  // (the fixture key is derived from className — renaming requires updating it)
+  if (data.className !== undefined) {
+    const currentFixtures = await readCurrentFixtures(parsedParams.data.projectId);
+    if (currentFixtures === null || classInFixtures(currentFixtures, existing.className)) {
+      await regenerateFixtures(parsedParams.data.projectId, project.name);
+    }
+  }
+
   return NextResponse.json(updated);
 }
 
@@ -146,13 +194,37 @@ export async function DELETE(
 
   const existing = await prisma.pageObject.findFirst({
     where: { id: parsedParams.data.pageObjectId, projectId: parsedParams.data.projectId },
-    select: { id: true, modulePath: true },
+    select: { id: true, className: true, modulePath: true },
   });
   if (existing === null) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const deletedProject = await prisma.project.findUnique({
+    where: { id: parsedParams.data.projectId },
+    select: { name: true },
+  });
+
+  // Read fixtures before deleting so we know whether a regeneration is needed
+  const currentFixtures = await readCurrentFixtures(parsedParams.data.projectId);
+
+  const platformType = await getProjectPlatformType(parsedParams.data.projectId);
+
   await prisma.pageObject.delete({ where: { id: existing.id } });
   await deleteFrameworkFile(parsedParams.data.projectId, existing.modulePath);
+
+  // Remove from user file tracker so the deleted file no longer shows as a pending change
+  await removeUserFiles(
+    parsedParams.data.projectId,
+    platformType,
+    guard.user.id,
+    [existing.modulePath],
+  ).catch(() => undefined);
+
+  // Only regenerate if the deleted class was actually listed in fixtures
+  if (deletedProject && (currentFixtures === null || classInFixtures(currentFixtures, existing.className))) {
+    await regenerateFixtures(parsedParams.data.projectId, deletedProject.name);
+  }
+
   return NextResponse.json({ ok: true });
 }

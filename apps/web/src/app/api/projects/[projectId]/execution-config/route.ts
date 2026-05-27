@@ -75,10 +75,11 @@ export async function PATCH(req: Request, context: { params: Promise<{ projectId
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
-  const parsedCiRunConfig = ciRunConfigSchema.optional().safeParse(
-    (json as Record<string, unknown> | null)?.ciRunConfig,
-  );
-  const incomingCiRunConfig = parsedCiRunConfig.success ? parsedCiRunConfig.data : undefined;
+  // Raw incoming ciRunConfig fields — merged with existing after db fetch so a
+  // partial update (e.g. only reportEmails) doesn't reset workers/browsers/etc.
+  const rawIncomingCiRunConfig = (json as Record<string, unknown> | null)?.ciRunConfig as
+    | Record<string, unknown>
+    | undefined;
 
   const projectRow = await prisma.project.findUnique({
     where: { id: parsedParams.data.projectId },
@@ -153,6 +154,16 @@ export async function PATCH(req: Request, context: { params: Promise<{ projectId
     secrets.lambdatestAccessKeyEnc =
       parsed.data.lambdatestAccessKey === null ? null : encryptAccessKey(parsed.data.lambdatestAccessKey);
   }
+
+  // Merge raw incoming fields on top of existing so a partial update (e.g. only
+  // reportEmails) preserves previously saved values like workers / browsers.
+  const mergedRaw = rawIncomingCiRunConfig !== undefined
+    ? { ...(existing.ciRunConfig ?? DEFAULT_CI_RUN_CONFIG), ...rawIncomingCiRunConfig }
+    : undefined;
+  const parsedCiRunConfig = mergedRaw !== undefined
+    ? ciRunConfigSchema.safeParse(mergedRaw)
+    : undefined;
+  const incomingCiRunConfig = parsedCiRunConfig?.success ? parsedCiRunConfig.data : undefined;
 
   const nextCiRunConfig = incomingCiRunConfig ?? existing.ciRunConfig ?? DEFAULT_CI_RUN_CONFIG;
 

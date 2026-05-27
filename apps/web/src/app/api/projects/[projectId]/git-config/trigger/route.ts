@@ -5,7 +5,7 @@ import { triggerPipelineBodySchema } from "@automation-ai/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { getProjectGitConfigView, getProjectCiToken, getProjectCiConfigView } from "@/lib/project-git/git-config";
 import { getUserGitConfigView } from "@/lib/project-git/user-git-config";
-import { triggerCiPipeline } from "@/lib/project-git/trigger-pipeline";
+import { triggerCiPipeline, findLatestGitHubRunUrl } from "@/lib/project-git/trigger-pipeline";
 import { prisma } from "@/lib/prisma";
 
 const paramsSchema = z.object({ projectId: z.string().uuid() });
@@ -91,7 +91,8 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
     select: { id: true },
   });
 
-  // Build the callback URL from the incoming request origin
+  // Build the callback URL.
+  // Priority: NEXT_PUBLIC_APP_URL env var > request origin (fallback)
   const reqUrl = new URL(req.url);
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? `${reqUrl.protocol}//${reqUrl.host}`;
   const callbackUrl = `${origin}/api/projects/${projectId}/pipeline-callback?token=${callbackToken}`;
@@ -126,9 +127,46 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
   await prisma.testRun.update({
     where: { id: run.id },
     data: {
-      output: `CI pipeline triggered on branch "${branch}".\nWaiting for pipeline to report results…\n`,
+      output:
+        `CI pipeline triggered on branch "${branch}".\n` +
+        `Callback origin: ${origin}\n` +
+        `Waiting for pipeline to report results…\n`,
     },
   });
+
+  // ── For GitHub: poll API in the background to get the Actions run URL ────────
+  // workflow_dispatch returns 204 with no body, so we poll to find the run.
+  // This fires-and-forgets — the response is returned immediately.
+  if (gitConfig.remoteUrl.toLowerCase().includes("github.com")) {
+    const triggeredAt = new Date();
+    const runId = run.id;
+    const remoteUrl = gitConfig.remoteUrl;
+    const workflowFile = ciConfig.workflowFile;
+    void (async () => {
+      // GitHub takes a few seconds to create the run — start polling after 5s
+      for (let attempt = 0; attempt < 12; attempt++) {
+        await new Promise<void>((r) => setTimeout(r, attempt === 0 ? 5_000 : 3_000));
+        try {
+          const runUrl = await findLatestGitHubRunUrl({
+            remoteUrl,
+            ciToken,
+            workflowFile,
+            branch,
+            triggeredAt,
+          });
+          if (runUrl !== null) {
+            await prisma.testRun.update({
+              where: { id: runId },
+              data: { pipelineUrl: runUrl },
+            });
+            return;
+          }
+        } catch {
+          // non-fatal — keep trying
+        }
+      }
+    })();
+  }
 
   return NextResponse.json({ runId: run.id, status: "running" }, { status: 202 });
 }

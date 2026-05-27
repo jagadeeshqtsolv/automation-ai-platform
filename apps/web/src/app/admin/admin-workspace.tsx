@@ -332,13 +332,12 @@ export function AdminWorkspace() {
                   <button
                     type="button"
                     onClick={() => { setSelectedOrgId(o.id); writeSelectedOrganizationId(o.id); }}
-                    className={`w-full rounded-lg px-2 py-2 text-left text-xs transition ${
-                      o.id === selectedOrgId
+                    className={`w-full rounded-lg px-2 py-2 text-left text-xs transition ${o.id === selectedOrgId
                         ? "bg-accent/15 text-accent ring-1 ring-accent/30"
                         : o.disabled
                           ? "bg-rose-950/20 text-zinc-400 hover:bg-white/5"
                           : "text-zinc-300 hover:bg-white/5"
-                    }`}
+                      }`}
                     data-testid={`admin-org-item-${o.id}`}
                   >
                     <span className="flex items-center gap-2">
@@ -387,11 +386,10 @@ export function AdminWorkspace() {
                     type="button"
                     disabled={busy !== null}
                     onClick={() => void toggleOrganizationEnabled(selectedOrg)}
-                    className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
-                      selectedOrg.disabled
+                    className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${selectedOrg.disabled
                         ? "border-emerald-500/30 bg-emerald-950/40 text-emerald-200 hover:bg-emerald-500/10"
                         : "border-amber-500/30 bg-amber-950/40 text-amber-200 hover:bg-amber-500/10"
-                    }`}
+                      }`}
                     data-testid="admin-org-toggle-btn"
                   >
                     {busy === "toggle-org"

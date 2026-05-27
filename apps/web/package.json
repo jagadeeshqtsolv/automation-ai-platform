@@ -24,6 +24,7 @@
     "ai": "^6.0.191",
     "archiver": "^7.0.1",
     "next": "^15.3.2",
+    "nodemailer": "^8.0.9",
     "openai": "^4.100.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -32,6 +33,7 @@
   "devDependencies": {
     "@types/archiver": "^6.0.3",
     "@types/node": "^22.15.21",
+    "@types/nodemailer": "^8.0.0",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
     "autoprefixer": "^10.4.21",

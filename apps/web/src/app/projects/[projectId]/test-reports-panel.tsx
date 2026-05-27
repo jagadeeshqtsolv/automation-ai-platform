@@ -3,11 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/toast-provider";
 import { executionProviderLabel, type ExecutionConfig } from "@automation-ai/core";
-import {
-  buildRerunAllParams,
-  buildRerunFailuresParams,
-  type RerunResultsAnalysis,
-} from "@/lib/test-execution/rerun-params";
 
 type ExecutionProvider = ExecutionConfig["provider"];
 import type {
@@ -105,41 +100,31 @@ function formatRunLog(body: RunDetailBody): string {
 
 const POLL_MS = 1000;
 
-function rerunAnalysisFromBody(body: ResultsAnalysisBody | null): RerunResultsAnalysis | null {
-  if (body?.cases === undefined || body.cases.length === 0) {
-    return null;
-  }
-  return { cases: body.cases };
-}
-
-type RerunContext = {
-  specPaths: string[];
-  environmentId: string | null;
-  command: string;
-  resultsAnalysis: ResultsAnalysisBody | null;
-};
 
 export function TestReportsPanel({
   projectId,
   disabled,
   highlightRunId,
   onRunFinished,
+  onNavigate,
 }: {
   projectId: string;
   disabled: boolean;
   highlightRunId?: string | null;
   /** Called when a rerun leaves the running state (e.g. to refresh nav highlight). */
   onRunFinished?: (runId: string, status: string) => void;
+  /** Called to navigate to another workspace tab. */
+  onNavigate?: (tab: import("./project-workspace-nav").WorkspaceTab) => void;
 }) {
   const toast = useToast();
   const [recentRuns, setRecentRuns] = useState<RecentRun[]>([]);
   const [focusedRunId, setFocusedRunId] = useState<string | null>(null);
-  const [focusedHtmlReportRel, setFocusedHtmlReportRel] = useState<string | null>(null);
+  const [focusedPipelineUrl, setFocusedPipelineUrl] = useState<string | null>(null);
   const [lastStatus, setLastStatus] = useState<string | null>(null);
   const [resultsAnalysis, setResultsAnalysis] = useState<ResultsAnalysisBody | null>(null);
   const [analysisSummary, setAnalysisSummary] = useState<AnalysisSummary | undefined>(undefined);
   const [runLog, setRunLog] = useState<string | null>(null);
-  const [rerunContext, setRerunContext] = useState<RerunContext | null>(null);
+  const [focusedProvider, setFocusedProvider] = useState<string | null>(null);
   const [healing, setHealing] = useState(false);
   const [healFormOpen, setHealFormOpen] = useState(false);
   const [healProblemDescription, setHealProblemDescription] = useState("");
@@ -161,14 +146,9 @@ export function TestReportsPanel({
     setRunLog(formatRunLog(body));
     setResultsAnalysis(body.resultsAnalysis ?? null);
     setAnalysisSummary(body.analysisSummary);
-    setFocusedHtmlReportRel(body.htmlReportRel ?? null);
+    setFocusedPipelineUrl(body.pipelineUrl ?? null);
+    setFocusedProvider(body.provider);
     setLastStatus(body.status);
-    setRerunContext({
-      specPaths: body.specPaths,
-      environmentId: body.environmentId,
-      command: body.command,
-      resultsAnalysis: body.resultsAnalysis ?? null,
-    });
   }, []);
 
   const loadRuns = useCallback(async () => {
@@ -189,17 +169,12 @@ export function TestReportsPanel({
       setHealFormOpen(false);
       setHealProblemDescription("");
       setHealChanges(null);
-      setFocusedHtmlReportRel(run.htmlReportRel);
+      setFocusedPipelineUrl(run.pipelineUrl ?? null);
+      setFocusedProvider(run.provider);
       setLastStatus(run.status);
       setResultsAnalysis(null);
       setAnalysisSummary(run.analysisSummary);
       setRunLog(run.outputPreview.length > 0 ? run.outputPreview : null);
-      setRerunContext({
-        specPaths: run.specPaths,
-        environmentId: run.environmentId,
-        command: "",
-        resultsAnalysis: null,
-      });
 
       try {
         const res = await fetch(`/api/projects/${projectId}/test-runs/${run.id}`);
@@ -280,92 +255,6 @@ export function TestReportsPanel({
     };
   }, [stopPolling]);
 
-  const startTestRun = useCallback(
-    async (payload: { specPaths: string[]; environmentId: string | null; grep?: string }) => {
-      if (payload.specPaths.length === 0) {
-        toast.error("No spec files to run");
-        return;
-      }
-      if (rerunning) {
-        return;
-      }
-
-      try {
-        const res = await fetch(`/api/projects/${projectId}/test-runs`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            specPaths: payload.specPaths,
-            ...(payload.environmentId !== null ? { environmentId: payload.environmentId } : {}),
-            ...(payload.grep !== undefined ? { grep: payload.grep } : {}),
-          }),
-        });
-        const body = (await res.json()) as {
-          runId?: string;
-          status?: string;
-          error?: string;
-        };
-
-        if (res.status === 409 && typeof body.runId === "string") {
-          toast.info("A test run is already in progress — showing live log");
-          startPolling(body.runId);
-          return;
-        }
-
-        if (!res.ok) {
-          toast.error(body.error ?? "Could not start test run");
-          return;
-        }
-
-        if (typeof body.runId !== "string") {
-          toast.error("Test run did not return a run id");
-          return;
-        }
-
-        toast.info("Test run started");
-        startPolling(body.runId);
-      } catch {
-        toast.error("Could not start test run");
-        setRerunning(false);
-        stopPolling();
-      }
-    },
-    [rerunning, projectId, toast, startPolling, stopPolling],
-  );
-
-  const rerunAll = useCallback(async () => {
-    if (rerunContext === null) {
-      return;
-    }
-    const params = buildRerunAllParams({
-      specPaths: rerunContext.specPaths,
-      environmentId: rerunContext.environmentId,
-      command: rerunContext.command,
-    });
-    await startTestRun(params);
-  }, [rerunContext, startTestRun]);
-
-  const rerunFailuresOnly = useCallback(async () => {
-    if (rerunContext === null) {
-      return;
-    }
-    const built = buildRerunFailuresParams({
-      specPaths: rerunContext.specPaths,
-      environmentId: rerunContext.environmentId,
-      resultsAnalysis: rerunAnalysisFromBody(rerunContext.resultsAnalysis),
-    });
-    if (!built.ok) {
-      if (built.reason === "no_analysis") {
-        toast.error("No result analysis for this run — rerun all specs instead");
-      } else {
-        toast.info("No failed tests to rerun");
-      }
-      return;
-    }
-    toast.info(`Rerunning ${built.failedCount} failed test${built.failedCount === 1 ? "" : "s"}`);
-    await startTestRun(built.params);
-  }, [rerunContext, startTestRun, toast]);
-
   const stopExecution = useCallback(async () => {
     const runId = activeRunIdRef.current;
     if (runId === null || !rerunning) {
@@ -386,17 +275,7 @@ export function TestReportsPanel({
     }
   }, [projectId, rerunning, toast]);
 
-  const failureRerunPreview =
-    rerunContext !== null
-      ? buildRerunFailuresParams({
-          specPaths: rerunContext.specPaths,
-          environmentId: rerunContext.environmentId,
-          resultsAnalysis: rerunAnalysisFromBody(rerunContext.resultsAnalysis),
-        })
-      : null;
-  const canRerunFailures = failureRerunPreview?.ok === true;
-
-  useEffect(() => {
+useEffect(() => {
     void (async () => {
       setLoading(true);
       const runs = await loadRuns();
@@ -499,8 +378,14 @@ export function TestReportsPanel({
         <h2 className="text-lg font-semibold text-white">Test reports</h2>
         <p className="mt-1 text-sm text-zinc-400">
           HTML reports, pass/fail breakdown, and per-step results from finished runs. Use{" "}
-          <strong className="font-medium text-zinc-300">Test execution</strong> to start a new run and watch live
-          logs.
+          <button
+            type="button"
+            onClick={() => onNavigate?.("test-execution")}
+            className="font-medium text-zinc-300 underline-offset-2 hover:underline"
+          >
+            Test execution
+          </button>{" "}
+          to start a new run and watch live logs.
         </p>
       </header>
 
@@ -592,6 +477,23 @@ export function TestReportsPanel({
                 <p className="text-sm text-amber-200/90">Test run in progress — log updates below.</p>
               ) : null}
 
+              {focusedPipelineUrl !== null ? (
+                <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-ink-950/40 px-3 py-2 text-xs text-zinc-400">
+                  <svg className="h-3.5 w-3.5 shrink-0 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <span>CI run:</span>
+                  <a
+                    href={focusedPipelineUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="truncate font-mono text-accent hover:underline"
+                  >
+                    {focusedPipelineUrl}
+                  </a>
+                </div>
+              ) : null}
+
               <div className="flex flex-wrap items-center gap-2">
                 {runInProgress ? (
                   <button
@@ -604,52 +506,25 @@ export function TestReportsPanel({
                     Stop
                   </button>
                 ) : null}
-                {rerunContext !== null && rerunContext.specPaths.length > 0 && !runInProgress ? (
+                {lastStatus !== null && lastStatus !== "running" ? (
                   <>
+                  {focusedProvider !== "ci" ? (
                     <button
                       type="button"
                       disabled={disabled}
-                      className="rounded-lg border border-emerald-500/40 bg-emerald-950/50 px-3 py-1.5 text-xs font-medium text-emerald-100 hover:bg-emerald-950/80 disabled:opacity-50"
-                      onClick={() => void rerunAll()}
-                      data-testid="reports-rerun-all-btn"
-                    >
-                      Rerun all
-                    </button>
-                    <button
-                      type="button"
-                      disabled={disabled || !canRerunFailures}
-                      title={
-                        canRerunFailures
-                          ? `Rerun ${failureRerunPreview?.ok === true ? failureRerunPreview.failedCount : 0} failed test(s) only`
-                          : "No failed tests in this run"
+                      className="rounded-lg border border-white/15 bg-ink-950/60 px-3 py-1.5 text-xs font-medium text-accent hover:bg-white/5 disabled:opacity-50"
+                      onClick={() =>
+                        window.open(
+                          `/api/projects/${projectId}/framework/playwright-report/index.html`,
+                          "_blank",
+                          "noopener,noreferrer",
+                        )
                       }
-                      className="rounded-lg border border-amber-500/35 bg-amber-950/40 px-3 py-1.5 text-xs font-medium text-amber-100 hover:bg-amber-950/60 disabled:cursor-not-allowed disabled:opacity-40"
-                      onClick={() => void rerunFailuresOnly()}
-                      data-testid="reports-rerun-failures-btn"
+                      data-testid="reports-html-btn"
                     >
-                      Rerun failures only
+                      HTML report
                     </button>
-                  </>
-                ) : null}
-                {lastStatus !== null && lastStatus !== "running" ? (
-                  <>
-                  <button
-                    type="button"
-                    disabled={disabled}
-                    className="rounded-lg border border-white/15 bg-ink-950/60 px-3 py-1.5 text-xs font-medium text-accent hover:bg-white/5 disabled:opacity-50"
-                    onClick={() =>
-                      window.open(
-                        focusedHtmlReportRel !== null && focusedHtmlReportRel.length > 0
-                          ? `/api/projects/${projectId}/test-runs/${focusedRunId}/html-report/`
-                          : `/api/projects/${projectId}/framework/playwright-report/index.html`,
-                        "_blank",
-                        "noopener,noreferrer",
-                      )
-                    }
-                    data-testid="reports-html-btn"
-                  >
-                    HTML report
-                  </button>
+                  ) : null}
                   {analysisSummary !== undefined && analysisSummary.failed + analysisSummary.flaky > 0 ? (
                     <button
                       type="button"

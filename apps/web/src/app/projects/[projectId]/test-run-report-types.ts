@@ -46,10 +46,12 @@ export type RecentRun = {
   finishedAt: string | null;
   analysisSummary?: AnalysisSummary;
   htmlReportRel: string | null;
+  pipelineUrl: string | null;
 };
 
 export type RunDetailBody = {
   id: string;
+  provider: string;
   status: string;
   output: string;
   command: string;
@@ -61,6 +63,7 @@ export type RunDetailBody = {
   resultsAnalysis?: ResultsAnalysisBody | null;
   analysisSummary?: AnalysisSummary;
   htmlReportRel?: string | null;
+  pipelineUrl?: string | null;
 };
 
 export type RecentRunsResponse = {

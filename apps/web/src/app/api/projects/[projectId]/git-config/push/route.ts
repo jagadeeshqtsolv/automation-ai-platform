@@ -70,10 +70,24 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
 
     return NextResponse.json({ ok: true, ...result, repoStatus, prUrl });
   } catch (err) {
-    let message = "Git push failed";
+    let message = "Git push failed. Please try again.";
     if (err instanceof Error) {
       const stderr = "stderr" in err ? String((err as { stderr: unknown }).stderr).trim() : "";
-      message = stderr || err.message;
+      const raw = stderr || err.message;
+      // Map common git errors to friendly messages
+      if (/timed out/i.test(raw)) {
+        message = "Git push timed out — check your internet connection and try again.";
+      } else if (/authentication failed|could not read username|invalid credentials|403/i.test(raw)) {
+        message = "Authentication failed — your access token may have expired. Update it in Git Settings.";
+      } else if (/repository not found|does not exist|404/i.test(raw)) {
+        message = "Repository not found — check the remote URL in Setup → Git.";
+      } else if (/permission|access denied|forbidden/i.test(raw)) {
+        message = "Permission denied — make sure your token has write access to the repository.";
+      } else if (/non-fast-forward|rejected|diverged/i.test(raw)) {
+        message = "Push rejected — the remote branch has changes you don't have locally. Try pushing again to auto-rebase.";
+      } else if (raw && !/^Command failed: git/i.test(raw)) {
+        message = raw; // show real git error if it's readable
+      }
     }
     return NextResponse.json({ error: message }, { status: 500 });
   }

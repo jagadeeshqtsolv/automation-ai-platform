@@ -112,11 +112,21 @@ export async function POST(_req: Request, context: { params: Promise<{ projectId
       summary: result.summary,
     });
   } catch (err) {
-    let message = "Push to base branch failed";
+    let message = "Push to base branch failed. Please try again.";
     if (err instanceof Error) {
-      // Prefer stderr (the actual git error) over the generic "Command failed: git ..." message
       const stderr = "stderr" in err ? String((err as { stderr: unknown }).stderr).trim() : "";
-      message = stderr || err.message;
+      const raw = stderr || err.message;
+      if (/timed out/i.test(raw)) {
+        message = "Git push timed out — check your internet connection and try again.";
+      } else if (/authentication failed|could not read username|invalid credentials|403/i.test(raw)) {
+        message = "Authentication failed — your access token may have expired. Update it in Git Settings.";
+      } else if (/repository not found|does not exist|404/i.test(raw)) {
+        message = "Repository not found — check the remote URL in Setup → Git.";
+      } else if (/permission|access denied|forbidden/i.test(raw)) {
+        message = "Permission denied — make sure your token has write access to the repository.";
+      } else if (raw && !/^Command failed: git/i.test(raw)) {
+        message = raw;
+      }
     }
     return NextResponse.json({ error: message }, { status: 500 });
   }

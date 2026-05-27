@@ -28,9 +28,9 @@ export function generateWorkflowTemplate(
     case "github":
       return githubTemplate(workflowFile, testCmd, platformType, cfg);
     case "gitlab":
-      return gitlabTemplate(testCmd);
+      return gitlabTemplate(testCmd, platformType);
     case "bitbucket":
-      return bitbucketTemplate(testCmd);
+      return bitbucketTemplate(testCmd, platformType);
   }
 }
 
@@ -94,7 +94,7 @@ ${installBrowsersStep}
         env:
           AUTOM_ENVIRONMENT: \${{ inputs.environment }}
         run: |
-          SPEC_PATHS_ARG=\${{ inputs.spec_paths }}
+          SPEC_PATHS_ARG="\${{ inputs.spec_paths }}"
           GREP_ARG=""
           if [ -n "\${{ inputs.grep }}" ]; then
             GREP_ARG="--grep \${{ inputs.grep }}"
@@ -120,29 +120,30 @@ ${installBrowsersStep}
 `;
 }
 
-function gitlabTemplate(testCmd: string): string {
+function gitlabTemplate(testCmd: string, platformType: "web" | "mobile"): string {
+  const installBrowsers = platformType === "web"
+    ? `\n    - npx playwright install --with-deps chromium\n` : "";
   return `# .gitlab-ci.yml (or a child pipeline included from it)
 # Triggered by AutomationAI via the Pipelines API.
 # Variables injected: SPEC_PATHS, ENVIRONMENT, GREP, CALLBACK_URL, RUN_ID
 
 run-tests:
-  image: node:20
+  image: node:22
   stage: test
   script:
-    - npm ci
-    # Web projects only: npx playwright install --with-deps chromium
-    - |
+    - if [ -f package-lock.json ]; then npm ci; else npm install; fi
+${installBrowsers}    - |
       SPEC_PATHS_ARG="\${SPEC_PATHS:-}"
       GREP_ARG=""
       if [ -n "\${GREP:-}" ]; then GREP_ARG="--grep \${GREP}"; fi
-      ${testCmd} || true
-    - |
+      ${testCmd}
+      TEST_EXIT=\$?
       STATUS="passed"
-      EXIT=\$?
-      [ \$EXIT -ne 0 ] && STATUS="failed"
+      [ \$TEST_EXIT -ne 0 ] && STATUS="failed"
       curl -s -X POST "\${CALLBACK_URL}" \\
         -H "Content-Type: application/json" \\
         -d "{\\\"status\\\":\\\"\${STATUS}\\\",\\\"run_id\\\":\\\"\${RUN_ID}\\\",\\\"pipelineUrl\\\":\\\"\${CI_PIPELINE_URL}\\\"}"
+      exit \$TEST_EXIT
   variables:
     SPEC_PATHS: ""
     ENVIRONMENT: ""
@@ -152,7 +153,9 @@ run-tests:
 `;
 }
 
-function bitbucketTemplate(testCmd: string): string {
+function bitbucketTemplate(testCmd: string, platformType: "web" | "mobile"): string {
+  const installBrowsers = platformType === "web"
+    ? `            - npx playwright install --with-deps chromium\n` : "";
   return `# bitbucket-pipelines.yml
 # AutomationAI triggers this via the Pipelines API.
 # Variables injected: SPEC_PATHS, ENVIRONMENT, GREP, CALLBACK_URL, RUN_ID
@@ -168,19 +171,20 @@ pipelines:
           - name: RUN_ID
       - step:
           name: Run tests
-          image: node:20
+          image: node:22
           script:
-            - npm ci
-            # Web projects only: npx playwright install --with-deps chromium
-            - |
+            - if [ -f package-lock.json ]; then npm ci; else npm install; fi
+${installBrowsers}            - |
               SPEC_PATHS_ARG="\${SPEC_PATHS:-}"
               GREP_ARG=""
               [ -n "\${GREP:-}" ] && GREP_ARG="--grep \${GREP}"
-              ${testCmd} || true
+              ${testCmd}
+              TEST_EXIT=\$?
               STATUS="passed"
-              [ \$? -ne 0 ] && STATUS="failed"
+              [ \$TEST_EXIT -ne 0 ] && STATUS="failed"
               curl -s -X POST "\${CALLBACK_URL}" \\
                 -H "Content-Type: application/json" \\
                 -d "{\\\"status\\\":\\\"\${STATUS}\\\",\\\"run_id\\\":\\\"\${RUN_ID}\\\"}"
+              exit \$TEST_EXIT
 `;
 }

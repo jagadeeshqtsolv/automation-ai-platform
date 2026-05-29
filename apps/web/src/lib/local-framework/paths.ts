@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import type { ProjectPlatformType } from "@jagadeeshqtsolv/core";
 import { z } from "zod";
@@ -187,13 +188,16 @@ export function getWebCoreRoot(): string {
     dir = parent;
   }
 
-  // npm-installed layout — templates/ is shipped inside the package
-  const npmTemplates = path.resolve(
-    cwd,
-    "node_modules/@jagadeeshqtsolv/web-support/templates",
-  );
-  if (existsSync(npmTemplates)) {
-    return npmTemplates;
+  // npm-installed layout — resolve via a known export entry then walk up to
+  // the package root so hoisting is handled correctly regardless of cwd.
+  // web-actions exports to dist/src/web-actions.js → two dirs up = pkg root.
+  try {
+    const req = createRequire(import.meta.url);
+    const webActions = req.resolve("@jagadeeshqtsolv/web-support/web-actions");
+    const templates = path.resolve(path.dirname(webActions), "../../templates");
+    if (existsSync(templates)) return templates;
+  } catch {
+    // package not installed — fall through to default
   }
 
   return path.resolve(cwd, "../../packages/core/web");

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { updateEnvironmentBodySchema } from "@automation-ai/core";
+import { updateEnvironmentBodySchema } from "@jagadeeshqtsolv/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
 import { normalizeConfigJsonString } from "@/lib/config-json";

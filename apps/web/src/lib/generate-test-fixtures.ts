@@ -1,4 +1,4 @@
-import type { ProjectPlatformType } from "@automation-ai/core";
+import type { ProjectPlatformType } from "@jagadeeshqtsolv/core";
 
 /** Fixture keys: `loginPage` for `LoginPage`, `loginScreen` for `LoginScreen`. */
 export function pageObjectFixtureName(className: string): string {

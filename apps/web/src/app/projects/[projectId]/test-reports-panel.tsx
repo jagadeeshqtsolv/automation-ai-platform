@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/toast-provider";
-import { executionProviderLabel, type ExecutionConfig } from "@automation-ai/core";
+import { executionProviderLabel, type ExecutionConfig } from "@jagadeeshqtsolv/core";
 
 type ExecutionProvider = ExecutionConfig["provider"];
 import type {

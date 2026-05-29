@@ -6,7 +6,7 @@ import {
   installFrameworkDependencies,
   isFrameworkDependencyInstallInFlight,
 } from "@/lib/local-framework/install-dependencies";
-import type { ProjectPlatformType } from "@automation-ai/core";
+import type { ProjectPlatformType } from "@jagadeeshqtsolv/core";
 import { ensureProjectFrameworkScaffold } from "@/lib/local-framework/ensure-project-scaffold";
 import { prisma } from "@/lib/prisma";
 

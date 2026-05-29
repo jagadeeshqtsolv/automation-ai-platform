@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { updatePageObjectBodySchema } from "@automation-ai/core";
+import { updatePageObjectBodySchema } from "@jagadeeshqtsolv/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
 import { inferMethodSummary } from "@/lib/page-object-utils";

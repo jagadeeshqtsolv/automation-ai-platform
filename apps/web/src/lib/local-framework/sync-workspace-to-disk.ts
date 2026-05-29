@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { testPlanSchema, type TestPlan } from "@automation-ai/core";
+import { testPlanSchema, type TestPlan } from "@jagadeeshqtsolv/core";
 import { prisma } from "@/lib/prisma";
 import { ensureProjectFrameworkScaffold } from "@/lib/local-framework/ensure-project-scaffold";
 import { getProjectPlatformType } from "@/lib/project-platform";

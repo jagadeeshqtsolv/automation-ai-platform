@@ -3,7 +3,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useToast } from "@/components/toast-provider";
 import { readApiError } from "@/lib/api-response";
-import type { ScreenElement } from "@automation-ai/core";
+import type { ScreenElement } from "@jagadeeshqtsolv/core";
 
 type EnvOption = { id: string; name: string; slug: string; configJson: string };
 

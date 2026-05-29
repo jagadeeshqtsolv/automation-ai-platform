@@ -55,7 +55,7 @@ graph TB
         Envs["environments/qa.json"]
     end
 
-    subgraph Packages["GitHub Packages  —  npm.pkg.github.com"]
+    subgraph Packages["npm registry  —  registry.npmjs.org"]
         Core["@jagadeeshqtsolv/core\nZod schemas · types"]
         WebSupport["@jagadeeshqtsolv/web-support\nfixtures · locators · actions"]
     end

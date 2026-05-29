@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
-import { triggerPipelineBodySchema } from "@automation-ai/core";
+import { triggerPipelineBodySchema } from "@jagadeeshqtsolv/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { getProjectGitConfigView, getProjectCiToken, getProjectCiConfigView } from "@/lib/project-git/git-config";
 import { getUserGitConfigView } from "@/lib/project-git/user-git-config";

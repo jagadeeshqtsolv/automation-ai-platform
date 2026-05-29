@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/toast-provider";
 import { WorkspaceToolbar } from "@/components/workspace-toolbar";
-import { projectPlatformLabel, type ProjectPlatformType } from "@automation-ai/core";
+import { projectPlatformLabel, type ProjectPlatformType } from "@jagadeeshqtsolv/core";
 import { readApiError } from "@/lib/api-response";
 import { readSelectedOrganizationId, writeSelectedOrganizationId } from "@/lib/selected-organization";
 

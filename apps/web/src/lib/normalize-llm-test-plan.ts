@@ -2,7 +2,7 @@ import {
   isTestStepAction,
   TEST_STEP_ACTIONS,
   type TestStepAction,
-} from "@automation-ai/core";
+} from "@jagadeeshqtsolv/core";
 
 const ACTION_ALIASES: Record<string, TestStepAction> = {
   click: "tap",

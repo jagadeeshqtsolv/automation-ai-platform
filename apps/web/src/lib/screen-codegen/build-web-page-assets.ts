@@ -1,4 +1,4 @@
-import type { WebPageElement } from "@automation-ai/core";
+import type { WebPageElement } from "@jagadeeshqtsolv/core";
 import {
   appendWebFlowMethodsToMethodSummary,
   enrichWebPageObjectWithFlowMethods,

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createOrganizationBodySchema } from "@automation-ai/core";
+import { createOrganizationBodySchema } from "@jagadeeshqtsolv/core";
 import { requireApiUser, requirePlatformAdmin } from "@/lib/auth/api-auth";
 import { slugifyOrganizationName, uniqueOrganizationSlug } from "@/lib/auth/org-slug";
 import { prisma } from "@/lib/prisma";

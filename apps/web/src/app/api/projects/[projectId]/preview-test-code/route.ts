@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { testCaseSchema } from "@automation-ai/core";
+import { testCaseSchema } from "@jagadeeshqtsolv/core";
 import { z } from "zod";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { buildPageObjectStepIndex } from "@/lib/page-object-step-index";

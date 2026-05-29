@@ -1,6 +1,6 @@
 import { access, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import type { ExecutionConfig } from "@automation-ai/core";
+import type { ExecutionConfig } from "@jagadeeshqtsolv/core";
 import { getProjectFrameworkRoot } from "@/lib/local-framework/paths";
 import { installFrameworkDependencies } from "@/lib/local-framework/install-dependencies";
 import {

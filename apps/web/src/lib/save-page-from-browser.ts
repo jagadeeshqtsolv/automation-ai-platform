@@ -1,5 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import type { WebPageElement } from "@automation-ai/core";
+import type { WebPageElement } from "@jagadeeshqtsolv/core";
 import { buildPlaywrightWebConfig } from "@/lib/playwright-web-environment-config";
 import { ensureWebFrameworkScaffold, writePlaywrightWebConfig } from "@/lib/local-framework/web-scaffold";
 import { buildWebPageAssets } from "@/lib/screen-codegen/build-web-page-assets";

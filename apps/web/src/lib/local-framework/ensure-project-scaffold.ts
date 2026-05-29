@@ -1,4 +1,4 @@
-import type { ProjectPlatformType } from "@automation-ai/core";
+import type { ProjectPlatformType } from "@jagadeeshqtsolv/core";
 import { ensureFrameworkScaffold } from "@/lib/local-framework/scaffold";
 import { ensureWebFrameworkScaffold } from "@/lib/local-framework/web-scaffold";
 

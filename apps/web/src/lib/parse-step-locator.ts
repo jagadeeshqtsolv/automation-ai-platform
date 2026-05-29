@@ -1,4 +1,4 @@
-import type { TestStep, WebPageElement, WebPageElementActionKind } from "@automation-ai/core";
+import type { TestStep, WebPageElement, WebPageElementActionKind } from "@jagadeeshqtsolv/core";
 
 export const COMMON_PAGE_CLASS_NAME = "CommonPage";
 export const COMMON_PAGE_MODULE_PATH = "pageobjects/CommonPage.ts";

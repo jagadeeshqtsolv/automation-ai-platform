@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { runTestsBodySchema, detectCiProvider } from "@automation-ai/core";
+import { runTestsBodySchema, detectCiProvider } from "@jagadeeshqtsolv/core";
 import { z } from "zod";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { decryptAccessKey, parseExecutionConfigDocument } from "@/lib/execution-config";

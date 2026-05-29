@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { healTestRunBodySchema } from "@automation-ai/core";
+import { healTestRunBodySchema } from "@jagadeeshqtsolv/core";
 import { z } from "zod";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";

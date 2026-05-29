@@ -1,4 +1,4 @@
-import type { TestCase } from "@automation-ai/core";
+import type { TestCase } from "@jagadeeshqtsolv/core";
 import {
   buildPageObjectExpectMethodIndex,
   type PageObjectSource,

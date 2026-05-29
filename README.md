@@ -23,8 +23,6 @@ The fastest way to run AutomationAI in production or for team evaluation.
 ### Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) and Docker Compose
-- A **GitHub Personal Access Token** with `read:packages` scope  
-  → [Generate one here](https://github.com/settings/tokens)
 
 ### 1. Clone the repo
 
@@ -39,14 +37,11 @@ cd automation-ai-platform
 cp .env.example .env
 ```
 
-Open `.env` and fill in the two required values:
+Open `.env` and set the required value:
 
 ```env
 # Min 32 characters — generate with: openssl rand -hex 32
 SESSION_SECRET=your-random-secret-here
-
-# GitHub PAT with read:packages scope — needed to install @jagadeeshqtsolv/core
-GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
 ```
 
 ### 3. Build and start
@@ -129,7 +124,6 @@ To back up, copy the volume contents or use `docker cp`.
 
 - Node.js 20+
 - npm 10+
-- A GitHub PAT with `read:packages` scope (for `@jagadeeshqtsolv/core`)
 
 ### Option A — automated setup
 
@@ -137,7 +131,7 @@ To back up, copy the volume contents or use `docker cp`.
 ./fresh-setup.sh
 ```
 
-This handles everything: GitHub Packages auth, `npm install`, `prisma db push`, and an optional admin account creation. Flags:
+This handles everything: `npm install`, `prisma db push`, and an optional admin account creation. Flags:
 
 ```bash
 ./fresh-setup.sh --create-admin   # prompt for admin email + password after setup
@@ -150,10 +144,7 @@ This handles everything: GitHub Packages auth, `npm install`, `prisma db push`, 
 ### Option B — manual setup
 
 ```bash
-# 1. Authenticate with GitHub Packages
-npm login --registry=https://npm.pkg.github.com --scope=@jagadeeshqtsolv
-
-# 2. Install dependencies
+# 1. Install dependencies
 npm install
 
 # 3. Configure environment
@@ -213,9 +204,8 @@ automation-ai-platform/
 └── package.json                # npm workspaces root
 ```
 
-> **Note:** `packages/core` (shared schemas and Playwright helpers) lives in the  
-> [automation-ai-core](https://github.com/jagadeeshqtsolv/automation-ai-core) repo  
-> and is installed as `@jagadeeshqtsolv/core` from GitHub Packages.
+> **Note:** `packages/core` (shared schemas and Playwright helpers) is published as  
+> [`@jagadeeshqtsolv/core`](https://www.npmjs.com/package/@jagadeeshqtsolv/core) on npm.
 
 ---
 
@@ -226,7 +216,6 @@ automation-ai-platform/
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `SESSION_SECRET` | ✅ | Min 32 chars. Signs session tokens and encrypts stored secrets (API keys, git tokens). Generate: `openssl rand -hex 32` |
-| `GITHUB_TOKEN` | ✅ | GitHub PAT with `read:packages` — used at build time to install `@jagadeeshqtsolv/core` |
 | `PORT` | optional | Host port to expose (default: `3000`) |
 
 ### For local dev (`apps/web/.env`)
@@ -272,7 +261,6 @@ Add a strong Postgres password:
 
 ```env
 SESSION_SECRET=your-random-32-char-secret
-GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
 POSTGRES_PASSWORD=change-me-strong-password
 ```
 
@@ -299,8 +287,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      secrets:
-        - github_token
     ports:
       - "${PORT:-3000}:3000"
     depends_on:
@@ -324,10 +310,6 @@ services:
 volumes:
   pg-data:
   app-data:
-
-secrets:
-  github_token:
-    environment: GITHUB_TOKEN
 ```
 
 **3. Update `apps/web/prisma/schema.prisma`** — change the datasource block:
@@ -389,7 +371,6 @@ datasource db {
 ```env
 DATABASE_URL=postgresql://user:password@your-host:5432/automationai?sslmode=require
 SESSION_SECRET=your-random-32-char-secret
-GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
 ```
 
 Update `docker-compose.yml` — replace the `DATABASE_URL` line:

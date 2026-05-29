@@ -1,4 +1,4 @@
-import type { WebPageElement, WebPageElementActionKind } from "@automation-ai/core";
+import type { WebPageElement, WebPageElementActionKind } from "@jagadeeshqtsolv/core";
 
 const BUTTON_KEY_RE =
   /(?:^|)(button|btn|submit|login|signin|signup|signIn|addToCart|checkout|continue|next|menu|cart|close|cancel|save|ok)(?:$|[A-Z_])/i;

@@ -5,7 +5,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { getProjectFrameworkRoot, getProjectUserGitDir } from "@/lib/local-framework/paths";
 import { getUserOwnedPaths, getLastWrittenByMap } from "@/lib/local-framework/user-file-tracker";
-import type { ProjectPlatformType } from "@automation-ai/core";
+import type { ProjectPlatformType } from "@jagadeeshqtsolv/core";
 
 const execFile = promisify(_execFile);
 

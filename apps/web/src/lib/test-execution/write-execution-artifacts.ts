@@ -1,6 +1,6 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { ExecutionConfig } from "@automation-ai/core";
+import type { ExecutionConfig } from "@jagadeeshqtsolv/core";
 import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
 import {
   buildMobilewrightConfig,
@@ -8,7 +8,7 @@ import {
   DEFAULT_MOBILEWRIGHT_USE_LINES,
 } from "@/lib/mobilewright-environment-config";
 import { sauceHubHostname } from "@/lib/execution-config";
-import type { ProjectPlatformType } from "@automation-ai/core";
+import type { ProjectPlatformType } from "@jagadeeshqtsolv/core";
 
 export async function writeExecutionArtifacts(params: {
   projectId: string;

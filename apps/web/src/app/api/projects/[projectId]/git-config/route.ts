@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { updateProjectGitConfigBodySchema, updateProjectCiConfigBodySchema } from "@automation-ai/core";
+import { updateProjectGitConfigBodySchema, updateProjectCiConfigBodySchema } from "@jagadeeshqtsolv/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import {
   getProjectGitConfigView,

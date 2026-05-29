@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createPageObjectBodySchema } from "@automation-ai/core";
+import { createPageObjectBodySchema } from "@jagadeeshqtsolv/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { normalizePageObjectFile } from "@/lib/page-object-naming";
 import { prisma } from "@/lib/prisma";

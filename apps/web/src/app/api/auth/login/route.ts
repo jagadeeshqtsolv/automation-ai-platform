@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { loginBodySchema } from "@automation-ai/core";
+import { loginBodySchema } from "@jagadeeshqtsolv/core";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSessionToken, sessionCookieOptions } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { updateJiraConfigBodySchema } from "@automation-ai/core";
+import { updateJiraConfigBodySchema } from "@jagadeeshqtsolv/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { getJiraConfigView, saveJiraConfig } from "@/lib/jira-config";
 

@@ -9,7 +9,7 @@ import {
   type TestCase,
   type TestStep,
   type TestStepAction,
-} from "@automation-ai/core";
+} from "@jagadeeshqtsolv/core";
 import { testRunnerDisplayName } from "@/lib/test-framework";
 
 const inputClass =

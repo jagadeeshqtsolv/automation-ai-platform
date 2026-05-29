@@ -2,9 +2,7 @@
   "name": "automation-ai",
   "private": true,
   "workspaces": [
-    "apps/*",
-    "packages/*",
-    "packages/core/web"
+    "apps/*"
   ],
   "scripts": {
     "dev": "npm run dev --workspace @automation-ai/web",

@@ -77,12 +77,6 @@ fi
 step "Installing dependencies (npm install)"
 npm install
 
-# ── 3b. Build local packages ──────────────────────────────────────────────────
-step "Building local packages (web-support)"
-# web-support — synced into framework project node_modules at runtime; build
-# it now so the dist is ready for the first project that gets installed.
-npm run build --workspace=@jagadeeshqtsolv/web-support
-
 # ── 5. Database ────────────────────────────────────────────────────────────────
 if [[ "$RESET_DATA" == true ]]; then
   step "Resetting database and frameworks data"

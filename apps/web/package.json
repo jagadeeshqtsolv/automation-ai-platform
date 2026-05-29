@@ -20,6 +20,7 @@
     "@ai-sdk/anthropic": "^3.0.79",
     "@ai-sdk/openai": "^3.0.65",
     "@jagadeeshqtsolv/core": "^1.0.2",
+    "@jagadeeshqtsolv/web-support": "^1.0.6",
     "@prisma/client": "^6.8.2",
     "ai": "^6.0.191",
     "archiver": "^7.0.1",

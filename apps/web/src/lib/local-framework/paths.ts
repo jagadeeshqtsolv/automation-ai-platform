@@ -149,8 +149,10 @@ export function resolveFrameworkFilePath(
 }
 
 /**
- * Locates the `packages/core/web/` directory in the monorepo.
- * Falls back to the same walk-up strategy as getFrameworksRoot.
+ * Locates the web-support template sources. Checks (in order):
+ *   1. WEB_CORE_ROOT env var
+ *   2. Local monorepo packages/core/web/ (dev environment)
+ *   3. node_modules/@jagadeeshqtsolv/web-support/templates/ (npm install)
  */
 export function getWebCoreRoot(): string {
   const fromEnv = process.env.WEB_CORE_ROOT;
@@ -159,12 +161,14 @@ export function getWebCoreRoot(): string {
   }
 
   const cwd = process.cwd();
-  const relativeCandidates = [
+
+  // Local monorepo layout (dev)
+  const monoRepoCandidates = [
     path.resolve(cwd, "../../packages/core/web"),
     path.resolve(cwd, "../packages/core/web"),
     path.resolve(cwd, "packages/core/web"),
   ];
-  for (const candidate of relativeCandidates) {
+  for (const candidate of monoRepoCandidates) {
     if (existsSync(candidate)) {
       return candidate;
     }
@@ -181,6 +185,15 @@ export function getWebCoreRoot(): string {
       break;
     }
     dir = parent;
+  }
+
+  // npm-installed layout — templates/ is shipped inside the package
+  const npmTemplates = path.resolve(
+    cwd,
+    "node_modules/@jagadeeshqtsolv/web-support/templates",
+  );
+  if (existsSync(npmTemplates)) {
+    return npmTemplates;
   }
 
   return path.resolve(cwd, "../../packages/core/web");

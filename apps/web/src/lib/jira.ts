@@ -72,17 +72,21 @@ export async function fetchJiraStories(
   jql: string,
   maxResults = 50,
 ): Promise<JiraStory[]> {
-  const params = new URLSearchParams({
-    jql,
-    maxResults: String(maxResults),
-    fields: "summary,description,issuetype,status",
-  });
-  const url = `${baseUrl.replace(/\/$/, "")}/rest/api/3/search?${params.toString()}`;
+  // Atlassian deprecated GET /rest/api/3/search (returns 410).
+  // The current endpoint is POST /rest/api/3/search/jql (since 2024).
+  const url = `${baseUrl.replace(/\/$/, "")}/rest/api/3/search/jql`;
   const res = await fetch(url, {
+    method: "POST",
     headers: {
       Authorization: buildBasicAuth(email, token),
       Accept: "application/json",
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({
+      jql,
+      maxResults,
+      fields: ["summary", "description", "issuetype", "status"],
+    }),
     signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) {

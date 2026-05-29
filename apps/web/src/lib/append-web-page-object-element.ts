@@ -1,4 +1,4 @@
-import type { WebPageElement } from "@automation-ai/core";
+import type { WebPageElement } from "@jagadeeshqtsolv/core";
 import { enrichWebPageObjectWithStepMethods } from "@/lib/enrich-web-page-object-step-methods";
 import { buildWebPageClassFile } from "@/lib/screen-codegen/build-web-page-assets";
 import { formatWebLocatorSpecLine } from "@/lib/screen-codegen/web-locator-spec-line";

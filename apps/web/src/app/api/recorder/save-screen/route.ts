@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   saveScreenFromDeviceBodySchema,
   saveWebPageFromBrowserBodySchema,
-} from "@automation-ai/core";
+} from "@jagadeeshqtsolv/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
 import { getProjectPlatformType } from "@/lib/project-platform";

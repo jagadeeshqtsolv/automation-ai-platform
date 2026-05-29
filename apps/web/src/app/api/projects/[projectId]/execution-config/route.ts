@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateExecutionConfigBodySchema, ciRunConfigSchema, DEFAULT_CI_RUN_CONFIG } from "@automation-ai/core";
+import { updateExecutionConfigBodySchema, ciRunConfigSchema, DEFAULT_CI_RUN_CONFIG } from "@jagadeeshqtsolv/core";
 import { z } from "zod";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import {

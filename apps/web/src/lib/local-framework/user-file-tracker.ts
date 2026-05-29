@@ -2,7 +2,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { getProjectFrameworkRoot, getProjectUserGitDir } from "@/lib/local-framework/paths";
-import type { ProjectPlatformType } from "@automation-ai/core";
+import type { ProjectPlatformType } from "@jagadeeshqtsolv/core";
 
 function trackerPath(projectId: string, platformType: ProjectPlatformType, userId: string): string {
   return path.join(getProjectUserGitDir(projectId, platformType, userId), "owned-files.json");

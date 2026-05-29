@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createRequirementBodySchema } from "@automation-ai/core";
+import { createRequirementBodySchema } from "@jagadeeshqtsolv/core";
 import { getAccessibleProject } from "@/lib/auth/access";
 import { requireApiUser, requireProjectAccess } from "@/lib/auth/api-auth";
 import { prisma } from "@/lib/prisma";

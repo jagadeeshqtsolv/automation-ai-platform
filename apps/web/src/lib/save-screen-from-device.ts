@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { ScreenElement } from "@automation-ai/core";
+import type { ScreenElement } from "@jagadeeshqtsolv/core";
 import { normalizeScreenClassName } from "@/lib/page-object-naming";
 import { buildScreenAssets } from "@/lib/screen-codegen/build-screen-assets";
 import { ensureFrameworkScaffold, buildMobilewrightConfig } from "@/lib/local-framework/scaffold";

@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { testPlanSchema, type TestPlan } from "@automation-ai/core";
+import { testPlanSchema, type TestPlan } from "@jagadeeshqtsolv/core";
 import { z } from "zod";
 import { resolveAIModel } from "@/lib/project-ai-config";
 import {

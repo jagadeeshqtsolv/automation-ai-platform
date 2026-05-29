@@ -46,7 +46,7 @@ export function ProjectAISettings({
   const [model, setModel] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (keepTab?: AIProvider) => {
     const res = await fetch(`/api/projects/${projectId}/ai-settings`);
     if (!res.ok) {
       toast.error("Could not load AI settings");
@@ -54,8 +54,9 @@ export function ProjectAISettings({
     }
     const body = (await res.json()) as { ai: AISettings };
     setSettings(body.ai);
-    setSelectedTab("openai");
-    setModel(body.ai.openai.model);
+    const tab = keepTab ?? "openai";
+    setSelectedTab(tab);
+    setModel(body.ai[tab].model);
   }, [projectId, toast]);
 
   useEffect(() => {
@@ -100,7 +101,7 @@ export function ProjectAISettings({
         return;
       }
       setApiKey("");
-      await load();
+      await load(selectedTab);
       onSaved?.();
       toast.success(`${PROVIDER_LABELS[selectedTab]} saved and set as active provider`);
     } finally {
@@ -127,7 +128,7 @@ export function ProjectAISettings({
         toast.error("Could not remove API key");
         return;
       }
-      await load();
+      await load(selectedTab);
       toast.success(`${label} API key removed`);
     } finally {
       setBusy(false);
@@ -147,7 +148,7 @@ export function ProjectAISettings({
       <div>
         <h3 className="text-sm font-semibold text-white">AI Provider</h3>
         <p className="mt-1 text-xs text-zinc-400">
-          Add your OpenAI API key. Used for all test plan, page object, and code generation.
+          Choose your AI provider (OpenAI or Claude) and add an API key. Used for all test plan, page object, and code generation.
         </p>
       </div>
 
@@ -167,18 +168,26 @@ export function ProjectAISettings({
         </div>
       )}
 
-      {/* Provider tabs — OpenAI only for now */}
+      {/* Provider tabs */}
       <div className="flex gap-2">
-        <button
-          type="button"
-          className="flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-4 py-2 text-xs font-semibold text-accent"
-          data-testid="ai-provider-tab-openai"
-        >
-          OpenAI
-          {settings.openai.configured && (
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-          )}
-        </button>
+        {(["openai", "claude"] as AIProvider[]).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => handleTabChange(tab)}
+            className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-xs font-semibold transition-colors ${
+              selectedTab === tab
+                ? "border-accent/40 bg-accent/10 text-accent"
+                : "border-white/10 bg-white/[0.03] text-zinc-400 hover:text-zinc-200"
+            }`}
+            data-testid={`ai-provider-tab-${tab}`}
+          >
+            {PROVIDER_LABELS[tab]}
+            {settings[tab].configured && (
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Provider panel */}

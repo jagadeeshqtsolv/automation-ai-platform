@@ -4,7 +4,7 @@ import {
   testPlanSchema,
   type TestPlan,
   type TestCaseType,
-} from "@automation-ai/core";
+} from "@jagadeeshqtsolv/core";
 import { resolveAIModel } from "@/lib/project-ai-config";
 import { normalizeLlmTestPlan } from "@/lib/normalize-llm-test-plan";
 

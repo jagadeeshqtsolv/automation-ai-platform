@@ -1,5 +1,5 @@
-import type { CiProvider, CiRunConfig } from "@automation-ai/core";
-import { DEFAULT_CI_RUN_CONFIG } from "@automation-ai/core";
+import type { CiProvider, CiRunConfig } from "@jagadeeshqtsolv/core";
+import { DEFAULT_CI_RUN_CONFIG } from "@jagadeeshqtsolv/core";
 
 /** Returns a starter CI workflow YAML the user can commit to their repo. */
 export function generateWorkflowTemplate(

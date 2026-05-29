@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { fetchJiraStoriesBodySchema } from "@automation-ai/core";
+import { fetchJiraStoriesBodySchema } from "@jagadeeshqtsolv/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { getJiraCredentials } from "@/lib/jira-config";
 import { fetchJiraStories } from "@/lib/jira";

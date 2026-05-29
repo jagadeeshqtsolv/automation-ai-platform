@@ -9,7 +9,7 @@ import { buildWorkspaceNavItems } from "./workspace-nav-config";
 import { TestPlansSection } from "./test-plans-section";
 import { countTestCasesInPlanJson } from "@/lib/count-test-cases";
 import { DEFAULT_ENVIRONMENT_CONFIG_JSON } from "@/lib/mobilewright-environment-config";
-import { projectPlatformLabel, type ProjectPlatformType } from "@automation-ai/core";
+import { projectPlatformLabel, type ProjectPlatformType } from "@jagadeeshqtsolv/core";
 import {
   codegenApiPath,
   defaultEnvironmentConfigJson,
@@ -752,7 +752,7 @@ function ProjectSetupSection(props: {
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-white">Setup</h2>
           <p className="mt-1 text-sm text-zinc-400">
-            Configure AI, execution provider, Git integration, and test environments for this project.
+            Configure your AI provider (OpenAI or Claude), execution settings, Git integration, and test environments.
           </p>
         </div>
 
@@ -769,29 +769,9 @@ function ProjectSetupSection(props: {
                   >
                     AI
                   </button>{" "}
-                  — Add your OpenAI API key. Required for generating test plans, page objects, and test code.
+                  — Add an OpenAI or Claude API key. Required for generating test plans, page objects, and test code.
                 </li>
               )}
-              <li>
-                <button
-                  type="button"
-                  onClick={() => setSetupTab("execution")}
-                  className="font-semibold text-amber-200 underline-offset-2 hover:underline"
-                >
-                  Execution
-                </button>{" "}
-                — Choose where tests run: locally or on a cloud device farm (BrowserStack, Sauce Labs, LambdaTest).
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => setSetupTab("git")}
-                  className="font-semibold text-amber-200 underline-offset-2 hover:underline"
-                >
-                  Git
-                </button>{" "}
-                — Connect your repository so generated test files are committed and pushed to your branch.
-              </li>
               {!hasEnvironments && (
                 <li>
                   <button

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { setOrganizationDisabledBodySchema } from "@automation-ai/core";
+import { setOrganizationDisabledBodySchema } from "@jagadeeshqtsolv/core";
 import { z } from "zod";
 import { requireApiUser, requirePlatformAdmin } from "@/lib/auth/api-auth";
 import { setOrganizationDisabled } from "@/lib/organizations/set-organization-disabled";

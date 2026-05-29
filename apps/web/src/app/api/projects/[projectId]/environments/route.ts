@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createEnvironmentBodySchema } from "@automation-ai/core";
+import { createEnvironmentBodySchema } from "@jagadeeshqtsolv/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
 import { normalizeConfigJsonString } from "@/lib/config-json";
 import { ensureProjectFrameworkScaffold } from "@/lib/local-framework/ensure-project-scaffold";
 import { writeProjectTestConfig } from "@/lib/local-framework/project-config-writer";
-import { projectPlatformTypeSchema } from "@automation-ai/core";
+import { projectPlatformTypeSchema } from "@jagadeeshqtsolv/core";
 import { syncEnvironmentToDisk } from "@/lib/sync-environment-disk";
 
 const paramsSchema = z.object({

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generatePlanBodySchema } from "@automation-ai/core";
+import { generatePlanBodySchema } from "@jagadeeshqtsolv/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
 import { formatGenerationError } from "@/lib/format-generation-error";

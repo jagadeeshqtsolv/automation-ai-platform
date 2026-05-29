@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
-import { pipelineCallbackBodySchema } from "@automation-ai/core";
+import { pipelineCallbackBodySchema } from "@jagadeeshqtsolv/core";
 import { prisma } from "@/lib/prisma";
 import { getProjectGitConfigView, getProjectCiToken } from "@/lib/project-git/git-config";
 import { fetchAndSaveCiReport } from "@/lib/project-git/fetch-ci-report";

@@ -1,5 +1,5 @@
-import type { TestCase, TestStep } from "@automation-ai/core";
-import { labelForTestStepActionForPlatform } from "@automation-ai/core";
+import type { TestCase, TestStep } from "@jagadeeshqtsolv/core";
+import { labelForTestStepActionForPlatform } from "@jagadeeshqtsolv/core";
 import {
   buildPageObjectStepIndex,
   findLocatorKeyForStep,

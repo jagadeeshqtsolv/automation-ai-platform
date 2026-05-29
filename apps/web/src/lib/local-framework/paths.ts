@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import type { ProjectPlatformType } from "@automation-ai/core";
+import type { ProjectPlatformType } from "@jagadeeshqtsolv/core";
 import { z } from "zod";
 
 const projectIdSchema = z.string().uuid();

@@ -1,5 +1,5 @@
-import type { ProjectPlatformType } from "@automation-ai/core";
-import type { TestCase } from "@automation-ai/core";
+import type { ProjectPlatformType } from "@jagadeeshqtsolv/core";
+import type { TestCase } from "@jagadeeshqtsolv/core";
 import {
   generateTestCaseBlock as generateMobileTestCaseBlock,
   generateTestCaseStepCodes as generateMobileTestCaseStepCodes,

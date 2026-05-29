@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useToast } from "@/components/toast-provider";
-import type { ExecutionConfig, ProjectPlatformType } from "@automation-ai/core";
+import type { ExecutionConfig, ProjectPlatformType } from "@jagadeeshqtsolv/core";
 import { testConfigFileName } from "@/lib/test-framework";
 import { readApiError } from "@/lib/api-response";
 

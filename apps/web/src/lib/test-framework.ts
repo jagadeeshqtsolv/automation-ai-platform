@@ -1,4 +1,4 @@
-import type { ProjectPlatformType } from "@automation-ai/core";
+import type { ProjectPlatformType } from "@jagadeeshqtsolv/core";
 
 /** Runner config file name per platform (under framework root). */
 export function testConfigFileName(platform: ProjectPlatformType): string {

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useToast } from "@/components/toast-provider";
-import type { ProjectPlatformType } from "@automation-ai/core";
+import type { ProjectPlatformType } from "@jagadeeshqtsolv/core";
 import { testRunnerDisplayName } from "@/lib/test-framework";
 import type { WorkspaceTab } from "./project-workspace-nav";
 

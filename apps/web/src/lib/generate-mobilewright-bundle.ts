@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { TEST_STEP_ACTIONS_PROMPT, testPlanSchema, type TestCase, type TestPlan } from "@automation-ai/core";
+import { TEST_STEP_ACTIONS_PROMPT, testPlanSchema, type TestCase, type TestPlan } from "@jagadeeshqtsolv/core";
 import { z } from "zod";
 import { resolveAIModel } from "@/lib/project-ai-config";
 import {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateRequirementBodySchema } from "@automation-ai/core";
+import { updateRequirementBodySchema } from "@jagadeeshqtsolv/core";
 import { z } from "zod";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";

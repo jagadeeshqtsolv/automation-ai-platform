@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { detectCiProvider, type CiProvider } from "@automation-ai/core";
+import { detectCiProvider, type CiProvider } from "@jagadeeshqtsolv/core";
 import { useToast } from "@/components/toast-provider";
 import { readApiError } from "@/lib/api-response";
 

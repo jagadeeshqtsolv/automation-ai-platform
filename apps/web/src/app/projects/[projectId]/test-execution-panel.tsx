@@ -9,7 +9,7 @@ import {
   type ExecutionConfig,
   type ExecutionProvider,
   type ProjectPlatformType,
-} from "@automation-ai/core";
+} from "@jagadeeshqtsolv/core";
 import { testConfigFileName } from "@/lib/test-framework";
 import type { RunDetailBody } from "./test-run-report-types";
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createTestCaseBodySchema } from "@automation-ai/core";
+import { createTestCaseBodySchema } from "@jagadeeshqtsolv/core";
 import { z } from "zod";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { addTestCaseToPlan } from "@/lib/test-plans/mutations";

@@ -44,28 +44,10 @@ done
 
 echo -e "${bold}AutomationAI — fresh setup${reset}"
 
-# ── 1. GitHub Packages auth ────────────────────────────────────────────────────
-step "Checking GitHub Packages auth (@jagadeeshqtsolv registry)"
-# Check if token already set in ~/.npmrc
-if ! grep -q "npm.pkg.github.com/:_authToken" "${HOME}/.npmrc" 2>/dev/null; then
-  warn "GitHub Packages token not found in ~/.npmrc"
-  echo -n "  Enter your GitHub PAT (needs read:packages scope): "
-  read -r GITHUB_TOKEN
-  if [[ -z "$GITHUB_TOKEN" ]]; then
-    error "Token required to install @automation-ai/core from GitHub Packages"
-  fi
-  npm set //npm.pkg.github.com/:_authToken="$GITHUB_TOKEN"
-  echo "  Token saved to ~/.npmrc"
-else
-  echo "  Token already configured — skipping"
-fi
-
-# ── 2. Clean build artifacts ───────────────────────────────────────────────────
+# ── 1. Clean build artifacts ───────────────────────────────────────────────────
 step "Cleaning node_modules and build caches"
 rm -rf node_modules
 rm -rf apps/web/node_modules
-rm -rf packages/core/node_modules
-rm -rf packages/core/dist
 rm -rf apps/web/.next
 rm -rf apps/web/out
 
@@ -75,7 +57,7 @@ find . -name "tsconfig.tsbuildinfo" ! -path "*/node_modules/*" -delete 2>/dev/nu
 
 echo "  Done"
 
-# ── 3. .env setup ─────────────────────────────────────────────────────────────
+# ── 2. .env setup ─────────────────────────────────────────────────────────────
 step "Checking .env"
 ENV_FILE="apps/web/.env"
 ENV_EXAMPLE="apps/web/.env.example"
@@ -91,15 +73,12 @@ else
   echo "  $ENV_FILE exists — keeping"
 fi
 
-# ── 4. Install dependencies ────────────────────────────────────────────────────
+# ── 3. Install dependencies ────────────────────────────────────────────────────
 step "Installing dependencies (npm install)"
 npm install
 
-# ── 4b. Build local packages ───────────────────────────────────────────────────
-step "Building local packages (core schemas + web-support)"
-# core — apps/web now uses a file: dep so the symlink already points here;
-# we just need the dist to exist before next build.
-npm run build --workspace=@jagadeeshqtsolv/core
+# ── 3b. Build local packages ──────────────────────────────────────────────────
+step "Building local packages (web-support)"
 # web-support — synced into framework project node_modules at runtime; build
 # it now so the dist is ready for the first project that gets installed.
 npm run build --workspace=@jagadeeshqtsolv/web-support
@@ -119,7 +98,7 @@ else
   npm run db:push
 fi
 
-# ── 6. Create admin ───────────────────────────────────────────────────────────
+# ── 6. Create admin ──────────────────────────────────────────────────────────
 # Auto-prompt when the DB was wiped (no existing admin) unless --create-admin
 # was already passed (avoids double-prompt).
 if [[ "$WIPE_DB" == true || "$RESET_DATA" == true ]]; then

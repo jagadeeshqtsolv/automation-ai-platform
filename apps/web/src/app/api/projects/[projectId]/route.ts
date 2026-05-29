@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireApiUser, requireProjectAccess } from "@/lib/auth/api-auth";
 import { deleteProjectFrameworkDir } from "@/lib/local-framework/delete-project";
 import { prisma } from "@/lib/prisma";
-import { PROJECT_NAME_MAX } from "@automation-ai/core";
+import { PROJECT_NAME_MAX } from "@jagadeeshqtsolv/core";
 
 const renameBodySchema = z.object({
   name: z.string().min(1, "Name cannot be empty").max(PROJECT_NAME_MAX).trim(),

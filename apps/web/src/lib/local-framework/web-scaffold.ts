@@ -7,7 +7,7 @@ import { WEB_FRAMEWORK_PACKAGE_JSON } from "@/lib/local-framework/web-framework-
 import { syncWebSupportHelpersToDisk } from "@/lib/local-framework/sync-web-support-helpers";
 import { readWebCoreFile } from "@/lib/local-framework/web-core-reader";
 import { generateWorkflowTemplate } from "@/lib/project-git/workflow-template";
-import { DEFAULT_CI_RUN_CONFIG } from "@automation-ai/core";
+import { DEFAULT_CI_RUN_CONFIG } from "@jagadeeshqtsolv/core";
 
 const WEB_TSCONFIG = `{
   "compilerOptions": {

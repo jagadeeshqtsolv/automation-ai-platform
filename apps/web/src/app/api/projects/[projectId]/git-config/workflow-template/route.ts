@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { detectCiProvider, type CiProvider } from "@automation-ai/core";
+import { detectCiProvider, type CiProvider } from "@jagadeeshqtsolv/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { getProjectGitConfigView } from "@/lib/project-git/git-config";
 import { getProjectPlatformType } from "@/lib/project-platform";

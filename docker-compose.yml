@@ -3,10 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      # GitHub Packages token is passed as a BuildKit secret — never stored in
-      # image layers. Add GITHUB_TOKEN=<your-pat> to your .env file.
-      secrets:
-        - github_token
     ports:
       - "${PORT:-3000}:3000"
     environment:
@@ -32,6 +28,3 @@ services:
 volumes:
   app-data:
 
-secrets:
-  github_token:
-    environment: GITHUB_TOKEN

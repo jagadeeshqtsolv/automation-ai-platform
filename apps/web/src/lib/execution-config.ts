@@ -5,7 +5,7 @@ import {
   type CiRunConfig,
   type ExecutionConfig,
   DEFAULT_CI_RUN_CONFIG,
-} from "@automation-ai/core";
+} from "@jagadeeshqtsolv/core";
 import { decryptSecret, encryptSecret } from "@/lib/secret-crypto";
 
 export type StoredExecutionSecrets = {

@@ -1,4 +1,4 @@
-import type { CiProvider } from "@automation-ai/core";
+import type { CiProvider } from "@jagadeeshqtsolv/core";
 
 export type { CiProvider };
 

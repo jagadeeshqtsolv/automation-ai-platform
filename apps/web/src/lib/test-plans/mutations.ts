@@ -2,7 +2,7 @@ import {
   EMPTY_REQUIREMENT_CONTENT_PLACEHOLDER,
   testPlanSchema,
   type TestPlan,
-} from "@automation-ai/core";
+} from "@jagadeeshqtsolv/core";
 import { prisma } from "@/lib/prisma";
 import { syncRequirementToDisk, syncTestPlanToDisk } from "@/lib/local-framework/sync-workspace-to-disk";
 import { deleteTestCaseDiskAsset, deleteTestPlanDiskAssets } from "@/lib/test-plans/disk-assets";

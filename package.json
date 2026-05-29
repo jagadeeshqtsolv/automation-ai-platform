@@ -6,9 +6,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace @automation-ai/web",
-    "build:core": "npm run build --workspace=@jagadeeshqtsolv/core && npm run build --workspace=@jagadeeshqtsolv/web-support",
-    "sync:web-support": "node scripts/sync-web-support.mjs",
-    "build": "npm run build --workspace @automation-ai/web",
+"build": "npm run build --workspace @automation-ai/web",
     "lint": "npm run lint --workspace @automation-ai/web",
     "db:push": "npm run db:push --workspace @automation-ai/web",
     "db:reset": "npm run db:reset --workspace @automation-ai/web",

@@ -1,7 +1,6 @@
 {
   "name": "playwright-web-framework",
   "private": true,
-  "type": "module",
   "scripts": {
     "test": "playwright test",
     "test:bs": "browserstack-node-sdk playwright test",
@@ -10,7 +9,7 @@
     "capture:dom": "node node_modules/@automation-ai/web-support/scripts/capture-dom.mjs"
   },
   "dependencies": {
-    "@automation-ai/web-support": "npm:@jagadeeshqtsolv/web-support@^1.0.0"
+    "@automation-ai/web-support": "npm:@jagadeeshqtsolv/web-support@^1.0.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

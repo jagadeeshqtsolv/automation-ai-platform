@@ -92,7 +92,8 @@ export async function executeTestRunInBackground(runId: string, params: RunTests
 
     await flushChain;
     const analysis = await loadPlaywrightReportAnalysis(params.projectId);
-    const htmlReportRel = await archiveHtmlReportSnapshot(params.projectId, runId);
+    const isBrowserStack = params.config.provider === "browserstack";
+    const htmlReportRel = isBrowserStack ? null : await archiveHtmlReportSnapshot(params.projectId, runId);
     await prisma.testRun.update({
       where: { id: runId },
       data: {
@@ -103,6 +104,7 @@ export async function executeTestRunInBackground(runId: string, params: RunTests
         finishedAt: new Date(),
         ...(analysis !== null ? { resultsAnalysis: analysis as unknown as Prisma.InputJsonValue } : {}),
         ...(htmlReportRel !== null ? { htmlReportRel } : {}),
+        ...(result.resultUrl !== undefined ? { pipelineUrl: result.resultUrl } : {}),
       },
     });
     await deleteExecutionSecrets(params.projectId);

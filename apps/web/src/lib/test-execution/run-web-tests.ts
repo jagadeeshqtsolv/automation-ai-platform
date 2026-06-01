@@ -1,8 +1,9 @@
 import { access, mkdir, readFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
 import { getProjectPlatformType } from "@/lib/project-platform";
-import { installFrameworkDependencies } from "@/lib/local-framework/install-dependencies";
+import { installFrameworkDependencies, ensurePlaywrightBrowsersForProject } from "@/lib/local-framework/install-dependencies";
 import type {
   RunTestsLogCallbacks,
   RunTestsOptions,
@@ -70,11 +71,35 @@ export async function runWebProjectTests(
     };
   }
 
+  if (params.config.provider === "local") {
+    log("Installing Playwright browsers…\n");
+    await ensurePlaywrightBrowsersForProject(params.projectId).catch(() => undefined);
+  }
+
   await mkdir(path.join(root, "logs"), { recursive: true });
+  // BrowserStack SDK writes test observability details here — must exist before run
+  await mkdir(path.join(root, "log", ".obs_test_details-default"), { recursive: true });
 
   // Build env: start from process env, then layer in execution/.env.execution
   const env: NodeJS.ProcessEnv = { ...process.env };
   env.AUTOM_EXECUTION_PROVIDER = params.config.provider;
+
+  // Point BrowserStack SDK directly to the existing CLI binary, bypassing the
+  // update-check API call that fails when auth credentials aren't yet resolved.
+  if (params.config.provider === "browserstack" && !env.SDK_CLI_BIN_PATH) {
+    const bsCliDir = process.env.BROWSERSTACK_FILES_DIR ?? path.join(os.homedir(), ".browserstack");
+    const candidates = [
+      path.join(bsCliDir, "cli", `binary-${process.platform === "darwin" ? "macos" : process.platform}-${process.arch}`),
+      path.join(bsCliDir, "cli", `binary-${process.platform}-${process.arch}`),
+    ];
+    for (const candidate of candidates) {
+      try {
+        await access(candidate);
+        env.SDK_CLI_BIN_PATH = candidate;
+        break;
+      } catch { /* not found */ }
+    }
+  }
 
   const envFile = resolveFrameworkFilePath(params.projectId, "execution/.env.execution", "web");
   if (envFile !== null) {

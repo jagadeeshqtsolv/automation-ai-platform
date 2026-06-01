@@ -13,9 +13,9 @@ export const WEB_FRAMEWORK_PACKAGE_JSON = `{
     "@automation-ai/web-support": "npm:@jagadeeshqtsolv/web-support@^1.0.4"
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
+    "@playwright/test": "1.48.2",
     "@types/node": "^22.0.0",
-    "browserstack-node-sdk": "^1.0.0",
+    "browserstack-node-sdk": "latest",
     "@faker-js/faker": "^9.5.0",
     "typescript": "^5.8.3"
   }

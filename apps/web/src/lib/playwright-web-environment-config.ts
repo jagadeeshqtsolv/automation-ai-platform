@@ -118,7 +118,9 @@ export function buildPlaywrightWebConfig(_configJson: string | null): string {
     `  projects: [`,
     `    { name: browser, use: browserDevice(browser) },`,
     `  ],`,
-    `  reporter: ${DEFAULT_PLAYWRIGHT_REPORTER_CONFIG},`,
+    `  reporter: process.env.AUTOM_EXECUTION_PROVIDER === "browserstack"
+    ? [["list"], ["json", { outputFile: "logs/playwright-report.json" }]]
+    : ${DEFAULT_PLAYWRIGHT_REPORTER_CONFIG},`,
     `});`,
     ``,
   ].join("\n");

@@ -40,6 +40,7 @@ export function spawnTrackedTestProcess(options: SpawnTrackedTestOptions): Promi
 
     let stdout = "";
     let stderr = "";
+    let bsResultUrl: string | undefined;
     const timer = setTimeout(() => {
       onLog("\n[Test run timed out after 10 minutes]\n");
       child.kill("SIGTERM");
@@ -51,15 +52,31 @@ export function spawnTrackedTestProcess(options: SpawnTrackedTestOptions): Promi
       resolve(result);
     };
 
+    let bsTesthubId: string | undefined;
+    const extractBsUrl = (text: string): void => {
+      // Direct build URL in output
+      if (bsResultUrl === undefined) {
+        const match = text.match(/https:\/\/automate\.browserstack\.com\/(?:dashboard\/v2\/)?builds\/[^\s"'\]]+/);
+        if (match) { bsResultUrl = match[0]; return; }
+      }
+      // Fallback: capture testhub ID to construct URL
+      if (bsTesthubId === undefined) {
+        const hubMatch = text.match(/Testhub started with id:\s*([a-z0-9]+)/i);
+        if (hubMatch) bsTesthubId = hubMatch[1];
+      }
+    };
+
     child.stdout?.on("data", (chunk: Buffer) => {
       const text = chunk.toString();
       stdout += text;
       onLog(text);
+      extractBsUrl(text);
     });
     child.stderr?.on("data", (chunk: Buffer) => {
       const text = chunk.toString();
       stderr += text;
       onLog(text);
+      extractBsUrl(text);
     });
 
     child.on("error", (err) => {
@@ -96,6 +113,10 @@ export function spawnTrackedTestProcess(options: SpawnTrackedTestOptions): Promi
       const trimmed = trimOutput(
         combined.length > 0 ? combined : `Process exited with code ${code ?? "unknown"}\n`,
       );
+      const resolvedBsUrl = bsResultUrl
+        ?? (bsTesthubId !== undefined && provider === "browserstack"
+          ? `https://automate.browserstack.com/dashboard/v2/builds/${bsTesthubId}`
+          : undefined);
       finish({
         ok: code === 0,
         exitCode: code,
@@ -103,6 +124,7 @@ export function spawnTrackedTestProcess(options: SpawnTrackedTestOptions): Promi
         provider,
         command,
         cancelled: false,
+        resultUrl: resolvedBsUrl,
       });
     });
   });

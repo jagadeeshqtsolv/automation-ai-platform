@@ -33,6 +33,7 @@ export type RunTestsResult = {
   provider: string;
   command: string;
   cancelled?: boolean;
+  resultUrl?: string;
 };
 
 export type RunTestsOptions = {

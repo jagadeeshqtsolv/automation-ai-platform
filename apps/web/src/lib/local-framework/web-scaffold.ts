@@ -32,6 +32,35 @@ const WEB_TSCONFIG = `{
 
 const TEST_DATA_JSON = JSON.stringify({}, null, 2);
 
+const BROWSERSTACK_YML = `# BrowserStack Automate — Playwright web
+# Run: npm run test:bs
+# Replace the placeholders below with your BrowserStack credentials.
+# This file is git-ignored — credentials will never be committed.
+# Get your credentials at: https://automate.browserstack.com/dashboard
+
+userName: YOUR_BROWSERSTACK_USERNAME
+accessKey: YOUR_BROWSERSTACK_ACCESS_KEY
+
+projectName: Playwright Web Framework
+buildName: playwright-build
+
+platforms:
+  - os: Windows
+    osVersion: "11"
+    browserName: chrome
+    browserVersion: latest
+
+parallelsPerPlatform: 1
+
+framework: playwright
+
+browserstackLocal: false
+testObservability: true
+debug: false
+networkLogs: false
+consoleLogs: errors
+`;
+
 const WEB_GITIGNORE = `# Dependencies
 node_modules/
 
@@ -108,6 +137,9 @@ export async function ensureWebFrameworkScaffold(params: {
 
   // .gitignore — always refresh so it stays up to date
   await writeFile(gitignorePath, WEB_GITIGNORE, { encoding: "utf8" }).catch(() => undefined);
+
+  // browserstack.yml — created once, never overwritten (git-ignored, may contain real credentials)
+  await writeFile(path.join(root, "browserstack.yml"), BROWSERSTACK_YML, { encoding: "utf8", flag: "wx" }).catch(() => undefined);
 
   // CI workflow — create only, never overwrite user's customised file
   const workflowPath = path.join(root, ".github/workflows/run-tests.yml");

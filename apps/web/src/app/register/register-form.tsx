@@ -85,7 +85,7 @@ export function RegisterForm({ inviteToken }: { inviteToken: string }) {
   }
 
   if (loadingInvite) {
-    return <p className="text-sm text-zinc-400">Validating invitation…</p>;
+    return <p className="text-sm text-slate-500">Validating invitation…</p>;
   }
 
   if (inviteError !== null || invite === null) {
@@ -94,7 +94,7 @@ export function RegisterForm({ inviteToken }: { inviteToken: string }) {
         <div className="ui-alert-error" role="alert">
           {inviteError ?? "Invitation required"}
         </div>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-slate-500">
           Ask your administrator for an invite link, or sign in if you already have an account.
         </p>
         <Link href="/login" className="ui-btn-secondary inline-flex text-sm" data-testid="register-signin-link">
@@ -107,10 +107,10 @@ export function RegisterForm({ inviteToken }: { inviteToken: string }) {
   return (
     <form onSubmit={onSubmit} className="space-y-5" data-testid="register-form">
       <div className="rounded-xl border border-accent/25 bg-accent/10 px-4 py-3">
-        <p className="text-sm font-medium text-zinc-100">
-          Join <span className="text-accent">{invite.organization.name}</span>
+        <p className="text-sm font-medium text-zinc-900">
+          Join <span className="text-green-700">{invite.organization.name}</span>
         </p>
-        <p className="mt-1 text-xs text-zinc-400">
+        <p className="mt-1 text-xs text-slate-500">
           Role: {invite.role} · Invite expires {new Date(invite.expiresAt).toLocaleString()}
         </p>
       </div>
@@ -157,7 +157,7 @@ export function RegisterForm({ inviteToken }: { inviteToken: string }) {
 
       {error !== null ? (
         <div
-          className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2.5 text-sm text-rose-100"
+          className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700"
           role="alert"
         >
           {error}
@@ -181,9 +181,9 @@ export function RegisterForm({ inviteToken }: { inviteToken: string }) {
         )}
       </button>
 
-      <p className="text-center text-sm text-zinc-500">
+      <p className="text-center text-sm text-slate-500">
         Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-accent transition hover:text-accent-dim" data-testid="register-login-link">
+        <Link href="/login" className="font-semibold text-green-700 transition hover:text-green-700-dim" data-testid="register-login-link">
           Sign in
         </Link>
       </p>

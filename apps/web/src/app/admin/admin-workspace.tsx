@@ -276,7 +276,7 @@ export function AdminWorkspace() {
     }
   }
 
-  if (allowed === null) return <p className="text-sm text-zinc-400">Checking access…</p>;
+  if (allowed === null) return <p className="text-sm text-slate-500">Checking access…</p>;
   if (allowed !== true) return null;
 
   const selectedOrg = orgs.find((o) => o.id === selectedOrgId);
@@ -289,8 +289,8 @@ export function AdminWorkspace() {
         onReady={() => undefined}
       />
 
-      <header className="border-b border-white/[0.08] pb-6">
-        <p className="ui-eyebrow text-accent">Platform admin</p>
+      <header className="border-b border-slate-200 pb-6">
+        <p className="ui-eyebrow text-green-700">Platform admin</p>
         <h1 className="ui-title-lg">Organizations & users</h1>
         <p className="ui-subtitle mt-2 max-w-2xl">
           Create organizations, invite new users, and manage existing accounts. Users cannot
@@ -306,7 +306,7 @@ export function AdminWorkspace() {
       <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
         {/* Sidebar — org list */}
         <aside className="ui-panel p-4">
-          <h2 className="text-sm font-semibold text-white">Create organization</h2>
+          <h2 className="text-sm font-semibold text-slate-900">Create organization</h2>
           <form onSubmit={createOrg} className="mt-3 space-y-2" data-testid="admin-create-org-form">
             <input
               value={newOrgName}
@@ -322,10 +322,10 @@ export function AdminWorkspace() {
             </button>
           </form>
 
-          <h2 className="mt-6 text-sm font-semibold text-white">Organizations</h2>
+          <h2 className="mt-6 text-sm font-semibold text-slate-900">Organizations</h2>
           <ul className="mt-2 max-h-64 space-y-1 overflow-auto">
             {orgs.length === 0 ? (
-              <li className="text-xs text-zinc-500">None yet</li>
+              <li className="text-xs text-slate-500">None yet</li>
             ) : (
               orgs.map((o) => (
                 <li key={o.id}>
@@ -333,22 +333,22 @@ export function AdminWorkspace() {
                     type="button"
                     onClick={() => { setSelectedOrgId(o.id); writeSelectedOrganizationId(o.id); }}
                     className={`w-full rounded-lg px-2 py-2 text-left text-xs transition ${o.id === selectedOrgId
-                        ? "bg-accent/15 text-accent ring-1 ring-accent/30"
+                        ? "bg-accent/15 text-green-700 ring-1 ring-green-400/20"
                         : o.disabled
-                          ? "bg-rose-950/20 text-zinc-400 hover:bg-white/5"
-                          : "text-zinc-300 hover:bg-white/5"
+                          ? "bg-rose-50 text-slate-500 hover:bg-slate-50"
+                          : "text-slate-600 hover:bg-slate-50"
                       }`}
                     data-testid={`admin-org-item-${o.id}`}
                   >
                     <span className="flex items-center gap-2">
-                      <span className="block font-medium text-white">{o.name}</span>
+                      <span className="block font-medium text-slate-900">{o.name}</span>
                       {o.disabled ? (
-                        <span className="rounded bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-200">
+                        <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700">
                           Disabled
                         </span>
                       ) : null}
                     </span>
-                    <span className="text-zinc-500">
+                    <span className="text-slate-500">
                       {o.memberCount} members · {o.projectCount} projects
                     </span>
                   </button>
@@ -361,34 +361,34 @@ export function AdminWorkspace() {
         {/* Main content */}
         <div className="space-y-6">
           {selectedOrg === undefined ? (
-            <p className="text-sm text-zinc-400">Select or create an organization.</p>
+            <p className="text-sm text-slate-500">Select or create an organization.</p>
           ) : (
             <>
               {/* Org header + invite */}
               <section className="ui-panel p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-white">
+                    <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-slate-900">
                       {selectedOrg.name}
                       {selectedOrg.disabled ? (
-                        <span className="rounded-md bg-rose-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-200">
+                        <span className="rounded-md bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700">
                           Disabled
                         </span>
                       ) : (
-                        <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+                        <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
                           Enabled
                         </span>
                       )}
                     </h2>
-                    <p className="text-xs text-zinc-500">{selectedOrg.slug}</p>
+                    <p className="text-xs text-slate-500">{selectedOrg.slug}</p>
                   </div>
                   <button
                     type="button"
                     disabled={busy !== null}
                     onClick={() => void toggleOrganizationEnabled(selectedOrg)}
                     className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${selectedOrg.disabled
-                        ? "border-emerald-500/30 bg-emerald-950/40 text-emerald-200 hover:bg-emerald-500/10"
-                        : "border-amber-500/30 bg-amber-950/40 text-amber-200 hover:bg-amber-500/10"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50"
+                        : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50"
                       }`}
                     data-testid="admin-org-toggle-btn"
                   >
@@ -432,7 +432,7 @@ export function AdminWorkspace() {
 
                 {lastInviteUrl !== null ? (
                   <div className="mt-3 flex flex-col gap-2 rounded-lg border border-accent/20 bg-accent/5 p-3 sm:flex-row sm:items-center">
-                    <code className="min-w-0 flex-1 truncate text-[11px] text-zinc-300">{lastInviteUrl}</code>
+                    <code className="min-w-0 flex-1 truncate text-[11px] text-slate-600">{lastInviteUrl}</code>
                     <button type="button" onClick={() => void copyInviteUrl()} className="ui-btn-secondary ui-btn-xs shrink-0" data-testid="admin-invite-copy-link-btn">
                       Copy link
                     </button>
@@ -442,8 +442,8 @@ export function AdminWorkspace() {
 
               {/* Assign existing user */}
               <section className="ui-panel p-5">
-                <h3 className="text-sm font-semibold text-white">Assign existing user</h3>
-                <p className="mt-1 text-xs text-zinc-500">For accounts that already signed up via another invite.</p>
+                <h3 className="text-sm font-semibold text-slate-900">Assign existing user</h3>
+                <p className="mt-1 text-xs text-slate-500">For accounts that already signed up via another invite.</p>
                 <form onSubmit={assignMember} className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end" data-testid="admin-assign-form">
                   <label className="ui-label">
                     Email
@@ -476,15 +476,15 @@ export function AdminWorkspace() {
 
               {/* Members */}
               <section className="ui-panel p-5">
-                <h3 className="text-sm font-semibold text-white">
+                <h3 className="text-sm font-semibold text-slate-900">
                   Members
-                  <span className="ml-2 rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-bold text-zinc-400">
+                  <span className="ml-2 rounded-md bg-slate-50 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
                     {members.length}
                   </span>
                 </h3>
 
                 {members.length === 0 ? (
-                  <p className="mt-3 text-xs text-zinc-500">No members yet.</p>
+                  <p className="mt-3 text-xs text-slate-500">No members yet.</p>
                 ) : (
                   <ul className="mt-3 divide-y divide-white/[0.04]">
                     {members.map((m) => {
@@ -498,14 +498,14 @@ export function AdminWorkspace() {
                         <li key={m.id} className="flex flex-wrap items-center gap-3 py-3">
                           {/* Identity */}
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-white truncate">
+                            <p className="text-sm font-medium text-slate-900 truncate">
                               {m.user.email}
                               {isSelf ? (
-                                <span className="ml-2 text-[10px] font-semibold text-zinc-500">(you)</span>
+                                <span className="ml-2 text-[10px] font-semibold text-slate-500">(you)</span>
                               ) : null}
                             </p>
                             {m.user.name ? (
-                              <p className="text-xs text-zinc-500 truncate">{m.user.name}</p>
+                              <p className="text-xs text-slate-500 truncate">{m.user.name}</p>
                             ) : null}
                           </div>
 
@@ -531,7 +531,7 @@ export function AdminWorkspace() {
                               disabled={isBusy || isSelf}
                               onClick={() => void removeMember(m.user.id, m.user.email)}
                               title={isSelf ? "You cannot remove yourself" : "Remove from this organization"}
-                              className="inline-flex items-center gap-1 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-amber-300 hover:bg-amber-500/20 disabled:opacity-40 transition"
+                              className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold text-amber-600 hover:bg-amber-100 disabled:opacity-40 transition"
                               data-testid={`admin-member-remove-btn-${m.user.id}`}
                             >
                               <RemoveIcon />
@@ -542,7 +542,7 @@ export function AdminWorkspace() {
                               disabled={isBusy || isSelf}
                               onClick={() => void deleteUser(m.user.id, m.user.email)}
                               title={isSelf ? "You cannot delete your own account" : "Permanently delete user account"}
-                              className="inline-flex items-center gap-1 rounded-lg border border-rose-500/25 bg-rose-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-rose-300 hover:bg-rose-500/20 disabled:opacity-40 transition"
+                              className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-100 disabled:opacity-40 transition"
                               data-testid={`admin-member-delete-btn-${m.user.id}`}
                             >
                               <TrashIcon />
@@ -551,7 +551,7 @@ export function AdminWorkspace() {
                           </div>
 
                           {isBusy ? (
-                            <span className="text-[10px] text-zinc-500">Saving…</span>
+                            <span className="text-[10px] text-slate-500">Saving…</span>
                           ) : null}
                         </li>
                       );
@@ -563,10 +563,10 @@ export function AdminWorkspace() {
               {/* Invites */}
               <section className="ui-panel p-5">
                 <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-semibold text-white">
+                  <h3 className="text-sm font-semibold text-slate-900">
                     Invites
                     {invites.length > 0 ? (
-                      <span className="ml-2 rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-bold text-zinc-400">
+                      <span className="ml-2 rounded-md bg-slate-50 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
                         {invites.length}
                       </span>
                     ) : null}
@@ -576,7 +576,7 @@ export function AdminWorkspace() {
                       type="button"
                       disabled={busy !== null}
                       onClick={() => void deleteAllInvites()}
-                      className="inline-flex items-center gap-1 rounded-lg border border-rose-500/25 bg-rose-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-rose-300 hover:bg-rose-500/20 disabled:opacity-40 transition"
+                      className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-100 disabled:opacity-40 transition"
                       data-testid="admin-invites-delete-all-btn"
                     >
                       <TrashIcon />
@@ -586,7 +586,7 @@ export function AdminWorkspace() {
                 </div>
 
                 {invites.length === 0 ? (
-                  <p className="mt-3 text-xs text-zinc-500">No invites yet.</p>
+                  <p className="mt-3 text-xs text-slate-500">No invites yet.</p>
                 ) : (
                   <ul className="mt-3 divide-y divide-white/[0.04]">
                     {invites.map((i) => {
@@ -597,19 +597,19 @@ export function AdminWorkspace() {
                       return (
                         <li key={i.id} className="flex items-center gap-3 py-2.5">
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-zinc-200 truncate">{i.email}</p>
-                            <p className="text-xs text-zinc-500">{i.role}</p>
+                            <p className="text-sm font-medium text-slate-700 truncate">{i.email}</p>
+                            <p className="text-xs text-slate-500">{i.role}</p>
                           </div>
                           {isUsed ? (
-                            <span className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+                            <span className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
                               used
                             </span>
                           ) : isExpired ? (
-                            <span className="shrink-0 rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400">
+                            <span className="shrink-0 rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600">
                               expired
                             </span>
                           ) : (
-                            <span className="shrink-0 rounded bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-semibold text-zinc-400">
+                            <span className="shrink-0 rounded bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
                               pending
                             </span>
                           )}
@@ -618,7 +618,7 @@ export function AdminWorkspace() {
                             disabled={isBusy}
                             onClick={() => void deleteInvite(i.id, i.email)}
                             title="Delete this invite"
-                            className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-rose-500/25 bg-rose-500/10 px-2 py-1.5 text-[11px] font-semibold text-rose-300 hover:bg-rose-500/20 disabled:opacity-40 transition"
+                            className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-100 disabled:opacity-40 transition"
                             data-testid={`admin-invite-delete-btn-${i.id}`}
                           >
                             <TrashIcon />

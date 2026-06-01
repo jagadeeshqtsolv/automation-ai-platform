@@ -2,7 +2,7 @@ import { AdminWorkspace } from "./admin-workspace";
 
 export default function AdminPage() {
   return (
-    <main className="ui-page py-8 sm:py-10">
+    <main className="mx-auto max-w-[1600px] px-3 py-6 sm:px-5 sm:py-8">
       <AdminWorkspace />
     </main>
   );

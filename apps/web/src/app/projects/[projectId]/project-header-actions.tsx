@@ -52,7 +52,7 @@ export function ProjectHeaderActions({ projectId, projectName }: { projectId: st
   // ── Delete ─────────────────────────────────────────────────────────────────
   async function deleteProject() {
     const confirmed = window.confirm(
-      `Delete project "${projectName}"?\n\nThis removes all requirements, environments, page objects, and the local framework folder. This cannot be undone.`,
+      `Delete Project "${projectName}"?\n\nThis removes all requirements, environments, page objects, and the local framework folder. This cannot be undone.`,
     );
     if (!confirmed) return;
 
@@ -86,7 +86,7 @@ export function ProjectHeaderActions({ projectId, projectName }: { projectId: st
             }}
             maxLength={120}
             disabled={saving}
-            className="rounded-lg border border-accent/40 bg-ink-950/60 px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-accent/50 disabled:opacity-50 w-56"
+            className="rounded-lg border border-green-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-green-400/20 disabled:opacity-50 w-56"
             data-testid="project-rename-input"
             autoFocus
           />
@@ -94,7 +94,7 @@ export function ProjectHeaderActions({ projectId, projectName }: { projectId: st
             type="button"
             onClick={() => void saveRename()}
             disabled={saving || !nameInput.trim()}
-            className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white hover:bg-accent/90 disabled:opacity-50 transition"
+            className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-slate-900 hover:bg-accent/90 disabled:opacity-50 transition"
             data-testid="project-rename-save-btn"
           >
             {saving ? "Saving…" : "Save"}
@@ -103,7 +103,7 @@ export function ProjectHeaderActions({ projectId, projectName }: { projectId: st
             type="button"
             onClick={cancelRename}
             disabled={saving}
-            className="rounded-lg border border-white/10 px-3 py-1.5 text-sm text-zinc-400 hover:text-white disabled:opacity-50 transition"
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-500 hover:text-slate-900 disabled:opacity-50 transition"
             data-testid="project-rename-cancel-btn"
           >
             Cancel
@@ -114,7 +114,7 @@ export function ProjectHeaderActions({ projectId, projectName }: { projectId: st
           type="button"
           onClick={startRename}
           disabled={busy}
-          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-semibold text-zinc-300 hover:bg-white/[0.07] hover:text-white disabled:opacity-50 transition"
+          className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 transition"
           data-testid="project-rename-btn"
         >
           <PencilIcon />
@@ -128,10 +128,10 @@ export function ProjectHeaderActions({ projectId, projectName }: { projectId: st
           type="button"
           disabled={busy}
           onClick={() => void deleteProject()}
-          className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/20 disabled:opacity-50"
+          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50"
           data-testid="project-delete-btn"
         >
-          {busy ? "Deleting…" : "Delete project"}
+          {busy ? "Deleting…" : "Delete Project"}
         </button>
       )}
     </div>

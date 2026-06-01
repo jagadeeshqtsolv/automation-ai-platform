@@ -106,7 +106,7 @@ function buildWebSystemPrompt(types: TestCaseType[]): string {
     categoryInstruction(types),
     `JSON shape: ${WEB_PLAN_SCHEMA_DESCRIPTION}`,
     "Use exact action strings (tap=click, fill=form input). No mobile-only actions.",
-    "platforms: array of chrome/firefox/safari/edge. Default to [\"chrome\"].",
+    "platforms: always use only [\"chrome\"]. Do not include other browsers.",
     "Encode setup as first step, not as preconditions. Keep steps concise.",
   ].join("\n");
 }

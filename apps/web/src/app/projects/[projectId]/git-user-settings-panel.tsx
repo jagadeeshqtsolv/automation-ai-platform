@@ -91,13 +91,13 @@ export function GitUserSettingsPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) { toast.error(await readApiError(res, "Could not save Git settings")); return; }
+      if (!res.ok) { toast.error(await readApiError(res, "Could not save Git Settings")); return; }
 
       const savedToken = token.trim();
       setToken("");
       setTestResult(null);
       await load();
-      toast.success("Git settings saved");
+      toast.success("Git Settings saved");
 
       // Auto-init: create the user's branch from the base branch if everything is configured
       const hasToken = savedToken.length > 0 || userConfig?.hasToken;
@@ -177,25 +177,25 @@ export function GitUserSettingsPanel({
   return (
     <Portal>
       <div
-        className="fixed inset-0 z-40 bg-ink-950"
+        className="fixed inset-0 z-40 bg-white"
         onClick={onClose}
         aria-hidden
       />
       <aside
-        className="fixed inset-y-0 left-0 z-50 flex w-full max-w-sm flex-col bg-ink-900 shadow-2xl ring-1 ring-white/10 sm:left-[72px]"
+        className="fixed inset-y-0 left-0 z-50 flex w-full max-w-sm flex-col bg-white shadow-xl ring-1 ring-slate-200 "
         role="dialog"
-        aria-label="Git settings"
+        aria-label="Git Settings"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <div>
-            <h2 className="text-sm font-semibold text-white">Your Git Settings</h2>
-            <p className="text-[11px] text-zinc-500">Branch, access token and author identity</p>
+            <h2 className="text-sm font-semibold text-slate-900">Your Git Settings</h2>
+            <p className="text-[11px] text-slate-500">Branch, access token and author identity</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/[0.06] hover:text-white"
+            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-50 hover:text-slate-900"
             aria-label="Close"
           >
             <CloseIcon />
@@ -205,29 +205,29 @@ export function GitUserSettingsPanel({
         {/* Body */}
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
           {userConfig === null ? (
-            <p className="text-sm text-zinc-400">Loading…</p>
+            <p className="text-sm text-slate-500">Loading…</p>
           ) : (
             <>
               {/* Status summary */}
               {userConfig.tokenPreview && userConfig.branch ? (
-                <dl className="grid grid-cols-2 gap-2 rounded-xl border border-white/[0.06] bg-black/20 px-3 py-2.5 text-xs">
+                <dl className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs">
                   <div>
-                    <dt className="text-zinc-500">Branch</dt>
-                    <dd className="mt-0.5 font-mono text-zinc-200">{userConfig.branch}</dd>
+                    <dt className="text-slate-500">Branch</dt>
+                    <dd className="mt-0.5 font-mono text-slate-700">{userConfig.branch}</dd>
                   </div>
                   {userConfig.authorName ? (
                     <div>
-                      <dt className="text-zinc-500">Author</dt>
-                      <dd className="mt-0.5 text-zinc-200">{userConfig.authorName}</dd>
+                      <dt className="text-slate-500">Author</dt>
+                      <dd className="mt-0.5 text-slate-700">{userConfig.authorName}</dd>
                     </div>
                   ) : null}
                   <div className="col-span-2">
-                    <dt className="text-zinc-500">Token</dt>
-                    <dd className="mt-0.5 font-mono text-zinc-300">{userConfig.tokenPreview}</dd>
+                    <dt className="text-slate-500">Token</dt>
+                    <dd className="mt-0.5 font-mono text-slate-600">{userConfig.tokenPreview}</dd>
                   </div>
                 </dl>
               ) : (
-                <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-600">
                   {!userConfig.branch
                     ? "Set a unique branch name below so your changes don't conflict with others."
                     : "No access token saved yet — fill in the form below."}
@@ -236,42 +236,42 @@ export function GitUserSettingsPanel({
 
               <form onSubmit={onSave} className="space-y-3">
                 {/* Branch */}
-                <label className="block text-xs text-zinc-400">
-                  Your working branch <span className="text-rose-300">(required)</span>
+                <label className="block text-xs text-slate-500">
+                  Your working branch <span className="text-rose-600">(required)</span>
                   <input
                     value={branch}
                     onChange={(e) => { setBranch(e.target.value); setInitResult(null); }}
                     placeholder="feature/your-name"
                     maxLength={100}
                     required
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-3 py-2 text-sm text-white placeholder-zinc-600"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400"
                   />
                   {projectConfig ? (
-                    <span className="mt-1 block text-[10px] text-zinc-500">
+                    <span className="mt-1 block text-[10px] text-slate-500">
                       Push here, then raise a PR to merge into{" "}
-                      <code className="text-zinc-400">{projectConfig.baseBranch}</code>.
+                      <code className="text-slate-500">{projectConfig.baseBranch}</code>.
                     </span>
                   ) : null}
                   {branchConflictsWithBase ? (
-                    <span className="mt-1 block text-[10px] text-amber-400">
+                    <span className="mt-1 block text-[10px] text-amber-700">
                       This is the protected base branch — choose a different name like{" "}
                       <code>feature/your-name</code>.
                     </span>
                   ) : null}
                 </label>
 
-                <label className="block text-xs text-zinc-400">
+                <label className="block text-xs text-slate-500">
                   Commit author name
                   <input
                     value={authorName}
                     onChange={(e) => setAuthorName(e.target.value)}
                     placeholder="Jane Smith"
                     maxLength={120}
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-3 py-2 text-sm text-white"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
                   />
                 </label>
 
-                <label className="block text-xs text-zinc-400">
+                <label className="block text-xs text-slate-500">
                   Commit author email
                   <input
                     type="email"
@@ -279,13 +279,13 @@ export function GitUserSettingsPanel({
                     onChange={(e) => setAuthorEmail(e.target.value)}
                     placeholder="jane@yourorg.com"
                     maxLength={200}
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-3 py-2 text-sm text-white"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
                   />
                 </label>
 
-                <label className="block text-xs text-zinc-400">
+                <label className="block text-xs text-slate-500">
                   Personal access token{" "}
-                  <span className="text-zinc-500">
+                  <span className="text-slate-500">
                     {userConfig.hasToken ? "(leave blank to keep current)" : "(required)"}
                   </span>
                   <input
@@ -294,7 +294,7 @@ export function GitUserSettingsPanel({
                     onChange={(e) => { setToken(e.target.value); setTestResult(null); }}
                     autoComplete="off"
                     placeholder={userConfig.hasToken ? "••••••••" : "ghp_…"}
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-3 py-2 font-mono text-sm text-white"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-sm text-slate-900"
                   />
                 </label>
 
@@ -303,8 +303,8 @@ export function GitUserSettingsPanel({
                     role="alert"
                     className={`rounded-lg border px-3 py-2 text-xs ${
                       testResult.ok
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                        : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border-rose-200 bg-rose-50 text-rose-600"
                     }`}
                   >
                     {testResult.ok ? "✓ " : "✗ "}{testResult.message}
@@ -313,7 +313,7 @@ export function GitUserSettingsPanel({
 
                 {/* Branch init result */}
                 {initialising ? (
-                  <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-xs text-zinc-400">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
                     Setting up your branch…
                   </div>
                 ) : initResult !== null ? (
@@ -321,8 +321,8 @@ export function GitUserSettingsPanel({
                     role="alert"
                     className={`rounded-lg border px-3 py-2 text-xs whitespace-pre-wrap break-words ${
                       initResult.ok
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                        : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border-rose-200 bg-rose-50 text-rose-600"
                     }`}
                   >
                     {initResult.ok ? "✓ " : "✗ "}{initResult.message}
@@ -335,30 +335,30 @@ export function GitUserSettingsPanel({
                     disabled={testing || saving || initialising || !repoReady}
                     onClick={() => void onTest()}
                     title={!repoReady ? "Remote URL not configured — set it in Setup → Git" : undefined}
-                    className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-white/5 disabled:opacity-50"
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                   >
-                    {testing ? "Testing…" : "Test connection"}
+                    {testing ? "Testing…" : "Test Connection"}
                   </button>
                   <button
                     type="submit"
                     disabled={saving || testing || initialising || branchConflictsWithBase}
                     className="ui-btn-primary ui-btn-xs disabled:opacity-50"
                   >
-                    {saving ? "Saving…" : initialising ? "Setting up branch…" : "Save settings"}
+                    {saving ? "Saving…" : initialising ? "Setting up branch…" : "Save Settings"}
                   </button>
                 </div>
               </form>
 
               {/* Fetch remote */}
-              <div className="border-t border-white/[0.06] pt-3 space-y-2">
-                <p className="text-[11px] text-zinc-500">
+              <div className="border-t border-slate-200 pt-3 space-y-2">
+                <p className="text-[11px] text-slate-500">
                   Fetch the latest commits from the remote repository.
                 </p>
                 <button
                   type="button"
                   disabled={fetching}
                   onClick={() => void onFetch()}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-300 hover:bg-sky-500/15 disabled:opacity-50 transition"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700 hover:bg-sky-100 disabled:opacity-50 transition"
                 >
                   <FetchIcon />
                   {fetching ? "Fetching…" : "Fetch remote"}
@@ -367,8 +367,8 @@ export function GitUserSettingsPanel({
                 {fetchResult !== null && (
                   <div className={`rounded-lg border px-3 py-2 text-xs font-mono whitespace-pre-wrap break-all ${
                     fetchResult.newCommits
-                      ? "border-sky-500/25 bg-sky-500/10 text-sky-200"
-                      : "border-white/[0.06] bg-white/[0.02] text-zinc-400"
+                      ? "border-sky-200 bg-sky-50 text-sky-700"
+                      : "border-slate-200 bg-slate-50 text-slate-500"
                   }`}>
                     {fetchResult.output}
                   </div>

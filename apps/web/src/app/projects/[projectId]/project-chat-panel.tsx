@@ -16,7 +16,7 @@ function renderSimpleMarkdown(text: string): React.ReactNode {
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
-        <strong key={i} className="font-semibold text-zinc-100">
+        <strong key={i} className="font-semibold text-zinc-900">
           {part.slice(2, -2)}
         </strong>
       );
@@ -39,7 +39,7 @@ export function ProjectChatPanel({
     {
       id: "welcome",
       role: "assistant",
-      text: "Project assistant — commands only affect this project. Say **help** or try **status**, **run tests**, **stop**.",
+      text: "Project Assistant — commands only affect this project. Say **help** or try **status**, **run tests**, **stop**.",
     },
   ]);
   const [input, setInput] = useState("");
@@ -113,9 +113,9 @@ export function ProjectChatPanel({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-accent/40 bg-ink-900 text-lg shadow-lg shadow-black/40 transition hover:border-accent hover:bg-ink-950"
+        className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-green-200 bg-slate-50 text-lg shadow-lg shadow-zinc-200 transition hover:border-accent hover:bg-white"
         aria-label={open ? "Close project assistant" : "Open project assistant"}
-        title="Project assistant"
+        title="Project Assistant"
         data-testid="chat-toggle-btn"
       >
         {open ? "×" : "?"}
@@ -123,13 +123,13 @@ export function ProjectChatPanel({
 
       {open ? (
         <div
-          className="fixed bottom-20 right-6 z-40 flex w-[min(100vw-2rem,24rem)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-900/95 shadow-2xl backdrop-blur-md"
+          className="fixed bottom-20 right-6 z-40 flex w-[min(100vw-2rem,24rem)] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm shadow-2xl "
           role="dialog"
-          aria-label="Project assistant"
+          aria-label="Project Assistant"
         >
-          <header className="border-b border-white/10 px-3 py-2">
-            <p className="text-sm font-semibold text-white">Project assistant</p>
-            <p className="text-[10px] text-zinc-500">Commands for this project only</p>
+          <header className="border-b border-slate-200 px-3 py-2">
+            <p className="text-sm font-semibold text-slate-900">Project Assistant</p>
+            <p className="text-[10px] text-slate-500">Commands for this project only</p>
           </header>
 
           <div ref={scrollRef} className="max-h-72 flex-1 space-y-2 overflow-y-auto px-3 py-2">
@@ -138,24 +138,24 @@ export function ProjectChatPanel({
                 key={m.id}
                 className={`rounded-lg px-2.5 py-1.5 text-xs leading-relaxed ${
                   m.role === "user"
-                    ? "ml-6 bg-accent/20 text-zinc-100"
-                    : "mr-4 bg-ink-950/80 text-zinc-300"
+                    ? "ml-6 bg-accent/20 text-zinc-900"
+                    : "mr-4 bg-white text-slate-600"
                 }`}
               >
                 {renderSimpleMarkdown(m.text)}
               </div>
             ))}
-            {sending ? <p className="text-[10px] text-zinc-500">Working…</p> : null}
+            {sending ? <p className="text-[10px] text-slate-500">Working…</p> : null}
           </div>
 
-          <div className="flex flex-wrap gap-1 border-t border-white/5 px-2 py-1.5">
+          <div className="flex flex-wrap gap-1 border-t border-slate-200 px-2 py-1.5">
             {chips.map((c) => (
               <button
                 key={c}
                 type="button"
                 disabled={sending}
                 onClick={() => setInput(c)}
-                className="rounded-md border border-white/10 px-1.5 py-0.5 text-[10px] text-zinc-400 hover:border-white/20 hover:text-zinc-200"
+                className="rounded-md border border-slate-200 px-1.5 py-0.5 text-[10px] text-slate-500 hover:border-slate-200 hover:text-slate-700"
                 data-testid={`chat-chip-${c.replace(/\s+/g, "-")}`}
               >
                 {c}
@@ -164,7 +164,7 @@ export function ProjectChatPanel({
           </div>
 
           <form
-            className="flex gap-2 border-t border-white/10 p-2"
+            className="flex gap-2 border-t border-slate-200 p-2"
             onSubmit={(e) => {
               e.preventDefault();
               void send();
@@ -177,7 +177,7 @@ export function ProjectChatPanel({
               placeholder="Type a command…"
               disabled={sending}
               maxLength={2000}
-              className="min-w-0 flex-1 rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-xs text-white placeholder:text-zinc-600"
+              className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 placeholder:text-slate-400"
               data-testid="chat-input"
             />
             <button

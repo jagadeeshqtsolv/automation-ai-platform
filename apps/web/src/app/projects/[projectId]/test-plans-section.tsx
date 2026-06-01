@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   labelForTestStepActionForPlatform,
   testPlanSchema,
@@ -105,9 +105,9 @@ function requirementSpecPath(folderName: string): string {
 }
 
 function priorityClass(priority: TestCase["priority"]): string {
-  if (priority === "P0") return "bg-rose-500/20 text-rose-200";
-  if (priority === "P1") return "bg-amber-500/20 text-amber-200";
-  return "bg-zinc-500/20 text-zinc-300";
+  if (priority === "P0") return "bg-rose-100 text-rose-700";
+  if (priority === "P1") return "bg-amber-100 text-amber-700";
+  return "bg-slate-100 text-slate-600";
 }
 
 const CATEGORY_TAG_LABELS: Record<string, string> = {
@@ -119,18 +119,18 @@ const CATEGORY_TAG_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_TAG_CLASSES: Record<string, string> = {
-  smoke: "bg-orange-500/20 text-orange-300",
-  functional: "bg-sky-500/20 text-sky-300",
-  negative: "bg-rose-500/15 text-rose-300",
-  edgecase: "bg-violet-500/20 text-violet-300",
-  e2e: "bg-emerald-500/20 text-emerald-300",
+  smoke:      "bg-orange-100 text-orange-700",
+  functional: "bg-sky-100 text-sky-700",
+  negative:   "bg-rose-100 text-rose-600",
+  edgecase:   "bg-violet-100 text-violet-700",
+  e2e:        "bg-emerald-100 text-emerald-700",
 };
 
 function extractCategoryTag(tags: string[]): { label: string; cls: string } | null {
   for (const tag of tags) {
     const key = tag.trim().toLowerCase().replace(/^@/, "");
     if (key in CATEGORY_TAG_LABELS) {
-      return { label: CATEGORY_TAG_LABELS[key]!, cls: CATEGORY_TAG_CLASSES[key] ?? "bg-zinc-500/20 text-zinc-300" };
+      return { label: CATEGORY_TAG_LABELS[key]!, cls: CATEGORY_TAG_CLASSES[key] ?? "bg-slate-100 text-slate-600" };
     }
   }
   return null;
@@ -154,7 +154,7 @@ type CreatePlanRequirementMode = "new" | "existing";
 
 function defaultSuiteName(requirementTitle: string | null): string {
   const title = requirementTitle?.trim();
-  return title !== undefined && title.length > 0 ? title : "Test suite";
+  return title !== undefined && title.length > 0 ? title : "Test Suite";
 }
 
 function TestCaseCard({
@@ -167,6 +167,7 @@ function TestCaseCard({
   onGenerate,
   onDelete,
   onSave,
+  hideEdit = false,
 }: {
   testCase: TestCase;
   planId: string;
@@ -177,6 +178,7 @@ function TestCaseCard({
   onGenerate: (testPlanId: string, testCaseId: string) => void;
   onDelete: (testPlanId: string, testCaseId: string, title: string) => Promise<void>;
   onSave: (testPlanId: string, testCase: TestCase) => Promise<void>;
+  hideEdit?: boolean;
 }) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
@@ -202,134 +204,130 @@ function TestCaseCard({
   }
 
   return (
-    <li className="rounded-lg border border-white/5 bg-black/20">
-      <div className="flex items-start gap-2 px-2 py-2">
+    <li className="rounded-lg border border-slate-200 bg-white shadow-xs">
+      {/* Card header row */}
+      <div className="flex items-center gap-2 px-3 py-2.5">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           disabled={editing}
-          className="flex min-w-0 flex-1 items-start gap-3 rounded-lg px-1 py-1 text-left hover:bg-white/5 disabled:opacity-60"
+          className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:opacity-60"
         >
-          <span className="mt-0.5 text-zinc-500">{open ? "▾" : "▸"}</span>
+          <svg
+            className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-90" : ""}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
           <span className="min-w-0 flex-1">
-            <span className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[10px] text-zinc-500">{testCase.id}</span>
+            <span className="flex flex-wrap items-center gap-1.5">
               <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${priorityClass(testCase.priority)}`}>
                 {testCase.priority}
               </span>
               {(() => {
                 const cat = extractCategoryTag(testCase.tags);
                 return cat ? (
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${cat.cls}`}>
-                    {cat.label}
-                  </span>
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${cat.cls}`}>{cat.label}</span>
                 ) : null;
               })()}
-              <span className="text-[10px] text-zinc-500">{testCase.platforms.join(", ")}</span>
+              {testCase.platforms.length > 0 && (
+                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">{testCase.platforms.join(", ")}</span>
+              )}
             </span>
-            <span className="mt-0.5 block text-sm font-medium text-white">{testCase.title}</span>
+            <span className="mt-0.5 block text-sm font-semibold text-slate-900">{testCase.title}</span>
           </span>
-          <span className="shrink-0 text-[10px] text-zinc-500">
-            {testCase.preconditions.length > 0 ? `${testCase.preconditions.length} pre + ` : ""}
-            {testCase.steps.length} steps
+          <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+            {testCase.preconditions.length > 0 ? `${testCase.preconditions.length}pre + ` : ""}{testCase.steps.length} steps
           </span>
         </button>
-        <div className="flex shrink-0 flex-col gap-1 sm:flex-row sm:flex-wrap sm:justify-end">
-          {!editing ? (
-            <button
-              type="button"
-              disabled={busy !== null}
-              onClick={startEdit}
-              className="rounded-lg border border-white/10 bg-ink-950/60 px-2.5 py-1.5 text-[11px] font-semibold text-zinc-200 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
-            >
+        <div className="flex shrink-0 items-center gap-1.5">
+          {!hideEdit && !editing ? (
+            <button type="button" disabled={busy !== null} onClick={startEdit}
+              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
               Edit
             </button>
           ) : null}
-          <button
-            type="button"
-            disabled={busy !== null || editing}
-            onClick={() => void onGenerate(planId, testCase.id)}
-            className="rounded-lg border border-sky-500/25 bg-sky-950/40 px-2.5 py-1.5 text-[11px] font-semibold text-sky-200 hover:bg-sky-900/50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          <button type="button" disabled={busy !== null || editing} onClick={() => void onGenerate(planId, testCase.id)}
+            className="rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700 hover:bg-sky-100 disabled:opacity-50">
             {generating ? "Generating…" : "Generate"}
           </button>
-          <button
-            type="button"
-            disabled={busy !== null || editing}
-            onClick={() => void onDelete(planId, testCase.id, testCase.title)}
-            className="rounded-lg border border-rose-500/20 bg-rose-950/30 px-2.5 py-1.5 text-[11px] font-semibold text-rose-300 hover:bg-rose-900/40 disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          <button type="button" disabled={busy !== null || editing} onClick={() => void onDelete(planId, testCase.id, testCase.title)}
+            className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-100 disabled:opacity-50">
             Delete
           </button>
         </div>
       </div>
 
       {open && editing ? (
-        <TestCaseEditForm
-          draft={draft}
-          disabled={saving}
-          projectId={projectId}
-          platformType={platformType}
-          pageObjects={pageObjects}
-          onChange={setDraft}
-          onSubmit={(saved) => void saveEdit(saved)}
-          onCancel={cancelEdit}
-        />
+        <TestCaseEditForm draft={draft} disabled={saving} projectId={projectId} platformType={platformType}
+          pageObjects={pageObjects} onChange={setDraft}
+          onSubmit={(saved) => void saveEdit(saved)} onCancel={cancelEdit} />
       ) : null}
 
       {open && !editing ? (
-        <div className="space-y-3 border-t border-white/5 px-3 pb-3 pt-2">
+        <div className="border-t border-slate-100 bg-slate-50 px-4 pb-4 pt-3">
+          {/* Tags */}
           {testCase.tags.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
+            <div className="mb-3 flex flex-wrap gap-1">
               {testCase.tags.map((tag) => (
-                <span key={tag} className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-400">
+                <span key={tag} className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-500">
                   {tag}
                 </span>
               ))}
             </div>
           ) : null}
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-sky-200/90">Test steps</p>
-            <ol className="mt-1.5 space-y-1.5">
-              {testCase.preconditions.map((p, i) => (
-                <li
-                  key={`pre-${i}`}
-                  className="rounded-md border border-amber-500/20 bg-amber-950/20 px-2.5 py-1.5 text-xs text-zinc-300"
-                >
-                  <span className="font-mono text-[10px] text-amber-500/70">Pre {i + 1}</span>{" "}
-                  <span className="font-medium text-amber-200">Before</span>
-                  {" — "}{p}
-                </li>
-              ))}
-              {testCase.steps.map((step, i) => (
-                <li
-                  key={step.id}
-                  className="rounded-md border border-white/[0.06] bg-ink-950/40 px-2.5 py-1.5 text-xs text-zinc-300"
-                >
-                  <span className="font-mono text-[10px] text-zinc-500">Step {i + 1}</span>{" "}
-                  <span className="font-medium text-zinc-200">
-                    {labelForTestStepActionForPlatform(step.action, platformType)}
-                  </span>{" "}
-                  — {step.targetDescription}
-                  {step.screenName ? (
-                    <span className="text-sky-400/80"> [{step.screenName}]</span>
-                  ) : null}
-                  {step.pageObjectMethod ? (
-                    <span className="text-emerald-400/80"> .{step.pageObjectMethod}()</span>
-                  ) : null}
-                  {step.locatorHint ? (
-                    <span className="text-zinc-500"> ({step.locatorHint})</span>
-                  ) : null}
-                  {step.customCode ? (
-                    <pre className="mt-1 overflow-x-auto rounded bg-black/40 p-1.5 font-mono text-[10px] text-emerald-200/90">
+
+          {/* Steps */}
+          <div className="space-y-1.5">
+            {/* Preconditions */}
+            {testCase.preconditions.map((p, i) => (
+              <div key={`pre-${i}`} className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-5 w-10 shrink-0 items-center justify-center rounded-md bg-amber-100 text-[9px] font-bold uppercase text-amber-700">
+                  Pre {i + 1}
+                </span>
+                <div className="flex-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                  <span className="text-[11px] font-semibold text-amber-800">Precondition: </span>
+                  <span className="text-[11px] text-slate-700">{p}</span>
+                </div>
+              </div>
+            ))}
+
+            {/* Steps */}
+            {testCase.steps.map((step, i) => (
+              <div key={step.id} className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-5 w-10 shrink-0 items-center justify-center rounded-md bg-slate-200 text-[9px] font-bold text-slate-600">
+                  {i + 1}
+                </span>
+                <div className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                  <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[12px]">
+                    <span className="font-semibold text-sky-700">
+                      {labelForTestStepActionForPlatform(step.action, platformType)}
+                    </span>
+                    <span className="text-slate-700">{step.targetDescription}</span>
+                    {step.screenName && (
+                      <span className="rounded bg-sky-50 px-1 py-0.5 font-mono text-[10px] text-sky-700">[{step.screenName}]</span>
+                    )}
+                    {step.pageObjectMethod && (
+                      <span className="rounded bg-emerald-50 px-1 py-0.5 font-mono text-[10px] text-emerald-700">.{step.pageObjectMethod}()</span>
+                    )}
+                    {step.locatorHint && (
+                      <span className="text-[11px] text-slate-400">({step.locatorHint})</span>
+                    )}
+                    {step.value && (
+                      <span className="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">→ &quot;{step.value}&quot;</span>
+                    )}
+                    {step.assertion && (
+                      <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">✓ {step.assertion}</span>
+                    )}
+                  </div>
+                  {step.customCode && (
+                    <pre className="mt-1.5 overflow-x-auto rounded-md border border-slate-100 bg-slate-50 p-2 font-mono text-[10px] leading-relaxed text-emerald-700">
                       {step.customCode}
                     </pre>
-                  ) : null}
-                  {step.value ? <span className="text-zinc-500"> → &quot;{step.value}&quot;</span> : null}
-                  {step.assertion ? <span className="text-emerald-400/90"> expect: {step.assertion}</span> : null}
-                </li>
-              ))}
-            </ol>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       ) : null}
@@ -346,9 +344,7 @@ export function TestPlansSection({
   pageObjects,
   busy,
   selectedEnvId,
-  overwritePageObjectsFromTests,
   onSelectedEnvIdChange,
-  onOverwritePageObjectsFromTestsChange,
   onGenerateCode,
   onRefresh,
   onBusyChange,
@@ -360,9 +356,7 @@ export function TestPlansSection({
   pageObjects: PageObjectOption[];
   busy: string | null;
   selectedEnvId: string;
-  overwritePageObjectsFromTests: boolean;
   onSelectedEnvIdChange: (id: string) => void;
-  onOverwritePageObjectsFromTestsChange: (v: boolean) => void;
   onGenerateCode: (testPlanId: string, testCaseId?: string) => Promise<void>;
   onRefresh: () => void;
   onBusyChange: (key: string | null) => void;
@@ -377,6 +371,13 @@ export function TestPlansSection({
   const [newRequirementContent, setNewRequirementContent] = useState("");
 
   const creatingPlan = busy === CREATE_PLAN_BUSY;
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorInitialPlanId, setEditorInitialPlanId] = useState<string | null>(null);
+
+  function openEditor(planId?: string) {
+    setEditorInitialPlanId(planId ?? folders[0]?.suites[0]?.plan.id ?? null);
+    setEditorOpen(true);
+  }
 
   function openCreatePlanForm() {
     const first = requirements[0];
@@ -387,7 +388,7 @@ export function TestPlansSection({
     } else {
       setCreatePlanMode("new");
       setCreateRequirementId("");
-      setCreateSuiteName("Test suite");
+      setCreateSuiteName("Test Suite");
     }
     setNewRequirementTitle("");
     setNewRequirementContent("");
@@ -582,66 +583,79 @@ export function TestPlansSection({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-sky-500/20 bg-sky-950/15 p-4 sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-sky-100">{runnerLabel} generation</h2>
-            <p className="mt-1 text-xs text-zinc-400">
-              Specs are written to <code className="text-zinc-300">frameworks/&lt;project-id&gt;/tests/</code> on disk.
-            </p>
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-700">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 5v14l11-7L8 5z" fill="currentColor" fillOpacity="0.15" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 5v14l11-7L8 5z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">{runnerLabel} code generation</p>
+              <p className="text-xs text-slate-500">
+                Specs written to <code className="font-mono text-slate-600">frameworks/tests/</code>
+              </p>
+            </div>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <label className="text-xs text-zinc-400">
-              Environment
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-xs text-slate-600">
+              <span className="shrink-0 font-medium text-slate-500">Environment</span>
               <select
                 value={selectedEnvId}
                 onChange={(e) => onSelectedEnvIdChange(e.target.value)}
-                className="ml-2 rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1 text-xs text-white"
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 shadow-xs"
               >
                 <option value="">(none)</option>
                 {environments.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.name} ({e.slug})
-                  </option>
+                  <option key={e.id} value={e.id}>{e.name} ({e.slug})</option>
                 ))}
               </select>
-            </label>
-            <label className="flex items-center gap-2 text-xs text-zinc-300">
-              <input
-                type="checkbox"
-                checked={overwritePageObjectsFromTests}
-                onChange={(e) => onOverwritePageObjectsFromTestsChange(e.target.checked)}
-              />
-              Overwrite page objects already in the library (new ones are always saved)
             </label>
           </div>
         </div>
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-white/10 bg-ink-900/40 p-6">
+      <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-white">Test plan library</h2>
-            <p className="mt-1 text-sm text-zinc-400">
+            <h2 className="text-lg font-semibold text-slate-900">Test plan library</h2>
+            <p className="mt-1 text-sm text-slate-500">
               {totalCases} test case{totalCases === 1 ? "" : "s"} across {folders.length} requirement
               {folders.length === 1 ? "" : "s"}.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {folders.length > 0 && (
+              <button
+                type="button"
+                onClick={() => openEditor()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                Open Editor
+              </button>
+            )}
             <button
               type="button"
               disabled={busy !== null}
               onClick={openCreatePlanForm}
               className="ui-btn-primary ui-btn-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Create test plan
+              Create Test Plan
             </button>
             <button
               type="button"
               onClick={onRefresh}
-              className="text-xs font-semibold text-zinc-400 underline-offset-4 hover:text-white hover:underline"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              title="Refresh"
             >
-              Refresh
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
             </button>
           </div>
         </header>
@@ -649,13 +663,13 @@ export function TestPlansSection({
         {showCreatePlan ? (
           <form
             onSubmit={(e) => void submitCreatePlan(e)}
-            className="space-y-3 rounded-xl border border-emerald-500/20 bg-emerald-950/10 p-4"
+            className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4"
           >
-            <p className="text-sm font-semibold text-emerald-100">New test plan</p>
-            <fieldset className="text-xs font-medium text-zinc-400">
+            <p className="text-sm font-semibold text-emerald-800">New test plan</p>
+            <fieldset className="text-xs font-medium text-slate-500">
               <legend className="mb-2">Requirement</legend>
               <div className="flex flex-wrap gap-4">
-                <label className="flex items-center gap-2 font-normal text-zinc-300">
+                <label className="flex items-center gap-2 font-normal text-slate-600">
                   <input
                     type="radio"
                     name="create-plan-requirement-mode"
@@ -666,7 +680,7 @@ export function TestPlansSection({
                   New requirement
                 </label>
                 <label
-                  className={`flex items-center gap-2 font-normal ${requirements.length === 0 ? "text-zinc-600" : "text-zinc-300"}`}
+                  className={`flex items-center gap-2 font-normal ${requirements.length === 0 ? "text-slate-500" : "text-slate-600"}`}
                 >
                   <input
                     type="radio"
@@ -682,7 +696,7 @@ export function TestPlansSection({
 
             {createPlanMode === "new" ? (
               <div className="space-y-3">
-                <label className="block text-xs font-medium text-zinc-400">
+                <label className="block text-xs font-medium text-slate-500">
                   Requirement title (optional)
                   <input
                     value={newRequirementTitle}
@@ -690,10 +704,10 @@ export function TestPlansSection({
                     onChange={(e) => onNewRequirementTitleChange(e.target.value)}
                     maxLength={200}
                     placeholder="e.g. Checkout flow"
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-3 py-2 text-sm text-white outline-none ring-accent/30 focus:ring-2"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-green-400/20 focus:ring-2"
                   />
                 </label>
-                <label className="block text-xs font-medium text-zinc-400">
+                <label className="block text-xs font-medium text-slate-500">
                   Requirement details (optional)
                   <textarea
                     value={newRequirementContent}
@@ -701,19 +715,19 @@ export function TestPlansSection({
                     onChange={(e) => setNewRequirementContent(e.target.value)}
                     rows={3}
                     placeholder="Leave empty to fill in later on the Requirements tab"
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-3 py-2 text-sm text-white outline-none ring-accent/30 focus:ring-2"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-green-400/20 focus:ring-2"
                   />
                 </label>
               </div>
             ) : (
-              <label className="block text-xs font-medium text-zinc-400">
+              <label className="block text-xs font-medium text-slate-500">
                 Link to requirement
                 <select
                   value={createRequirementId}
                   disabled={creatingPlan}
                   onChange={(e) => onCreateRequirementChange(e.target.value)}
                   required
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-3 py-2 text-sm text-white"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
                 >
                   {requirements.map((req) => (
                     <option key={req.id} value={req.id}>
@@ -724,7 +738,7 @@ export function TestPlansSection({
               </label>
             )}
 
-            <label className="block text-xs font-medium text-zinc-400">
+            <label className="block text-xs font-medium text-slate-500">
               Suite name
               <input
                 value={createSuiteName}
@@ -732,7 +746,7 @@ export function TestPlansSection({
                 onChange={(e) => setCreateSuiteName(e.target.value)}
                 required
                 maxLength={200}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-3 py-2 text-sm text-white outline-none ring-accent/30 focus:ring-2"
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-green-400/20 focus:ring-2"
               />
             </label>
             <div className="flex flex-wrap gap-2">
@@ -752,11 +766,13 @@ export function TestPlansSection({
         ) : null}
 
         {folders.length === 0 ? (
-          <p className="text-sm text-zinc-500">
-            No test plans yet. Click <strong className="text-zinc-400">Create test plan</strong> to start with a
-            new or existing requirement, or use <strong className="text-zinc-400">Generate test plan</strong> on
-            the Requirements tab.
-          </p>
+          <div className="flex flex-col items-center py-10 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-2xl">🗺️</div>
+            <p className="mt-3 text-sm font-medium text-slate-700">No test plans yet</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Click <strong className="font-semibold">Create Test Plan</strong> or use <strong className="font-semibold">Generate Test Plan</strong> on the Requirements tab.
+            </p>
+          </div>
         ) : (
           <div className="space-y-4">
             {folders.map((folder) => (
@@ -773,11 +789,29 @@ export function TestPlansSection({
                 onDeleteCase={deleteTestCase}
                 onUpdateCase={updateTestCase}
                 onCreateCase={createTestCase}
+                onOpenEditor={(planId) => openEditor(planId)}
               />
             ))}
           </div>
         )}
       </section>
+
+      <TestPlanEditor
+        isOpen={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        folders={folders}
+        initialPlanId={editorInitialPlanId}
+        projectId={projectId}
+        platformType={platformType}
+        runnerLabel={runnerLabel}
+        pageObjects={pageObjects}
+        busy={busy}
+        onGenerateCode={onGenerateCode}
+        onDeletePlan={deleteTestPlan}
+        onDeleteCase={deleteTestCase}
+        onUpdateCase={updateTestCase}
+        onCreateCase={createTestCase}
+      />
     </div>
   );
 }
@@ -794,6 +828,7 @@ function RequirementFolderView({
   onDeleteCase,
   onUpdateCase,
   onCreateCase,
+  onOpenEditor,
 }: {
   folder: RequirementFolder;
   projectId: string;
@@ -806,21 +841,22 @@ function RequirementFolderView({
   onDeleteCase: (testPlanId: string, testCaseId: string, title: string) => Promise<void>;
   onUpdateCase: (testPlanId: string, testCase: TestCase) => Promise<void>;
   onCreateCase: (testPlanId: string, testCase: TestCase) => Promise<void>;
+  onOpenEditor?: (planId: string) => void;
 }) {
   const caseCount = folder.suites.reduce((n, s) => n + s.data.cases.length, 0);
 
   return (
-    <article className="overflow-hidden rounded-xl border border-amber-500/15 bg-ink-950/50">
-      <div className="flex items-center gap-2 border-b border-white/5 bg-amber-950/20 px-4 py-3">
-        <span className="text-lg" aria-hidden>
-          📁
-        </span>
-        
+    <article className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5V18a1 1 0 001 1h16a1 1 0 001-1V9a1 1 0 00-1-1h-7l-2-2H4a1 1 0 00-1 1v.5z" />
+          </svg>
+        </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-amber-100">{folder.folderName}</h3>
-          <p className="text-[11px] text-zinc-500">
-            {caseCount} test case{caseCount === 1 ? "" : "s"} · writes to{" "}
-            <code className="font-mono text-zinc-400">{requirementSpecPath(folder.folderName)}</code>
+          <h3 className="text-sm font-semibold text-slate-900">{folder.folderName}</h3>
+          <p className="text-[11px] text-slate-500">
+            {caseCount} test case{caseCount === 1 ? "" : "s"} · <code className="font-mono">{requirementSpecPath(folder.folderName)}</code>
           </p>
         </div>
       </div>
@@ -841,6 +877,7 @@ function RequirementFolderView({
             onDeleteCase={onDeleteCase}
             onUpdateCase={onUpdateCase}
             onCreateCase={onCreateCase}
+            onOpenEditor={onOpenEditor ? () => onOpenEditor(plan.id) : undefined}
           />
         ))}
       </div>
@@ -861,6 +898,7 @@ function SuiteBlock({
   onDeleteCase,
   onUpdateCase,
   onCreateCase,
+  onOpenEditor,
 }: {
   plan: FlatTestPlan;
   data: TestPlan;
@@ -874,8 +912,8 @@ function SuiteBlock({
   onDeleteCase: (testPlanId: string, testCaseId: string, title: string) => Promise<void>;
   onUpdateCase: (testPlanId: string, testCase: TestCase) => Promise<void>;
   onCreateCase: (testPlanId: string, testCase: TestCase) => Promise<void>;
+  onOpenEditor?: () => void;
 }) {
-  const [showCodegen, setShowCodegen] = useState(false);
   const [addingCase, setAddingCase] = useState(false);
   const [newCaseDraft, setNewCaseDraft] = useState<TestCase | null>(null);
   const codegen = plan.generatedCodes[0];
@@ -898,15 +936,27 @@ function SuiteBlock({
   }
 
   return (
-    <div className="rounded-lg border border-white/5 bg-black/20 p-3">
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-white">{data.suiteName}</p>
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-sm font-medium text-slate-900">{data.suiteName}</p>
+          <p className="text-[11px] text-slate-500">
             {new Date(plan.createdAt).toLocaleString()} · {plan.model}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
+          {onOpenEditor !== undefined && (
+            <button
+              type="button"
+              onClick={onOpenEditor}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+            >
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              Edit
+            </button>
+          )}
           <button
             type="button"
             disabled={busy !== null || data.cases.length === 0}
@@ -915,19 +965,14 @@ function SuiteBlock({
             title={data.cases.length === 0 ? "Add at least one test case first" : undefined}
           >
             {busy === codegenBusyKey(plan.id) ? (
-              <>
-                <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current/20 border-t-current" />
-                Generating…
-              </>
-            ) : (
-              "Generate all tests"
-            )}
+              <><span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current/20 border-t-current" />Generating…</>
+            ) : "Generate all tests"}
           </button>
           <button
             type="button"
             disabled={busy !== null}
             onClick={() => void onDeletePlan(plan.id, data.suiteName)}
-            className="rounded-lg border border-rose-500/25 bg-rose-950/40 px-3 py-1.5 text-xs font-semibold text-rose-200 hover:bg-rose-900/50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Delete plan
           </button>
@@ -935,22 +980,22 @@ function SuiteBlock({
       </div>
 
       {busy === codegenBusyKey(plan.id) ? (
-        <div className="mt-3 rounded-xl border border-sky-500/30 bg-sky-950/20 p-4">
+        <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 p-4">
           <div className="flex items-start gap-3">
-            <span className="mt-0.5 inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-sky-400/30 border-t-sky-400" />
+            <span className="mt-0.5 inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-sky-200 border-t-sky-500" />
             <div>
-              <p className="text-sm font-semibold text-sky-100">Test Generation using AI — in progress</p>
-              <p className="mt-1 text-xs text-zinc-400">
+              <p className="text-sm font-semibold text-sky-800">Test Generation using AI — in progress</p>
+              <p className="mt-1 text-xs text-slate-500">
                 Writing {runnerLabel} specs for all test cases. This may take a moment.
               </p>
             </div>
           </div>
-          <div className="mt-3 h-1 overflow-hidden rounded-full bg-sky-950/60">
+          <div className="mt-3 h-1 overflow-hidden rounded-full bg-sky-50">
             <div className="h-full w-2/3 animate-pulse rounded-full bg-sky-500/50" />
           </div>
         </div>
       ) : data.cases.length === 0 ? (
-        <p className="mt-3 text-xs text-zinc-500">No test cases yet. Add one below.</p>
+        <p className="mt-3 text-xs text-slate-500">No test cases yet. Add one below.</p>
       ) : null}
 
       <ul className="mt-3 space-y-2">
@@ -966,13 +1011,14 @@ function SuiteBlock({
             onGenerate={onGenerateCode}
             onDelete={onDeleteCase}
             onSave={onUpdateCase}
+            hideEdit
           />
         ))}
       </ul>
 
       {addingCase && newCaseDraft !== null ? (
-        <div className="mt-2 overflow-hidden rounded-lg border border-emerald-500/20 bg-emerald-950/10">
-          <p className="border-b border-white/5 px-3 py-2 text-xs font-semibold text-emerald-200">New test case</p>
+        <div className="mt-2 overflow-hidden rounded-lg border border-emerald-200 bg-emerald-50">
+          <p className="border-b border-slate-200 px-3 py-2 text-xs font-semibold text-emerald-700">New test case</p>
           <TestCaseEditForm
             draft={newCaseDraft}
             disabled={creating}
@@ -991,40 +1037,299 @@ function SuiteBlock({
           type="button"
           disabled={busy !== null}
           onClick={startAddCase}
-          className="mt-2 rounded-lg border border-dashed border-white/15 px-3 py-2 text-xs font-semibold text-zinc-400 hover:border-white/25 hover:bg-white/5 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-2 rounded-lg border border-dashed border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          + Add test case
+          + Add Test Case
         </button>
       )}
 
       {codegen ? (
-        <div className="mt-4 border-t border-white/5 pt-3">
-          <button
-            type="button"
-            onClick={() => setShowCodegen((v) => !v)}
-            className="text-xs font-semibold text-zinc-400 hover:text-white"
-          >
-            {showCodegen ? "Hide" : "Show"} {runnerLabel} output
-            {codegen.environment ? ` (${codegen.environment.slug})` : ""}
-          </button>
-          {showCodegen ? (
-            <div className="mt-2 space-y-2">
-              <button
-                type="button"
-                className="text-xs font-semibold text-accent underline-offset-4 hover:underline"
-                onClick={() => void navigator.clipboard.writeText(codegen.typescript)}
-              >
-                Copy spec
-              </button>
-              <pre className="max-h-64 overflow-auto rounded-lg border border-white/5 bg-black/40 p-3 text-[11px] leading-relaxed text-zinc-200">
-                {codegen.typescript}
-              </pre>
-            </div>
-          ) : null}
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+          <svg className="h-3.5 w-3.5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          <p className="text-xs font-medium text-emerald-700">
+            {runnerLabel} spec generated{codegen.environment ? ` (${codegen.environment.slug})` : ""} — open editor to view
+          </p>
         </div>
-      ) : (
-        <p className="mt-3 text-xs text-zinc-500">No {runnerLabel} spec generated for this suite yet.</p>
-      )}
+      ) : null}
+    </div>
+  );
+}
+
+// ── Two-panel Test Plan Editor ───────────────────────────────────────────────
+
+export function TestPlanEditor({
+  isOpen,
+  onClose,
+  folders,
+  initialPlanId,
+  projectId,
+  platformType,
+  runnerLabel,
+  pageObjects,
+  busy,
+  onGenerateCode,
+  onDeletePlan,
+  onDeleteCase,
+  onUpdateCase,
+  onCreateCase,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  folders: RequirementFolder[];
+  initialPlanId: string | null;
+  projectId: string;
+  platformType: ProjectPlatformType;
+  runnerLabel: string;
+  pageObjects: PageObjectOption[];
+  busy: string | null;
+  onGenerateCode: (testPlanId: string, testCaseId?: string) => Promise<void>;
+  onDeletePlan: (testPlanId: string, suiteName: string) => Promise<void>;
+  onDeleteCase: (testPlanId: string, testCaseId: string, title: string) => Promise<void>;
+  onUpdateCase: (testPlanId: string, testCase: TestCase) => Promise<void>;
+  onCreateCase: (testPlanId: string, testCase: TestCase) => Promise<void>;
+}) {
+  const allPlans = folders.flatMap((f) => f.suites);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(
+    initialPlanId ?? allPlans[0]?.plan.id ?? null,
+  );
+  const [addingCase, setAddingCase] = useState(false);
+  const [newCaseDraft, setNewCaseDraft] = useState<TestCase | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelectedPlanId(initialPlanId ?? allPlans[0]?.plan.id ?? null);
+    setAddingCase(false);
+    setNewCaseDraft(null);
+  }, [isOpen, initialPlanId]);
+
+  const selected = allPlans.find((s) => s.plan.id === selectedPlanId) ?? null;
+  const selectedFolder = folders.find((f) => f.suites.some((s) => s.plan.id === selectedPlanId)) ?? null;
+  const creating = busy === (selected ? `add-case:${selected.plan.id}` : "");
+
+  function startAddCase() {
+    if (!selected) return;
+    const existingIds = selected.data.cases.map((c) => c.id);
+    setNewCaseDraft(newTestCaseDraft(existingIds, platformType));
+    setAddingCase(true);
+  }
+
+  async function saveNewCase(saved: TestCase) {
+    if (!selected) return;
+    await onCreateCase(selected.plan.id, saved);
+    setAddingCase(false);
+    setNewCaseDraft(null);
+  }
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm">
+      <div className="flex h-full flex-col bg-white" role="dialog" aria-modal="true">
+
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                <path strokeLinecap="round" d="M9 6h11M9 12h11M9 18h11" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 6l1.25 1.25L8.5 5M5 12l1.25 1.25L8.5 11M5 18l1.25 1.25L8.5 17" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900">Test Plan Editor</h2>
+              <p className="text-xs text-slate-500">
+                {allPlans.length} plan{allPlans.length !== 1 ? "s" : ""} across {folders.length} requirement{folders.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex min-h-0 flex-1">
+
+          {/* Left — plan list */}
+          <div className="w-72 shrink-0 overflow-y-auto border-r border-slate-200 bg-slate-50">
+            {folders.map((folder) => (
+              <div key={folder.requirementId} className="mb-1">
+                <div className="flex items-center gap-2 px-3 pt-3 pb-1">
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-amber-100 text-amber-700">
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5V18a1 1 0 001 1h16a1 1 0 001-1V9a1 1 0 00-1-1h-7l-2-2H4a1 1 0 00-1 1v.5z" />
+                    </svg>
+                  </div>
+                  <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-slate-500">{folder.folderName}</p>
+                </div>
+                <ul className="space-y-0.5 px-2 pb-1">
+                  {folder.suites.map(({ plan, data }) => (
+                    <li key={plan.id}>
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedPlanId(plan.id); setAddingCase(false); setNewCaseDraft(null); }}
+                        className={`w-full rounded-lg px-3 py-2 text-left transition-all duration-150 ${
+                          selectedPlanId === plan.id
+                            ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200"
+                            : "text-slate-600 hover:bg-white hover:text-slate-900"
+                        }`}
+                      >
+                        <p className="truncate text-xs font-semibold">{data.suiteName}</p>
+                        <div className="mt-0.5 flex items-center gap-2">
+                          <span className="text-[10px] text-slate-400">{data.cases.length} case{data.cases.length !== 1 ? "s" : ""}</span>
+                          {plan.generatedCodes.length > 0 && (
+                            <span className="rounded bg-green-100 px-1 py-0.5 text-[9px] font-semibold text-green-700">✓ generated</span>
+                          )}
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          {/* Right — plan detail */}
+          <div className="flex min-w-0 flex-1 flex-col">
+            {!selected ? (
+              <div className="flex flex-1 items-center justify-center text-sm text-slate-400">Select a test plan</div>
+            ) : (
+              <>
+                {/* Plan header */}
+                <div className="border-b border-slate-100 bg-white px-5 py-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-base font-semibold text-slate-900">{selected.data.suiteName}</p>
+                      <p className="mt-0.5 text-xs text-slate-400">
+                        {selectedFolder?.folderName} · {new Date(selected.plan.createdAt).toLocaleString()} · {selected.plan.model}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={busy !== null || selected.data.cases.length === 0}
+                        onClick={() => void onGenerateCode(selected.plan.id)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-accent px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-accent-dim disabled:opacity-50"
+                      >
+                        {busy === codegenBusyKey(selected.plan.id) ? (
+                          <><span className="h-3 w-3 animate-spin rounded-full border-2 border-current/20 border-t-current" />Generating…</>
+                        ) : "Generate All Tests"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy !== null}
+                        onClick={() => void onDeletePlan(selected.plan.id, selected.data.suiteName)}
+                        className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-100 disabled:opacity-50"
+                      >
+                        Delete Plan
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cases */}
+                <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-4">
+                  {busy === codegenBusyKey(selected.plan.id) ? (
+                    <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-4">
+                      <div className="flex items-center gap-3">
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-sky-200 border-t-sky-500" />
+                        <p className="text-sm font-semibold text-sky-800">Generating {runnerLabel} specs…</p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {selected.data.cases.length === 0 ? (
+                    <div className="flex flex-col items-center py-12 text-center">
+                      <p className="text-sm font-medium text-slate-600">No test cases yet</p>
+                      <p className="mt-1 text-xs text-slate-400">Add a test case below to get started.</p>
+                    </div>
+                  ) : (
+                    <ul className="space-y-2">
+                      {selected.data.cases.map((testCase) => (
+                        <TestCaseCard
+                          key={testCase.id}
+                          testCase={testCase}
+                          planId={selected.plan.id}
+                          projectId={projectId}
+                          platformType={platformType}
+                          pageObjects={pageObjects}
+                          busy={busy}
+                          onGenerate={onGenerateCode}
+                          onDelete={onDeleteCase}
+                          onSave={onUpdateCase}
+                        />
+                      ))}
+                    </ul>
+                  )}
+
+                  {/* Add case */}
+                  {addingCase && newCaseDraft ? (
+                    <div className="mt-3 overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50">
+                      <p className="border-b border-slate-200 px-3 py-2 text-xs font-semibold text-emerald-700">New Test Case</p>
+                      <TestCaseEditForm
+                        draft={newCaseDraft}
+                        disabled={creating}
+                        isNew
+                        existingCaseIds={selected.data.cases.map((c) => c.id)}
+                        projectId={projectId}
+                        platformType={platformType}
+                        pageObjects={pageObjects}
+                        onChange={setNewCaseDraft}
+                        onSubmit={(saved) => void saveNewCase(saved)}
+                        onCancel={() => { setAddingCase(false); setNewCaseDraft(null); }}
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={startAddCase}
+                      className="mt-3 flex w-full items-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-2.5 text-xs font-semibold text-slate-500 hover:border-slate-400 hover:bg-white hover:text-slate-700 disabled:opacity-50"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Test Case
+                    </button>
+                  )}
+                </div>
+
+                {/* Generated spec */}
+                {selected.plan.generatedCodes[0] ? (
+                  <GeneratedSpecFooter code={selected.plan.generatedCodes[0]} runnerLabel={runnerLabel} />
+                ) : null}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GeneratedSpecFooter({ code, runnerLabel }: { code: { typescript: string; environment: { slug: string } | null }; runnerLabel: string }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="border-t border-slate-200 bg-white px-5 py-3">
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={() => setShow((v) => !v)} className="text-xs font-semibold text-slate-500 hover:text-slate-900">
+          {show ? "Hide" : "Show"} {runnerLabel} spec{code.environment ? ` (${code.environment.slug})` : ""}
+        </button>
+        {show && (
+          <button type="button" onClick={() => void navigator.clipboard.writeText(code.typescript)} className="text-xs font-semibold text-green-700 hover:underline">
+            Copy
+          </button>
+        )}
+      </div>
+      {show ? (
+        <pre className="mt-2 max-h-48 overflow-auto rounded-lg border border-slate-200 bg-slate-100 p-3 text-[11px] leading-relaxed text-slate-700">
+          {code.typescript}
+        </pre>
+      ) : null}
     </div>
   );
 }

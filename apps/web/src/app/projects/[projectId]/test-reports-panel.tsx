@@ -12,40 +12,128 @@ import type {
   RunDetailBody,
 } from "./test-run-report-types";
 
+type DiffLine = { type: "same" | "removed" | "added"; text: string };
+
+function diffLines(before: string, after: string): DiffLine[] {
+  const a = before.split("\n");
+  const b = after.split("\n");
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0) as number[]);
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  const result: DiffLine[] = [];
+  let i = m, j = n;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && a[i - 1] === b[j - 1]) {
+      result.unshift({ type: "same", text: a[i - 1] });
+      i--; j--;
+    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+      result.unshift({ type: "added", text: b[j - 1] });
+      j--;
+    } else {
+      result.unshift({ type: "removed", text: a[i - 1] });
+      i--;
+    }
+  }
+  return result;
+}
+
+function DiffView({ before, after }: { before: string; after: string }) {
+  const lines = diffLines(before, after);
+  const CONTEXT = 4;
+
+  const visible = new Set<number>();
+  lines.forEach((l, i) => {
+    if (l.type !== "same") {
+      for (let k = Math.max(0, i - CONTEXT); k <= Math.min(lines.length - 1, i + CONTEXT); k++) {
+        visible.add(k);
+      }
+    }
+  });
+
+  if (visible.size === 0) {
+    return <p className="px-3 py-2 text-[10px] text-slate-400">No line-level changes detected.</p>;
+  }
+
+  const hunks: Array<Array<{ idx: number; line: DiffLine }>> = [];
+  let currentHunk: Array<{ idx: number; line: DiffLine }> = [];
+  let lastVisible = -2;
+
+  [...visible].sort((a, b) => a - b).forEach((idx) => {
+    if (idx > lastVisible + 1 && currentHunk.length > 0) {
+      hunks.push(currentHunk);
+      currentHunk = [];
+    }
+    currentHunk.push({ idx, line: lines[idx] });
+    lastVisible = idx;
+  });
+  if (currentHunk.length > 0) hunks.push(currentHunk);
+
+  return (
+    <div className="overflow-x-auto">
+      {hunks.map((hunk, hi) => (
+        <div key={hi}>
+          {hi > 0 && (
+            <div className="bg-slate-800 px-3 py-0.5 text-[9px] text-slate-500">···</div>
+          )}
+          {hunk.map(({ idx, line }) => {
+            const prefix = line.type === "added" ? "+" : line.type === "removed" ? "-" : " ";
+            const bg =
+              line.type === "added"
+                ? "bg-emerald-950/60 text-emerald-300"
+                : line.type === "removed"
+                  ? "bg-rose-950/60 text-rose-300"
+                  : "text-slate-400";
+            return (
+              <div key={idx} className={`flex ${bg}`}>
+                <span className="w-8 shrink-0 select-none border-r border-slate-700 px-1.5 text-right text-[9px] opacity-50 tabular-nums">
+                  {idx + 1}
+                </span>
+                <span className="w-4 shrink-0 select-none px-1 text-[10px] font-bold">{prefix}</span>
+                <span className="flex-1 whitespace-pre font-mono text-[10px] leading-relaxed">{line.text}</span>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function HealChangesPanel({
   changes,
 }: {
-  changes: Array<{ path: string; linesAdded: number; linesRemoved: number; after: string }>;
+  changes: Array<{ path: string; linesAdded: number; linesRemoved: number; before: string; after: string }>;
 }) {
-  const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [openIdx, setOpenIdx] = useState<number | null>(0);
 
   return (
-    <div className="space-y-2 rounded-xl border border-amber-500/25 bg-amber-950/15 p-3">
-      <p className="text-xs font-semibold text-amber-100">
+    <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
+      <p className="text-xs font-semibold text-amber-800">
         Auto-heal changes — {changes.length} file{changes.length === 1 ? "" : "s"} updated
       </p>
       {changes.map((f, i) => (
-        <div key={f.path} className="rounded-lg border border-white/10 bg-black/30 overflow-hidden">
+        <div key={f.path} className="overflow-hidden rounded-lg border border-slate-700 bg-slate-900">
           <button
             type="button"
             onClick={() => setOpenIdx(openIdx === i ? null : i)}
-            className="flex w-full items-center justify-between px-3 py-2 text-left"
+            className="flex w-full items-center justify-between bg-slate-800 px-3 py-2 text-left hover:bg-slate-700"
           >
-            <span className="font-mono text-[11px] text-zinc-300 truncate">{f.path}</span>
-            <span className="ml-3 shrink-0 flex items-center gap-2 text-[10px]">
-              {f.linesAdded > 0 && (
-                <span className="text-emerald-400">+{f.linesAdded}</span>
-              )}
-              {f.linesRemoved > 0 && (
-                <span className="text-rose-400">-{f.linesRemoved}</span>
-              )}
-              <span className="text-zinc-500">{openIdx === i ? "▴" : "▾"}</span>
+            <span className="truncate font-mono text-[11px] text-slate-300">{f.path}</span>
+            <span className="ml-3 flex shrink-0 items-center gap-2 text-[10px]">
+              {f.linesAdded > 0 && <span className="text-emerald-400">+{f.linesAdded}</span>}
+              {f.linesRemoved > 0 && <span className="text-rose-400">-{f.linesRemoved}</span>}
+              <span className="text-slate-500">{openIdx === i ? "▴" : "▾"}</span>
             </span>
           </button>
           {openIdx === i ? (
-            <pre className="max-h-96 overflow-auto border-t border-white/5 p-3 font-mono text-[10px] leading-relaxed text-zinc-300">
-              {f.after}
-            </pre>
+            <div className="max-h-[480px] overflow-auto border-t border-slate-700">
+              <DiffView before={f.before} after={f.after} />
+            </div>
           ) : null}
         </div>
       ))}
@@ -61,15 +149,15 @@ function ReportStepList({
   depth?: number;
 }) {
   return (
-    <ul className={`mt-1 space-y-0.5 ${depth > 0 ? "ml-3 border-l border-white/10 pl-2" : ""}`}>
+    <ul className={`mt-1 space-y-0.5 ${depth > 0 ? "ml-3 border-l border-slate-200 pl-2" : ""}`}>
       {steps.map((step, i) => (
-        <li key={`${step.title}-${i}`} className="text-[10px] text-zinc-400">
-          <span className={step.status === "failed" ? "text-rose-300" : "text-zinc-300"}>{step.title}</span>
+        <li key={`${step.title}-${i}`} className="text-[10px] text-slate-500">
+          <span className={step.status === "failed" ? "text-rose-600" : "text-slate-600"}>{step.title}</span>
           {step.durationMs > 0 ? (
-            <span className="ml-1 tabular-nums text-zinc-600">({step.durationMs}ms)</span>
+            <span className="ml-1 tabular-nums text-slate-400">({step.durationMs}ms)</span>
           ) : null}
           {step.errorSnippet !== undefined && step.errorSnippet.length > 0 ? (
-            <p className="mt-0.5 font-mono text-[9px] text-rose-300/80">{step.errorSnippet}</p>
+            <p className="mt-0.5 font-mono text-[9px] text-rose-600/80">{step.errorSnippet}</p>
           ) : null}
           {step.steps !== undefined && step.steps.length > 0 ? (
             <ReportStepList steps={step.steps} depth={depth + 1} />
@@ -128,7 +216,8 @@ export function TestReportsPanel({
   const [healing, setHealing] = useState(false);
   const [healFormOpen, setHealFormOpen] = useState(false);
   const [healProblemDescription, setHealProblemDescription] = useState("");
-  const [healChanges, setHealChanges] = useState<Array<{ path: string; linesAdded: number; linesRemoved: number; after: string }> | null>(null);
+  const [healChanges, setHealChanges] = useState<Array<{ path: string; linesAdded: number; linesRemoved: number; before: string; after: string }> | null>(null);
+  const [runLogOpen, setRunLogOpen] = useState(false);
   const [rerunning, setRerunning] = useState(false);
   const [loading, setLoading] = useState(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -169,6 +258,7 @@ export function TestReportsPanel({
       setHealFormOpen(false);
       setHealProblemDescription("");
       setHealChanges(null);
+      setRunLogOpen(false);
       setFocusedPipelineUrl(run.pipelineUrl ?? null);
       setFocusedProvider(run.provider);
       setLastStatus(run.status);
@@ -330,7 +420,7 @@ useEffect(() => {
         healedTestPaths?: string[];
         healedPagePaths?: string[];
         model?: string;
-        changedFiles?: Array<{ path: string; linesAdded: number; linesRemoved: number; after: string }>;
+        changedFiles?: Array<{ path: string; linesAdded: number; linesRemoved: number; before: string; after: string }>;
         error?: string;
       };
       if (!res.ok) {
@@ -342,11 +432,12 @@ useEffect(() => {
       toast.success(
         tests.length + pages.length > 0
           ? `Healed ${tests.length + pages.length} file(s)`
-          : "Heal completed",
+          : "Heal Completed",
       );
       setHealFormOpen(false);
       setHealProblemDescription("");
       setHealChanges(body.changedFiles ?? null);
+      setRunLogOpen(true);
       await loadRuns();
       const detailRes = await fetch(`/api/projects/${projectId}/test-runs/${focusedRunId}`);
       if (detailRes.ok) {
@@ -369,117 +460,154 @@ useEffect(() => {
     rerunning || recentRuns.some((r) => r.status === "running" && r.finishedAt === null);
 
   if (loading) {
-    return <p className="text-sm text-zinc-400">Loading reports…</p>;
+    return <p className="text-sm text-slate-500">Loading reports…</p>;
   }
 
   return (
-    <section className="space-y-6 rounded-2xl border border-white/10 bg-ink-900/40 p-6">
-      <header>
-        <h2 className="text-lg font-semibold text-white">Test reports</h2>
-        <p className="mt-1 text-sm text-zinc-400">
-          HTML reports, pass/fail breakdown, and per-step results from finished runs. Use{" "}
-          <button
-            type="button"
-            onClick={() => onNavigate?.("test-execution")}
-            className="font-medium text-zinc-300 underline-offset-2 hover:underline"
-          >
-            Test execution
-          </button>{" "}
-          to start a new run and watch live logs.
-        </p>
-      </header>
+    <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+              <path strokeLinecap="round" d="M6 4h9l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+              <path strokeLinecap="round" d="M14 4v4h4M8 12h8M8 16h5" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">Test Reports</h2>
+            <p className="text-xs text-slate-500">
+              Pass/fail breakdown · step details ·{" "}
+              <button type="button" onClick={() => onNavigate?.("test-execution")} className="text-green-700 hover:underline">
+                Start a new run
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,280px)_1fr]">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-white">Run history</h3>
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => void loadRuns()}
-              className="text-xs font-medium text-zinc-400 hover:text-white disabled:opacity-50"
-              data-testid="reports-refresh-btn"
-            >
-              Refresh
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,280px)_1fr] lg:divide-x lg:divide-slate-100">
+        {/* Left — run history */}
+        <div className="p-4">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Run History</p>
+            <button type="button" disabled={disabled} onClick={() => void loadRuns()}
+              className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-40"
+              title="Refresh" data-testid="reports-refresh-btn">
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
             </button>
           </div>
           {recentRuns.length === 0 ? (
-            <p className="text-sm text-zinc-500">No runs yet. Start a run from Test execution.</p>
+            <div className="flex flex-col items-center py-8 text-center">
+              <p className="text-sm font-medium text-slate-500">No runs yet</p>
+              <p className="mt-0.5 text-xs text-slate-400">Start a run from Test Execution.</p>
+            </div>
           ) : (
-            <ul className="max-h-[min(70vh,520px)] space-y-2 overflow-auto rounded-xl border border-white/10 bg-ink-950/40 p-2">
-              {recentRuns.map((r) => (
-                <li key={r.id}>
-                  <button
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => void loadRunDetail(r)}
-                    className={`w-full rounded-lg border px-3 py-2 text-left text-xs transition ${
-                      focusedRunId === r.id
-                        ? "border-accent/40 bg-accent/10 text-zinc-200"
-                        : "border-transparent text-zinc-400 hover:border-white/10 hover:bg-white/5"
-                    }`}
-                    data-testid={`reports-run-item-${r.id}`}
-                  >
-                    <span
-                      className={
-                        r.status === "passed"
-                          ? "font-semibold text-accent"
-                          : r.status === "failed"
-                            ? "font-semibold text-rose-400"
-                            : r.status === "running"
-                              ? "font-semibold text-amber-300"
-                              : "font-semibold text-zinc-300"
-                      }
+            <ul className="max-h-[min(70vh,520px)] space-y-1 overflow-auto pr-0.5">
+              {recentRuns.map((r) => {
+                const isActive = focusedRunId === r.id;
+                const statusColor =
+                  r.status === "passed"  ? "bg-green-500" :
+                  r.status === "failed"  ? "bg-rose-500" :
+                  r.status === "running" ? "bg-amber-400" :
+                                           "bg-slate-400";
+                const dt = new Date(r.createdAt);
+                const dateStr = dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                const timeStr = dt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+                return (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => void loadRunDetail(r)}
+                      data-testid={`reports-run-item-${r.id}`}
+                      className={`group w-full rounded-xl border px-3 py-3 text-left transition ${
+                        isActive
+                          ? "border-cyan-200 bg-cyan-50"
+                          : "border-transparent hover:border-slate-200 hover:bg-slate-50"
+                      }`}
                     >
-                      {r.status}
-                    </span>
-                    {" · "}
-                    {r.provider === "ci" ? "CI Pipeline" : executionProviderLabel(r.provider as ExecutionProvider)}
-                    <p className="mt-1 text-[10px] text-zinc-500">{new Date(r.createdAt).toLocaleString()}</p>
-                    <p className="mt-0.5 truncate font-mono text-[10px] text-zinc-600">{r.specPaths.join(", ")}</p>
-                    {r.analysisSummary !== undefined ? (
-                      <p className="mt-1 text-[10px] text-zinc-500">
-                        Passed {r.analysisSummary.passed} · Failed {r.analysisSummary.failed}
-                      </p>
-                    ) : null}
-                  </button>
-                </li>
-              ))}
+                      {/* Row 1: status dot + label + provider */}
+                      <div className="flex items-center gap-2">
+                        <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${statusColor} ${r.status === "running" ? "animate-pulse" : ""}`} />
+                        <span className={`text-[11px] font-semibold ${
+                          r.status === "passed"  ? "text-green-700" :
+                          r.status === "failed"  ? "text-rose-600" :
+                          r.status === "running" ? "text-amber-700" :
+                                                   "text-slate-600"
+                        }`}>
+                          {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                        </span>
+                        <span className="ml-auto shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-500">
+                          {r.provider === "ci" ? "CI" : executionProviderLabel(r.provider as ExecutionProvider)}
+                        </span>
+                      </div>
+                      {/* Row 2: date + time */}
+                      <div className="mt-1.5 flex items-center gap-1.5 pl-4">
+                        <span className="text-[10px] font-medium text-slate-600">{dateStr}</span>
+                        <span className="text-[10px] text-slate-400">{timeStr}</span>
+                      </div>
+                      {/* Row 3: pass / fail pills */}
+                      {r.analysisSummary !== undefined ? (
+                        <div className="mt-1.5 flex items-center gap-1.5 pl-4">
+                          <span className="inline-flex items-center gap-1 rounded-md bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
+                            Pass {r.analysisSummary.passed}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600">
+                            Fail {r.analysisSummary.failed}
+                          </span>
+                          {r.analysisSummary.flaky > 0 && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                              ≈ {r.analysisSummary.flaky}
+                            </span>
+                          )}
+                          <span className="ml-auto text-[9px] text-slate-400 tabular-nums">
+                            {r.analysisSummary.total} total
+                          </span>
+                        </div>
+                      ) : null}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
 
-        <div className="min-w-0 space-y-4">
+        {/* Right — run detail */}
+        <div className="min-w-0 p-5 space-y-4">
           {focusedRunId === null ? (
-            <p className="text-sm text-zinc-500">Select a run to view its report.</p>
+            <div className="flex flex-col items-center py-16 text-center">
+              <svg className="h-10 w-10 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" d="M6 4h9l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+                <path strokeLinecap="round" d="M14 4v4h4M8 12h8M8 16h5" />
+              </svg>
+              <p className="mt-3 text-sm font-medium text-slate-500">Select a run to view its report</p>
+            </div>
           ) : (
             <>
-              {lastStatus !== null ? (
-                <p className="text-sm text-zinc-300">
-                  Run status:{" "}
-                  <span
-                    className={
-                      lastStatus === "passed"
-                        ? "font-semibold text-accent"
-                        : lastStatus === "failed"
-                          ? "font-semibold text-rose-400"
-                          : lastStatus === "running"
-                            ? "font-semibold text-amber-300"
-                            : "font-semibold text-zinc-200"
-                    }
-                  >
-                    {lastStatus}
+              {lastStatus !== null && (
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                    lastStatus === "passed"   ? "bg-green-50 text-green-700 ring-1 ring-green-200" :
+                    lastStatus === "failed"   ? "bg-rose-50 text-rose-600 ring-1 ring-rose-200" :
+                    lastStatus === "running"  ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200" :
+                                               "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
+                  }`}>
+                    {lastStatus === "running" && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />}
+                    {lastStatus ? lastStatus.charAt(0).toUpperCase() + lastStatus.slice(1) : ""}
                   </span>
-                </p>
-              ) : null}
-
-              {lastStatus === "running" || rerunning ? (
-                <p className="text-sm text-amber-200/90">Test run in progress — log updates below.</p>
-              ) : null}
+                  {(lastStatus === "running" || rerunning) && (
+                    <span className="text-xs text-amber-700">Test run in progress — log updating below…</span>
+                  )}
+                </div>
+              )}
 
               {focusedPipelineUrl !== null ? (
-                <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-ink-950/40 px-3 py-2 text-xs text-zinc-400">
-                  <svg className="h-3.5 w-3.5 shrink-0 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
+                  <svg className="h-3.5 w-3.5 shrink-0 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                   </svg>
                   <span>{focusedProvider === "browserstack" ? "BrowserStack run:" : "CI run:"}</span>
@@ -487,7 +615,7 @@ useEffect(() => {
                     href={focusedPipelineUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="truncate font-mono text-accent hover:underline"
+                    className="truncate font-mono text-green-700 hover:underline"
                   >
                     {focusedPipelineUrl}
                   </a>
@@ -500,7 +628,7 @@ useEffect(() => {
                     type="button"
                     disabled={disabled}
                     onClick={() => void stopExecution()}
-                    className="rounded-lg border border-rose-500/40 bg-rose-950/50 px-3 py-1.5 text-xs font-medium text-rose-100 hover:bg-rose-950/80 disabled:opacity-50"
+                    className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50"
                     data-testid="reports-stop-btn"
                   >
                     Stop
@@ -512,7 +640,7 @@ useEffect(() => {
                     <button
                       type="button"
                       disabled={disabled}
-                      className="rounded-lg border border-white/15 bg-ink-950/60 px-3 py-1.5 text-xs font-medium text-accent hover:bg-white/5 disabled:opacity-50"
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-slate-50 disabled:opacity-50"
                       onClick={() =>
                         window.open(
                           `/api/projects/${projectId}/framework/playwright-report/index.html`,
@@ -525,15 +653,18 @@ useEffect(() => {
                       HTML report
                     </button>
                   ) : null}
-                  {analysisSummary !== undefined && analysisSummary.failed + analysisSummary.flaky > 0 ? (
+                  {(lastStatus === "failed" || (analysisSummary !== undefined && analysisSummary.failed + analysisSummary.flaky > 0)) ? (
                     <button
                       type="button"
                       disabled={disabled || healing}
-                      className="rounded-lg border border-amber-500/40 bg-amber-950/40 px-3 py-1.5 text-xs font-medium text-amber-100 hover:bg-amber-950/70 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
                       onClick={() => setHealFormOpen((open) => !open)}
                       data-testid="reports-autoheal-toggle-btn"
                     >
-                      {healFormOpen ? "Hide auto-heal" : "Auto-heal failures (AI)"}
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                      {healFormOpen ? "Hide" : "Auto-heal with AI"}
                     </button>
                   ) : null}
                   </>
@@ -541,22 +672,21 @@ useEffect(() => {
               </div>
 
               {healFormOpen &&
-              analysisSummary !== undefined &&
-              analysisSummary.failed + analysisSummary.flaky > 0 ? (
-                <div className="rounded-xl border border-amber-500/25 bg-amber-950/20 p-4 space-y-3">
+              (lastStatus === "failed" || (analysisSummary !== undefined && analysisSummary.failed + analysisSummary.flaky > 0)) ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
                   <div>
-                    <h3 className="text-sm font-semibold text-amber-100">How auto-heal works</h3>
-                    <p className="mt-1 text-xs leading-relaxed text-amber-100/80">
+                    <h3 className="text-sm font-semibold text-amber-800">How auto-heal works</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-amber-800/80">
                       Sends failed/flaky cases from this run&apos;s JSON report, the run log, your page object
                       catalog, and the current spec files to the project&apos;s OpenAI model. The model returns
-                      updated <code className="rounded bg-black/30 px-1">tests/*.spec.ts</code> and optionally{" "}
-                      <code className="rounded bg-black/30 px-1">pageobjects/*.ts</code> files, which are written to
+                      updated <code className="rounded bg-slate-100 px-1">tests/*.spec.ts</code> and optionally{" "}
+                      <code className="rounded bg-slate-100 px-1">pageobjects/*.ts</code> files, which are written to
                       the framework on disk. Review changes, then <strong className="font-medium">Rerun</strong> to
                       verify. Requires project OpenAI settings in Setup and{" "}
-                      <code className="rounded bg-black/30 px-1">logs/playwright-report.json</code> from the run.
+                      <code className="rounded bg-slate-100 px-1">logs/playwright-report.json</code> from the run.
                     </p>
                     {failingCaseTitles.length > 0 ? (
-                      <p className="mt-2 text-[11px] text-amber-100/70">
+                      <p className="mt-2 text-[11px] text-amber-800/70">
                         Targets ({failingCaseTitles.length}):{" "}
                         {failingCaseTitles.slice(0, 8).join(" · ")}
                         {failingCaseTitles.length > 8 ? " …" : ""}
@@ -564,8 +694,8 @@ useEffect(() => {
                     ) : null}
                   </div>
                   <label className="block">
-                    <span className="text-xs font-medium text-amber-100/90">
-                      Describe the problem <span className="font-normal text-amber-100/50">(optional)</span>
+                    <span className="text-xs font-medium text-amber-800/90">
+                      Describe the problem <span className="font-normal text-amber-800/50">(optional)</span>
                     </span>
                     <textarea
                       value={healProblemDescription}
@@ -574,10 +704,10 @@ useEffect(() => {
                       rows={4}
                       maxLength={4000}
                       placeholder="e.g. Login button label changed to Sign in; tests time out waiting for Catalog tab; flaky scroll on product list…"
-                      className="mt-1.5 w-full resize-y rounded-lg border border-amber-500/20 bg-ink-950/60 px-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500/40 focus:outline-none disabled:opacity-50"
+                      className="mt-1.5 w-full resize-y rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs text-slate-700 placeholder:text-slate-400 focus:border-amber-200 focus:outline-none disabled:opacity-50"
                       data-testid="reports-heal-description-textarea"
                     />
-                    <span className="mt-1 block text-[10px] text-amber-100/50 tabular-nums">
+                    <span className="mt-1 block text-[10px] text-amber-800/50 tabular-nums">
                       {healProblemDescription.length}/4000
                     </span>
                   </label>
@@ -585,7 +715,7 @@ useEffect(() => {
                     <button
                       type="button"
                       disabled={disabled || healing}
-                      className="rounded-lg bg-amber-600/90 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-600 disabled:opacity-50"
+                      className="rounded-lg bg-amber-600/90 px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-amber-600 disabled:opacity-50"
                       onClick={() => void submitHeal()}
                       data-testid="reports-heal-submit-btn"
                     >
@@ -594,7 +724,7 @@ useEffect(() => {
                     <button
                       type="button"
                       disabled={healing}
-                      className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white disabled:opacity-50"
+                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 disabled:opacity-50"
                       onClick={() => {
                         setHealFormOpen(false);
                         setHealProblemDescription("");
@@ -608,41 +738,41 @@ useEffect(() => {
               ) : null}
 
               {lastStatus !== null && lastStatus !== "running" && analysisSummary !== undefined ? (
-                <div className="rounded-xl border border-white/10 bg-ink-950/40 px-4 py-3">
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Results analysis</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Results analysis</h3>
                     {resultsAnalysis?.stats?.durationMs !== undefined && resultsAnalysis.stats.durationMs > 0 ? (
-                      <span className="text-[11px] text-zinc-500">
+                      <span className="text-[11px] text-slate-500">
                         Suite ~{(resultsAnalysis.stats.durationMs / 1000).toFixed(1)}s
                       </span>
                     ) : null}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="rounded-md bg-emerald-950/80 px-2 py-0.5 text-xs font-medium text-emerald-300">
+                    <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
                       Passed {analysisSummary.passed}
                     </span>
-                    <span className="rounded-md bg-rose-950/80 px-2 py-0.5 text-xs font-medium text-rose-300">
+                    <span className="rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-600">
                       Failed {analysisSummary.failed}
                     </span>
-                    <span className="rounded-md bg-amber-950/80 px-2 py-0.5 text-xs font-medium text-amber-200">
+                    <span className="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
                       Flaky {analysisSummary.flaky}
                     </span>
-                    <span className="rounded-md bg-zinc-800/80 px-2 py-0.5 text-xs font-medium text-zinc-300">
+                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                       Skipped {analysisSummary.skipped}
                     </span>
-                    <span className="rounded-md border border-white/10 px-2 py-0.5 text-xs text-zinc-400">
+                    <span className="rounded-md border border-slate-200 px-2 py-0.5 text-xs text-slate-500">
                       Total {analysisSummary.total}
                     </span>
                   </div>
                   {resultsAnalysis?.truncated === true ? (
-                    <p className="mt-2 text-[11px] text-amber-300/90">
+                    <p className="mt-2 text-[11px] text-amber-700">
                       Case list truncated for storage — open the HTML report for the full trace.
                     </p>
                   ) : null}
                   {resultsAnalysis?.cases !== undefined && resultsAnalysis.cases.length > 0 ? (
-                    <div className="mt-3 max-h-72 overflow-auto rounded-lg border border-white/5">
+                    <div className="mt-3 max-h-72 overflow-auto rounded-lg border border-slate-200">
                       <table className="w-full border-collapse text-left text-[11px]">
-                        <thead className="sticky top-0 bg-ink-950/95 text-zinc-500">
+                        <thead className="sticky top-0 bg-white text-slate-500">
                           <tr>
                             <th className="p-2 font-medium">Status</th>
                             <th className="p-2 font-medium">Test</th>
@@ -650,40 +780,40 @@ useEffect(() => {
                             <th className="p-2 font-medium text-right">ms</th>
                           </tr>
                         </thead>
-                        <tbody className="text-zinc-300">
+                        <tbody className="text-slate-600">
                           {sortCasesForDisplay(resultsAnalysis.cases).map((row, i) => (
-                            <tr key={`${row.title}-${i}`} className="border-t border-white/5 align-top">
+                            <tr key={`${row.title}-${i}`} className="border-t border-slate-200 align-top">
                               <td className="whitespace-nowrap p-2">
                                 <span
                                   className={
                                     row.status === "failed"
-                                      ? "text-rose-400"
+                                      ? "text-rose-600"
                                       : row.status === "flaky"
-                                        ? "text-amber-200"
+                                        ? "text-amber-700"
                                         : row.status === "skipped"
-                                          ? "text-zinc-500"
-                                          : "text-emerald-400"
+                                          ? "text-slate-500"
+                                          : "text-emerald-700"
                                   }
                                 >
-                                  {row.status}
+                                  {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
                                 </span>
                               </td>
                               <td className="p-2">
-                                <span className="text-zinc-200">{row.title}</span>
+                                <span className="text-slate-700">{row.title}</span>
                                 {row.steps !== undefined && row.steps.length > 0 ? (
                                   <ReportStepList steps={row.steps} />
                                 ) : null}
                                 {row.errorSnippet !== undefined && row.errorSnippet.length > 0 ? (
-                                  <p className="mt-1 whitespace-pre-wrap font-mono text-[10px] text-rose-300/90">
+                                  <p className="mt-1 whitespace-pre-wrap font-mono text-[10px] text-rose-600/90">
                                     {row.errorSnippet}
                                   </p>
                                 ) : null}
                               </td>
-                              <td className="p-2 font-mono text-[10px] text-zinc-500">
+                              <td className="p-2 font-mono text-[10px] text-slate-500">
                                 {row.file}
                                 {row.line !== undefined ? `:${row.line}` : ""}
                               </td>
-                              <td className="p-2 text-right tabular-nums text-zinc-500">{row.durationMs}</td>
+                              <td className="p-2 text-right tabular-nums text-slate-500">{row.durationMs}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -692,9 +822,9 @@ useEffect(() => {
                   ) : null}
                 </div>
               ) : lastStatus !== null && lastStatus !== "running" ? (
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-[11px] text-slate-500">
                   No structured JSON report for this run. Sync an environment so reporters write{" "}
-                  <code className="rounded bg-black/30 px-1">logs/playwright-report.json</code>, then re-run tests.
+                  <code className="rounded bg-slate-100 px-1">logs/playwright-report.json</code>, then re-run tests.
                 </p>
               ) : null}
 
@@ -704,13 +834,19 @@ useEffect(() => {
 
               {runLog !== null ? (
                 <details
-                  className="rounded-xl border border-white/10 bg-black/30"
-                  open={lastStatus === "running" || rerunning}
+                  className="overflow-hidden rounded-xl border border-slate-200"
+                  open={lastStatus === "running" || rerunning || runLogOpen}
+                  onToggle={(e) => setRunLogOpen((e.currentTarget as HTMLDetailsElement).open)}
                 >
-                  <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-zinc-400">
-                    {lastStatus === "running" || rerunning ? "Live run log" : "Run log (from execution)"}
+                  <summary className="flex cursor-pointer items-center gap-2 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100">
+                    <svg className="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
+                    </svg>
+                    {lastStatus === "running" || rerunning ? "Live run log" : "Run log"}
+                    {(lastStatus === "running" || rerunning) && <span className="ml-1 h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />}
+                    {healChanges !== null && healChanges.length > 0 && <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-700">auto-heal applied</span>}
                   </summary>
-                  <pre className="max-h-48 overflow-auto border-t border-white/5 p-3 font-mono text-[10px] leading-relaxed text-zinc-400">
+                  <pre className="max-h-56 overflow-x-auto whitespace-pre-wrap break-all bg-slate-900 p-4 font-mono text-[10px] leading-relaxed text-slate-300">
                     {runLog}
                   </pre>
                 </details>

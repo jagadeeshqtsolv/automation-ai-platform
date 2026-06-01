@@ -119,29 +119,36 @@ export function GitTerminalPanel({
     <Portal>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-ink-950"
+        className="fixed inset-0 z-40 bg-white"
         onClick={onClose}
         aria-hidden
       />
 
       {/* Panel */}
       <aside
-        className="fixed inset-y-0 left-0 z-50 flex w-full max-w-sm flex-col bg-ink-900 shadow-2xl ring-1 ring-white/10 sm:left-[72px]"
+        className="fixed inset-y-0 left-0 z-50 flex w-full max-w-md flex-col bg-white shadow-xl ring-1 ring-slate-200"
         role="dialog"
-        aria-label="Git terminal"
+        aria-label="Git Terminal"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <div>
-            <h2 className="text-sm font-semibold text-white">Git Terminal</h2>
-            <p className="text-[11px] text-zinc-500">Run git commands in the project directory</p>
+        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-green-400">
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900">Git Terminal</h2>
+              <p className="text-[11px] text-slate-500">Run git commands in the project directory</p>
+            </div>
           </div>
           <div className="flex items-center gap-1.5">
             {lines.length > 0 && (
               <button
                 type="button"
                 onClick={() => setLines([])}
-                className="rounded-lg px-2 py-1 text-[11px] text-zinc-500 hover:bg-white/[0.06] hover:text-zinc-300"
+                className="rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
                 data-testid="git-terminal-clear-btn"
               >
                 Clear
@@ -150,7 +157,7 @@ export function GitTerminalPanel({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/[0.06] hover:text-white"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
               aria-label="Close"
               data-testid="git-terminal-close-btn"
             >
@@ -160,14 +167,15 @@ export function GitTerminalPanel({
         </div>
 
         {/* Quick commands */}
-        <div className="flex flex-wrap gap-1 border-b border-white/[0.06] px-4 py-2">
+        <div className="flex flex-wrap gap-1.5 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+          <span className="self-center text-[10px] font-semibold uppercase tracking-wider text-slate-400 mr-1">Quick:</span>
           {QUICK_COMMANDS.map((cmd) => (
             <button
               key={cmd}
               type="button"
               disabled={running}
               onClick={() => void run(cmd)}
-              className="rounded-md bg-white/[0.04] px-2 py-1 font-mono text-[10px] text-zinc-400 hover:bg-white/[0.08] hover:text-zinc-200 disabled:opacity-40 transition"
+              className="rounded-md border border-slate-200 bg-white px-2 py-1 font-mono text-[10px] text-slate-600 shadow-xs hover:border-slate-300 hover:bg-slate-50 disabled:opacity-40 transition"
               data-testid={`git-terminal-quick-cmd-${cmd.replace(/\s+/g, "-")}`}
             >
               {cmd}
@@ -175,38 +183,40 @@ export function GitTerminalPanel({
           ))}
         </div>
 
-        {/* Output */}
+        {/* Output — dark terminal area */}
         <div
           ref={outputRef}
-          className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 font-mono text-xs"
+          className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-slate-900 p-4 font-mono text-xs"
         >
           {lines.length === 0 ? (
-            <p className="text-zinc-600 select-none">No output yet — type a command below.</p>
+            <p className="text-slate-500 select-none">No output yet — type a command below or use a quick command above.</p>
           ) : (
             lines.map((line) => (
               <div key={line.id} className="space-y-1">
                 {/* Command echo */}
-                <div className="flex items-center gap-1.5 text-zinc-500">
-                  <span className="text-accent">$</span>
-                  <span className="text-zinc-300">git {line.command.replace(/^git\s+/, "")}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-green-400 select-none">$</span>
+                  <span className="text-slate-300">git {line.command.replace(/^git\s+/, "")}</span>
                 </div>
                 {/* stdout */}
                 {line.stdout && (
-                  <pre className="whitespace-pre-wrap break-all text-zinc-300 leading-relaxed">
+                  <pre className="whitespace-pre-wrap break-all text-slate-400 leading-relaxed pl-3 border-l-2 border-slate-700">
                     {line.stdout}
                   </pre>
                 )}
                 {/* stderr */}
                 {line.stderr && (
-                  <pre className={`whitespace-pre-wrap break-all leading-relaxed ${
-                    line.exitCode !== 0 ? "text-rose-400" : "text-amber-400/80"
+                  <pre className={`whitespace-pre-wrap break-all leading-relaxed pl-3 border-l-2 ${
+                    line.exitCode !== 0
+                      ? "text-rose-400 border-rose-800"
+                      : "text-amber-400 border-amber-800"
                   }`}>
                     {line.stderr}
                   </pre>
                 )}
                 {/* No output */}
                 {!line.stdout && !line.stderr && (
-                  <span className="text-zinc-600 italic">
+                  <span className={`italic pl-3 ${line.exitCode === 0 ? "text-slate-600" : "text-rose-500"}`}>
                     {line.exitCode === 0 ? "(no output)" : `(exited with code ${line.exitCode})`}
                   </span>
                 )}
@@ -215,17 +225,18 @@ export function GitTerminalPanel({
           )}
 
           {running && (
-            <div className="flex items-center gap-2 text-zinc-500">
-              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white/10 border-t-zinc-400" />
+            <div className="flex items-center gap-2 text-slate-500">
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-700 border-t-green-500" />
               Running…
             </div>
           )}
         </div>
 
         {/* Input */}
-        <div className="border-t border-white/10 p-3">
-          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2 focus-within:border-accent/40">
-            <span className="shrink-0 font-mono text-xs font-semibold text-accent">git</span>
+        <div className="border-t border-slate-200 bg-white p-3">
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-xs focus-within:border-green-400 focus-within:ring-2 focus-within:ring-green-400/20">
+            <span className="shrink-0 font-mono text-xs font-bold text-green-700">git</span>
+            <span className="shrink-0 text-slate-300 font-mono text-xs">›</span>
             <input
               ref={inputRef}
               type="text"
@@ -236,21 +247,21 @@ export function GitTerminalPanel({
               placeholder="status"
               spellCheck={false}
               autoComplete="off"
-              className="min-w-0 flex-1 bg-transparent font-mono text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none disabled:opacity-50"
+              className="min-w-0 flex-1 bg-transparent font-mono text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none disabled:opacity-50"
               data-testid="git-terminal-input"
             />
             <button
               type="button"
               onClick={() => void run(input)}
               disabled={running || !input.trim()}
-              className="shrink-0 rounded-md bg-accent/20 px-2 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent/30 disabled:opacity-40 transition"
+              className="shrink-0 rounded-md border border-green-300 bg-accent px-2.5 py-1 text-[10px] font-semibold text-slate-900 hover:bg-accent-dim disabled:opacity-40 transition"
               data-testid="git-terminal-run-btn"
             >
               Run
             </button>
           </div>
-          <p className="mt-1.5 px-1 text-[10px] text-zinc-600">
-            ↑↓ history · Enter to run · prefix &quot;git&quot; optional
+          <p className="mt-1.5 px-1 text-[10px] text-slate-400">
+            ↑↓ history · Enter to run · &quot;git&quot; prefix optional
           </p>
         </div>
       </aside>

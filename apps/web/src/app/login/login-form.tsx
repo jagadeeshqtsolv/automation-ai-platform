@@ -69,7 +69,7 @@ export function LoginForm() {
 
       {error !== null ? (
         <div
-          className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2.5 text-sm text-rose-100"
+          className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700"
           role="alert"
         >
           {error}
@@ -95,7 +95,7 @@ export function LoginForm() {
         )}
       </button>
 
-      <p className="text-center text-sm text-zinc-500">
+      <p className="text-center text-sm text-slate-500">
         Registration is by invitation only. Contact your administrator for an invite link.
       </p>
     </form>

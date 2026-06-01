@@ -122,7 +122,8 @@ function normalizePriority(raw: unknown): "P0" | "P1" | "P2" {
 type NormalizedPlatform = "ios" | "android" | "chrome" | "firefox" | "safari" | "edge";
 
 function normalizePlatforms(raw: unknown): NormalizedPlatform[] {
-  const platforms = new Set<NormalizedPlatform>();
+  const mobile = new Set<NormalizedPlatform>();
+  let hasWebBrowser = false;
   const values = Array.isArray(raw) ? raw : raw !== undefined && raw !== null ? [raw] : [];
 
   for (const entry of values) {
@@ -132,35 +133,33 @@ function normalizePlatforms(raw: unknown): NormalizedPlatform[] {
 
     // Mobile
     if (lower.includes("ios") || lower.includes("iphone") || lower.includes("ipad") || lower === "apple") {
-      platforms.add("ios");
+      mobile.add("ios");
     }
     if (lower.includes("android")) {
-      platforms.add("android");
+      mobile.add("android");
     }
     if (lower === "both" || lower === "all" || lower === "mobile" || lower === "native") {
-      platforms.add("ios");
-      platforms.add("android");
+      mobile.add("ios");
+      mobile.add("android");
     }
 
-    // Web browsers
-    if (lower === "web" || lower === "browser" || lower.includes("chrome") || lower.includes("chromium")) {
-      platforms.add("chrome");
-    }
-    if (lower.includes("firefox") || lower.includes("gecko")) {
-      platforms.add("firefox");
-    }
-    if (lower.includes("safari") || lower.includes("webkit")) {
-      platforms.add("safari");
-    }
-    if (lower.includes("edge") || lower === "msedge" || lower === "microsoftedge") {
-      platforms.add("edge");
+    // Web browsers — any web browser mention → use chrome only
+    if (
+      lower === "web" || lower === "browser" ||
+      lower.includes("chrome") || lower.includes("chromium") ||
+      lower.includes("firefox") || lower.includes("gecko") ||
+      lower.includes("safari") || lower.includes("webkit") ||
+      lower.includes("edge") || lower === "msedge" || lower === "microsoftedge"
+    ) {
+      hasWebBrowser = true;
     }
   }
 
-  if (platforms.size === 0) {
-    return ["android", "ios"];
-  }
-  return [...platforms];
+  // Web platform: always chrome only (user can add more browsers manually)
+  if (hasWebBrowser) return ["chrome"];
+  if (mobile.size > 0) return [...mobile];
+  // Default fallback — mobile if nothing detected
+  return ["android", "ios"];
 }
 
 function asStringArray(raw: unknown): string[] {

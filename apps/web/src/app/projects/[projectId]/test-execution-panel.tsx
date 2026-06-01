@@ -316,262 +316,204 @@ export function TestExecutionPanel({
     if (loadError) {
       return (
         <div className="space-y-2">
-          <p className="text-sm text-rose-400">Could not load test configuration.</p>
+          <p className="text-sm text-rose-600">Could not load test configuration.</p>
           <button
             type="button"
             onClick={() => void load()}
-            className="text-xs font-medium text-accent hover:underline"
+            className="text-xs font-medium text-green-700 hover:underline"
           >
             Retry
           </button>
         </div>
       );
     }
-    return <p className="text-sm text-zinc-400">Loading…</p>;
+    return <p className="text-sm text-slate-500">Loading…</p>;
   }
 
+  const providerName = selectedProvider === "github-ci"
+    ? "GitHub CI"
+    : selectedProvider
+    ? executionProviderLabel(selectedProvider as ExecutionProvider)
+    : executionProviderLabel(config.provider);
+
   return (
-    <section className="space-y-6 rounded-2xl border border-white/10 bg-ink-900/40 p-6">
-      <header>
-        <h2 className="text-lg font-semibold text-white">Test execution</h2>
-        <p className="mt-1 text-sm text-zinc-400">
-          Select specs and stream live CLI output here. When a run finishes, open{" "}
-          <button
-            type="button"
-            onClick={() => onNavigate?.("test-reports")}
-            className="font-medium text-zinc-300 underline-offset-2 hover:underline"
-          >
-            Test reports
-          </button>{" "}
-          for HTML, pass/fail tables, and step details.
-        </p>
-      </header>
-
-      <div className="rounded-xl border border-white/10 bg-ink-950/30 px-4 py-3">
-        {availableProviders.length > 1 ? (
-          <label className="block text-xs font-medium text-zinc-400">
-            Execution provider
-            <select
-              value={selectedProvider}
-              onChange={(e) => setSelectedProvider(e.target.value as ExecutionProvider | "github-ci")}
-              disabled={disabled || running}
-              className="mt-1 block w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
-              data-testid="execution-provider-select"
-            >
-              {availableProviders.map((p) => (
-                <option key={p.provider} value={p.provider}>{p.label}</option>
-              ))}
-            </select>
-          </label>
-        ) : (
-          <p className="text-sm text-zinc-400">
-            Provider:{" "}
-            <span className="font-medium text-white">
-              {selectedProvider === "github-ci"
-                ? "GitHub CI"
-                : selectedProvider
-                ? executionProviderLabel(selectedProvider as ExecutionProvider)
-                : executionProviderLabel(config.provider)}
-            </span>
-          </p>
-        )}
-      </div>
-
-      <div className="space-y-2 rounded-xl border border-white/10 bg-ink-950/40 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-white">
-            Spec files
-            {specs.length > 0 ? (
-              <span className="ml-2 font-normal text-zinc-500">
-                ({selected.size}/{specs.length} selected)
-              </span>
-            ) : null}
-          </h3>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void load()}
-              disabled={disabled || running}
-              className="text-xs font-medium text-zinc-400 hover:text-white disabled:opacity-50"
-              data-testid="execution-refresh-specs-btn"
-            >
-              Refresh list
-            </button>
-            {specs.length > 0 ? (
-              <>
-                <button
-                  type="button"
-                  onClick={selectAll}
-                  disabled={disabled || running}
-                  className="text-xs font-medium text-accent hover:underline disabled:opacity-50"
-                  data-testid="execution-select-all-btn"
-                >
-                  Select all
-                </button>
-                <button
-                  type="button"
-                  onClick={clearSelection}
-                  disabled={disabled || running}
-                  className="text-xs font-medium text-zinc-400 hover:underline disabled:opacity-50"
-                  data-testid="execution-clear-selection-btn"
-                >
-                  Clear
-                </button>
-              </>
-            ) : null}
+    <section className="space-y-4 rounded-xl border border-slate-200 bg-white shadow-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-100 text-green-700">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 5v14l11-7L8 5z" fill="currentColor" fillOpacity="0.2" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 5v14l11-7L8 5z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">Test Execution</h2>
+            <p className="text-xs text-slate-500">
+              Select specs and run · view results in{" "}
+              <button type="button" onClick={() => onNavigate?.("test-reports")} className="text-green-700 hover:underline">
+                Test Reports
+              </button>
+            </p>
           </div>
         </div>
-        {specs.length === 0 ? (
-          <p className="text-sm text-zinc-500">
-            No spec files in <code className="text-zinc-400">frameworks/…/tests/</code> yet. Generate tests from
-            Test plans, then click Refresh list.
-          </p>
-        ) : (
-          <ul className="max-h-56 space-y-0.5 overflow-auto rounded-lg border border-white/5 bg-black/20 p-2">
-            {specs.map((s) => (
-              <li key={s.path}>
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white/5">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(s.path)}
-                    disabled={disabled || running}
-                    onChange={() => toggleSpec(s.path)}
-                    className="rounded border-white/20"
-                  />
-                  <span className="font-mono text-xs text-zinc-300">{s.path}</span>
-                </label>
-              </li>
-            ))}
-          </ul>
+        {/* Status badge */}
+        {lastStatus !== null && (
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+            lastStatus === "passed"   ? "bg-green-50 text-green-700 ring-1 ring-green-200" :
+            lastStatus === "failed"   ? "bg-rose-50 text-rose-600 ring-1 ring-rose-200" :
+            lastStatus === "running"  ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200" :
+            lastStatus === "cancelled"? "bg-slate-100 text-slate-500 ring-1 ring-slate-200" :
+                                        "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
+          }`}>
+            {lastStatus === "running" && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />}
+            {lastStatus ? lastStatus.charAt(0).toUpperCase() + lastStatus.slice(1) : ""} {running ? "(live)" : ""}
+          </span>
         )}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <label className="block flex-1 text-xs font-medium text-zinc-400">
-          Environment (optional)
-          <select
-            value={environmentId}
-            disabled={disabled}
-            onChange={(e) => setEnvironmentId(e.target.value)}
-            className="mt-1 block w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white"
-            data-testid="execution-environment-select"
-          >
-            <option value="">Default from {testConfigFileName(platformType)}</option>
-            {environments.map((env) => (
-              <option key={env.id} value={env.id}>
-                {env.name} ({env.slug})
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block flex-1 text-xs font-medium text-zinc-400">
-          Grep / title filter (optional)
-          <input
-            value={grep}
-            disabled={disabled}
-            onChange={(e) => setGrep(e.target.value)}
-            placeholder="@smoke"
-            className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white"
-            data-testid="execution-grep-input"
-          />
-        </label>
-        <div className="flex shrink-0 flex-wrap gap-2">
+      <div className="space-y-4 px-5 pb-5">
+        {/* Provider + Environment + Grep */}
+        <div className="grid gap-3 sm:grid-cols-3">
+          {availableProviders.length > 1 ? (
+            <label className="block text-xs font-semibold text-slate-600">
+              Execution Provider
+              <select value={selectedProvider}
+                onChange={(e) => setSelectedProvider(e.target.value as ExecutionProvider | "github-ci")}
+                disabled={disabled || running}
+                className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-xs disabled:opacity-50"
+                data-testid="execution-provider-select">
+                {availableProviders.map((p) => <option key={p.provider} value={p.provider}>{p.label}</option>)}
+              </select>
+            </label>
+          ) : (
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <span className="text-xs text-slate-500">Provider</span>
+              <span className="text-xs font-semibold text-slate-900">{providerName}</span>
+            </div>
+          )}
+          <label className="block text-xs font-semibold text-slate-600">
+            Environment
+            <select value={environmentId} disabled={disabled}
+              onChange={(e) => setEnvironmentId(e.target.value)}
+              className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-xs"
+              data-testid="execution-environment-select">
+              <option value="">Default ({testConfigFileName(platformType)})</option>
+              {environments.map((env) => <option key={env.id} value={env.id}>{env.name} ({env.slug})</option>)}
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-slate-600">
+            Filter by title
+            <input value={grep} disabled={disabled} onChange={(e) => setGrep(e.target.value)}
+              placeholder="@smoke"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-xs placeholder:text-slate-400"
+              data-testid="execution-grep-input" />
+          </label>
+        </div>
+
+        {/* Spec files */}
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5">
+            <p className="text-xs font-semibold text-slate-700">
+              Spec Files
+              {specs.length > 0 && (
+                <span className="ml-1.5 font-normal text-slate-400">{selected.size}/{specs.length}</span>
+              )}
+            </p>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => void load()} disabled={disabled || running}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-40"
+                title="Refresh list" data-testid="execution-refresh-specs-btn">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+              {specs.length > 0 && <>
+                <button type="button" onClick={selectAll} disabled={disabled || running}
+                  className="text-[11px] font-semibold text-green-700 hover:underline disabled:opacity-40"
+                  data-testid="execution-select-all-btn">All</button>
+                <button type="button" onClick={clearSelection} disabled={disabled || running}
+                  className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 disabled:opacity-40"
+                  data-testid="execution-clear-selection-btn">None</button>
+              </>}
+            </div>
+          </div>
+          {specs.length === 0 ? (
+            <div className="flex flex-col items-center py-8 text-center">
+              <p className="text-sm font-medium text-slate-600">No spec files yet</p>
+              <p className="mt-0.5 text-xs text-slate-400">Generate tests from Test Plans, then click refresh.</p>
+            </div>
+          ) : (
+            <ul className="max-h-56 overflow-auto divide-y divide-slate-100">
+              {specs.map((s) => (
+                <li key={s.path}>
+                  <label className="flex cursor-pointer items-center gap-2.5 px-4 py-2 hover:bg-slate-50">
+                    <input type="checkbox" checked={selected.has(s.path)} disabled={disabled || running}
+                      onChange={() => toggleSpec(s.path)} className="h-3.5 w-3.5 rounded border-slate-300 accent-green-600" />
+                    <span className="font-mono text-[11px] text-slate-600">{s.path}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex flex-wrap items-center gap-2">
           {running ? (
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => void stopExecution()}
-              className="rounded-lg border border-rose-500/40 bg-rose-950/50 px-4 py-2 text-sm font-medium text-rose-100 hover:bg-rose-950/80 disabled:opacity-50"
-              data-testid="execution-stop-btn"
-            >
+            <button type="button" disabled={disabled} onClick={() => void stopExecution()}
+              className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-100 disabled:opacity-50"
+              data-testid="execution-stop-btn">
               Stop
             </button>
           ) : null}
-          <button
-            type="button"
-            disabled={disabled || running}
+          <button type="button" disabled={disabled || running}
             onClick={() => selectedProvider === "github-ci" ? void runViaCi() : void runTests()}
-            className="ui-btn-primary"
-            data-testid="execution-run-btn"
-          >
-            {running
-              ? "Running…"
-              : selectedProvider === "github-ci"
-              ? `Run via GitHub CI`
-              : `Run on ${executionProviderLabel((selectedProvider || config.provider) as ExecutionProvider)}`}
+            className="ui-btn-primary" data-testid="execution-run-btn">
+            {running ? (
+              <><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-900/20 border-t-slate-900" />Running…</>
+            ) : selectedProvider === "github-ci" ? "Run via GitHub CI"
+              : `Run on ${providerName}`}
           </button>
           {ciPipeline.configured && ciPipeline.provider !== null && !running &&
             !availableProviders.some((p) => p.provider === "github-ci") && (
-            <button
-              type="button"
-              disabled={disabled || running}
-              onClick={() => void runViaCi()}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/15 disabled:opacity-50 transition"
-              data-testid="execution-run-ci-btn"
-            >
+            <button type="button" disabled={disabled || running} onClick={() => void runViaCi()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-xs hover:bg-slate-50 disabled:opacity-50"
+              data-testid="execution-run-ci-btn">
               <PipelineIcon />
               Run via {ciProviderLabel(ciPipeline.provider)}
             </button>
           )}
+          {activePipelineUrl !== null && (
+            <a href={activePipelineUrl} target="_blank" rel="noopener noreferrer"
+              className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-xs hover:bg-slate-50">
+              <CiLinkIcon />
+              View run
+            </a>
+          )}
         </div>
-      </div>
 
-      {lastStatus !== null ? (
-        <p className="text-sm text-zinc-300">
-          Status:{" "}
-          <span
-            className={
-              lastStatus === "passed"
-                ? "font-semibold text-accent"
-                : lastStatus === "failed"
-                  ? "font-semibold text-rose-400"
-                  : lastStatus === "running"
-                    ? "font-semibold text-amber-300"
-                    : lastStatus === "cancelled"
-                      ? "font-semibold text-zinc-400"
-                      : "font-semibold text-zinc-200"
-            }
-          >
-            {lastStatus}
-            {running ? " (live)" : ""}
-          </span>
-        </p>
-      ) : null}
-
-      {activePipelineUrl !== null ? (
-        <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-ink-950/40 px-3 py-2 text-xs text-zinc-400">
-          <CiLinkIcon />
-          <span>CI run:</span>
-          <a
-            href={activePipelineUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="truncate font-mono text-accent hover:underline"
-          >
-            {activePipelineUrl}
-          </a>
+        {/* Live log */}
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Log</h3>
+            {running && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />}
+          </div>
+          {output !== null ? (
+            <pre ref={logRef}
+              className="max-h-[min(60vh,28rem)] overflow-x-auto whitespace-pre-wrap break-all rounded-xl border border-slate-200 bg-slate-900 p-4 font-mono text-[11px] leading-relaxed text-slate-300 shadow-sm">
+              {output}
+            </pre>
+          ) : (
+            <div className="flex flex-col items-center rounded-xl border border-slate-200 bg-slate-50 py-10 text-center">
+              <svg className="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
+              </svg>
+              <p className="mt-2 text-sm font-medium text-slate-500">No output yet</p>
+              <p className="mt-0.5 text-xs text-slate-400">Start a run to stream output here.</p>
+            </div>
+          )}
         </div>
-      ) : null}
-
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-white">Live log</h3>
-        {output !== null ? (
-          <pre
-            ref={logRef}
-            className="max-h-[min(60vh,28rem)] overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-zinc-200"
-          >
-            {output}
-          </pre>
-        ) : (
-          <p className="text-sm text-zinc-500">
-            Start a run to stream output here.{" "}
-            {ciPipeline.configured && ciPipeline.provider !== null && (
-              <span className="text-zinc-600">
-                CI pipeline runs report back when they finish.
-              </span>
-            )}
-          </p>
-        )}
       </div>
     </section>
   );
@@ -587,7 +529,7 @@ function PipelineIcon() {
 
 function CiLinkIcon() {
   return (
-    <svg className="h-3.5 w-3.5 shrink-0 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+    <svg className="h-3.5 w-3.5 shrink-0 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
     </svg>
   );

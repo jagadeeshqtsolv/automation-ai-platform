@@ -10,7 +10,7 @@ export const WEB_FRAMEWORK_PACKAGE_JSON = `{
     "capture:dom": "node node_modules/@automation-ai/web-support/scripts/capture-dom.mjs"
   },
   "dependencies": {
-    "@automation-ai/web-support": "npm:@jagadeeshqtsolv/web-support@^1.0.4"
+    "@automation-ai/web-support": "npm:@jagadeeshqtsolv/web-support@^1.0.7"
   },
   "devDependencies": {
     "@playwright/test": "1.48.2",

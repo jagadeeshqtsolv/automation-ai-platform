@@ -36,8 +36,11 @@ const config: Config = {
         tightest: "-0.03em",
       },
       boxShadow: {
-        glow: "0 0 48px -10px rgba(141, 255, 181, 0.45)",
-        panel: "0 8px 40px -12px rgba(0, 0, 0, 0.75)",
+        glow: "0 0 32px -8px rgba(141, 255, 181, 0.35)",
+        panel: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
+        card: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
+        xs: "0 1px 2px rgba(0,0,0,0.05)",
+        md: "0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05)",
       },
       animation: {
         "fade-in": "fadeIn 0.35s ease-out",

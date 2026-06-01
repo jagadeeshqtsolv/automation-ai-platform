@@ -221,7 +221,7 @@ export function ProjectExecutionSettings({
   }
 
   if (!loaded) {
-    return <p className="text-sm text-zinc-400">Loading execution settings…</p>;
+    return <p className="text-sm text-slate-500">Loading execution settings…</p>;
   }
 
   return (
@@ -229,7 +229,7 @@ export function ProjectExecutionSettings({
     <form onSubmit={(e) => void onSave(e)} className="space-y-4" data-testid="execution-settings-form">
       {/* Provider picker */}
       <div className="space-y-2">
-        <p className="text-xs font-medium text-zinc-400">Execution provider</p>
+        <p className="text-xs font-medium text-slate-500">Execution Provider</p>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           <ProviderCard
             active={provider === "local"}
@@ -266,15 +266,15 @@ export function ProjectExecutionSettings({
 
       {/* BrowserStack config */}
       {provider === "browserstack" && (
-        <div className="rounded-xl border border-white/10 bg-ink-950/40 p-4 space-y-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-white">BrowserStack settings</h3>
+            <h3 className="text-sm font-semibold text-slate-900">BrowserStack settings</h3>
             {response?.secrets.browserstackAccessKeyConfigured && (
-              <span className="flex items-center gap-1.5 text-[11px] text-emerald-300">
+              <span className="flex items-center gap-1.5 text-[11px] text-emerald-700">
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                Access key saved
+                Access Key saved
                 {response.secrets.browserstackAccessKeyPreview && (
-                  <span className="font-mono text-zinc-500">{response.secrets.browserstackAccessKeyPreview}</span>
+                  <span className="font-mono text-slate-500">{response.secrets.browserstackAccessKeyPreview}</span>
                 )}
               </span>
             )}
@@ -282,21 +282,21 @@ export function ProjectExecutionSettings({
 
           {/* Credentials — same for web and mobile */}
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-xs text-zinc-400">
-              Username <span className="text-rose-300">(required)</span>
+            <label className="block text-xs text-slate-500">
+              Username <span className="text-rose-600">(required)</span>
               <input
                 value={bsUsername}
                 onChange={(e) => setBsUsername(e.target.value)}
                 required
                 placeholder="your-bs-username"
                 disabled={disabled || saving}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
                 data-testid="execution-bs-username-input"
               />
             </label>
-            <label className="block text-xs text-zinc-400">
-              Access key{" "}
-              <span className="text-zinc-500">
+            <label className="block text-xs text-slate-500">
+              Access Key{" "}
+              <span className="text-slate-500">
                 {response?.secrets.browserstackAccessKeyConfigured
                   ? "(leave blank to keep current)"
                   : "(required)"}
@@ -308,7 +308,7 @@ export function ProjectExecutionSettings({
                 autoComplete="off"
                 placeholder={response?.secrets.browserstackAccessKeyConfigured ? "••••••••" : "Your access key"}
                 disabled={disabled || saving}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 font-mono text-sm text-white disabled:opacity-50"
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 font-mono text-sm text-slate-900 disabled:opacity-50"
                 data-testid="execution-bs-accesskey-input"
               />
             </label>
@@ -318,13 +318,13 @@ export function ProjectExecutionSettings({
           {platformType === "web" && (
             <>
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block text-xs text-zinc-400">
+                <label className="block text-xs text-slate-500">
                   Browser
                   <select
                     value={bsBrowser}
                     onChange={(e) => setBsBrowser(e.target.value as typeof bsBrowser)}
                     disabled={disabled || saving}
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
                   >
                     <option value="chrome">Chrome</option>
                     <option value="firefox">Firefox</option>
@@ -332,19 +332,19 @@ export function ProjectExecutionSettings({
                     <option value="safari">Safari</option>
                   </select>
                 </label>
-                <label className="block text-xs text-zinc-400">
+                <label className="block text-xs text-slate-500">
                   Browser version
                   <input
                     value={bsBrowserVersion}
                     onChange={(e) => setBsBrowserVersion(e.target.value)}
                     placeholder="latest"
                     disabled={disabled || saving}
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
                   />
                 </label>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block text-xs text-zinc-400">
+                <label className="block text-xs text-slate-500">
                   Operating system
                   <select
                     value={bsOs}
@@ -354,19 +354,19 @@ export function ProjectExecutionSettings({
                       setBsOsVersion(next === "OS X" ? "Sonoma" : "11");
                     }}
                     disabled={disabled || saving}
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
                   >
                     <option value="Windows">Windows</option>
                     <option value="OS X">macOS</option>
                   </select>
                 </label>
-                <label className="block text-xs text-zinc-400">
+                <label className="block text-xs text-slate-500">
                   OS version
                   <select
                     value={bsOsVersion}
                     onChange={(e) => setBsOsVersion(e.target.value)}
                     disabled={disabled || saving}
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
                   >
                     {bsOs === "Windows" ? (
                       <>
@@ -385,10 +385,10 @@ export function ProjectExecutionSettings({
                   </select>
                 </label>
               </div>
-              <p className="text-[11px] text-zinc-400">
-                AutomationAI will generate <code className="text-zinc-300">browserstack.yml</code> and a{" "}
-                <code className="text-zinc-300">test:bs</code> script. Run{" "}
-                <code className="rounded bg-white/5 px-1 text-zinc-300">npm run test:bs</code> from the
+              <p className="text-[11px] text-slate-500">
+                AutomationAI will generate <code className="text-slate-600">browserstack.yml</code> and a{" "}
+                <code className="text-slate-600">test:bs</code> script. Run{" "}
+                <code className="rounded bg-slate-50 px-1 text-slate-600">npm run test:bs</code> from the
                 framework folder to execute on BrowserStack.
               </p>
             </>
@@ -398,73 +398,73 @@ export function ProjectExecutionSettings({
           {platformType === "mobile" && (
             <>
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block text-xs text-zinc-400">
+                <label className="block text-xs text-slate-500">
                   Device name
                   <input
                     value={bsDeviceName}
                     onChange={(e) => setBsDeviceName(e.target.value)}
                     placeholder="iPhone 14"
                     disabled={disabled || saving}
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
                   />
                 </label>
-                <label className="block text-xs text-zinc-400">
+                <label className="block text-xs text-slate-500">
                   OS version
                   <input
                     value={bsOsVersion}
                     onChange={(e) => setBsOsVersion(e.target.value)}
                     placeholder="16"
                     disabled={disabled || saving}
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
                   />
                 </label>
               </div>
-              <label className="block text-xs text-zinc-400">
+              <label className="block text-xs text-slate-500">
                 App URL / path
                 <input
                   value={bsAppUrl}
                   onChange={(e) => setBsAppUrl(e.target.value)}
                   placeholder="bs://… or /path/to/MyApp.ipa"
                   disabled={disabled || saving}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
                 />
-                <span className="mt-1 block text-[10px] text-zinc-500">
-                  BrowserStack app URL (<code className="text-zinc-400">bs://…</code>) returned after uploading your app, or a local path
+                <span className="mt-1 block text-[10px] text-slate-500">
+                  BrowserStack app URL (<code className="text-slate-500">bs://…</code>) returned after uploading your app, or a local path
                 </span>
               </label>
             </>
           )}
 
-          {/* Test connection */}
+          {/* Test Connection */}
           <div className="space-y-2">
             <button
               type="button"
               onClick={() => void onTestBrowserStack()}
               disabled={testing || saving || disabled || (!bsUsername.trim() && !response?.secrets.browserstackAccessKeyConfigured)}
-              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/[0.07] disabled:opacity-50 transition"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition"
               data-testid="execution-bs-test-btn"
             >
-              {testing ? <><BsSpinner />Testing…</> : "Test connection"}
+              {testing ? <><BsSpinner />Testing…</> : "Test Connection"}
             </button>
             {testResult !== null && (
               <div
                 role="alert"
                 className={`rounded-lg border px-3 py-2 text-xs ${
                   testResult.ok
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                    : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-rose-200 bg-rose-50 text-rose-600"
                 }`}
               >
                 {testResult.ok
                   ? `✓ Connected${testResult.plan ? ` — ${testResult.plan}` : ""}${testResult.parallelSessions !== undefined ? ` · ${testResult.parallelSessions} parallel sessions` : ""}.`
-                  : `✗ ${testResult.error ?? "Connection failed"}`}
+                  : `✗ ${testResult.error ?? "Connection Failed"}`}
               </div>
             )}
           </div>
 
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-slate-500">
             Find your credentials at{" "}
-            <span className="text-zinc-400">browserstack.com → Account → Settings</span>
+            <span className="text-slate-500">browserstack.com → Account → Settings</span>
           </p>
         </div>
       )}
@@ -478,23 +478,23 @@ export function ProjectExecutionSettings({
 
     {/* GitHub CI config — outside the main form, has its own submit */}
     {provider === "github-ci" && (
-      <form onSubmit={(e) => void onSaveGithubCi(e)} className="mt-4 space-y-4 rounded-xl border border-white/10 bg-ink-950/40 p-4 space-y-4" data-testid="github-ci-form">
+      <form onSubmit={(e) => void onSaveGithubCi(e)} className="mt-4 space-y-4 rounded-xl border border-slate-200 bg-white p-4 space-y-4" data-testid="github-ci-form">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-white">GitHub Actions settings</h3>
+          <h3 className="text-sm font-semibold text-slate-900">GitHub Actions settings</h3>
           {ciInfo?.hasCiToken && (
-            <span className="flex items-center gap-1.5 text-[11px] text-emerald-300">
+            <span className="flex items-center gap-1.5 text-[11px] text-emerald-700">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
               Token configured
               {ciInfo.ciTokenPreview && (
-                <span className="font-mono text-zinc-500">{ciInfo.ciTokenPreview}</span>
+                <span className="font-mono text-slate-500">{ciInfo.ciTokenPreview}</span>
               )}
             </span>
           )}
         </div>
 
-        <label className="block text-xs text-zinc-400">
+        <label className="block text-xs text-slate-500">
           Personal access token{" "}
-          <span className="text-zinc-500">
+          <span className="text-slate-500">
             {ciInfo?.hasCiToken ? "(leave blank to keep current)" : "(required)"}
           </span>
           <input
@@ -504,16 +504,16 @@ export function ProjectExecutionSettings({
             autoComplete="off"
             placeholder={ciInfo?.hasCiToken ? "••••••••" : "ghp_…"}
             disabled={disabled || savingCi}
-            className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 font-mono text-sm text-white disabled:opacity-50"
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 font-mono text-sm text-slate-900 disabled:opacity-50"
             data-testid="github-ci-token-input"
           />
-          <span className="mt-1 block text-[10px] text-zinc-500">
-            GitHub PAT with <code className="text-zinc-400">repo</code> + <code className="text-zinc-400">workflow</code> scopes.
+          <span className="mt-1 block text-[10px] text-slate-500">
+            GitHub PAT with <code className="text-slate-500">repo</code> + <code className="text-slate-500">workflow</code> scopes.
             Generate at GitHub → Settings → Developer settings → Personal access tokens.
           </span>
         </label>
 
-        <label className="block text-xs text-zinc-400">
+        <label className="block text-xs text-slate-500">
           Workflow file
           <input
             value={workflowFile}
@@ -521,15 +521,15 @@ export function ProjectExecutionSettings({
             placeholder="run-tests.yml"
             maxLength={200}
             disabled={disabled || savingCi}
-            className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
             data-testid="github-ci-workflow-file-input"
           />
-          <span className="mt-1 block text-[10px] text-zinc-500">
-            File name inside <code className="text-zinc-400">.github/workflows/</code> — default is <code className="text-zinc-400">run-tests.yml</code>, auto-generated when the project is created.
+          <span className="mt-1 block text-[10px] text-slate-500">
+            File name inside <code className="text-slate-500">.github/workflows/</code> — default is <code className="text-slate-500">run-tests.yml</code>, auto-generated when the project is created.
           </span>
         </label>
 
-        <label className="block text-xs text-zinc-400">
+        <label className="block text-xs text-slate-500">
           Report emails
           <input
             value={reportEmails}
@@ -537,12 +537,12 @@ export function ProjectExecutionSettings({
             placeholder="alice@example.com, bob@example.com"
             maxLength={1000}
             disabled={disabled || savingCi}
-            className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
             data-testid="github-ci-report-emails-input"
           />
-          <span className="mt-1 block text-[10px] text-zinc-500">
+          <span className="mt-1 block text-[10px] text-slate-500">
             Comma-separated email addresses. The workflow will email the test report to these addresses after each run.
-            Requires GitHub secrets: <code className="text-zinc-400">MAIL_SERVER</code>, <code className="text-zinc-400">MAIL_PORT</code>, <code className="text-zinc-400">MAIL_USERNAME</code>, <code className="text-zinc-400">MAIL_PASSWORD</code>.
+            Requires GitHub secrets: <code className="text-slate-500">MAIL_SERVER</code>, <code className="text-slate-500">MAIL_PORT</code>, <code className="text-slate-500">MAIL_USERNAME</code>, <code className="text-slate-500">MAIL_PASSWORD</code>.
           </span>
         </label>
 
@@ -584,13 +584,13 @@ function ProviderCard({
       onClick={onClick}
       className={`rounded-xl border px-4 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
         active
-          ? "border-accent/40 bg-accent/10 ring-1 ring-accent/30"
-          : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
+          ? "border-accent/40 bg-accent/10 ring-1 ring-green-400/20"
+          : "border-slate-200 bg-slate-50 hover:border-slate-200 hover:bg-slate-50"
       }`}
       data-testid={testId}
     >
-      <p className={`text-sm font-semibold ${active ? "text-accent" : "text-zinc-200"}`}>{title}</p>
-      <p className="mt-0.5 text-xs text-zinc-400">{description}</p>
+      <p className={`text-sm font-semibold ${active ? "text-green-700" : "text-slate-700"}`}>{title}</p>
+      <p className="mt-0.5 text-xs text-slate-500">{description}</p>
     </button>
   );
 }

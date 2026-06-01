@@ -12,12 +12,12 @@ type ChangedFile = {
 };
 
 const LABEL_COLOR: Record<ChangedFile["label"], string> = {
-  modified:  "text-amber-400",
-  added:     "text-emerald-400",
-  deleted:   "text-rose-400",
-  untracked: "text-sky-400",
-  renamed:   "text-violet-400",
-  other:     "text-zinc-400",
+  modified:  "text-amber-700",
+  added:     "text-emerald-700",
+  deleted:   "text-rose-600",
+  untracked: "text-sky-700",
+  renamed:   "text-violet-700",
+  other:     "text-slate-500",
 };
 
 const LABEL_ABBR: Record<ChangedFile["label"], string> = {
@@ -220,35 +220,35 @@ export function GitPushPanel({
       {/* Backdrop — fully opaque so the workspace behind is completely hidden */}
       <div
         ref={overlayRef}
-        className="fixed inset-0 z-40 bg-ink-950"
+        className="fixed inset-0 z-40 bg-white"
         onClick={onClose}
         aria-hidden
       />
 
       {/* Shell — narrow without preview, full-width split with preview */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 flex flex-row bg-ink-900 shadow-2xl ring-1 ring-white/10 sm:left-[72px] transition-[width] duration-200 ${
+        className={`fixed inset-y-0 left-0 z-50 flex flex-row bg-white shadow-xl ring-1 ring-slate-200 transition-[width] duration-200 ${
           hasDiffPane ? "right-0" : "w-full max-w-sm"
         }`}
         role="dialog"
-        aria-label="Push changes"
+        aria-label="Push Changes"
       >
         {/* ── LEFT PANE: file list ────────────────────────────────────── */}
-        <aside className={`flex flex-col ${hasDiffPane ? "w-72 shrink-0 border-r border-white/10" : "flex-1"}`}>
+        <aside className={`flex flex-col ${hasDiffPane ? "w-72 shrink-0 border-r border-slate-200" : "flex-1"}`}>
 
           {/* Header */}
-          <div className="border-b border-white/10 px-4 py-3">
+          <div className="border-b border-slate-200 px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <h2 className="text-sm font-semibold text-white">Push changes</h2>
-                <p className="text-[11px] text-zinc-500">Select files and push to your branch</p>
+                <h2 className="text-sm font-semibold text-slate-900">Push Changes</h2>
+                <p className="text-[11px] text-slate-500">Select files and push to your branch</p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
                   disabled={fetching || pushing}
                   onClick={() => void onFetch()}
-                  className="inline-flex items-center gap-1 rounded-lg border border-sky-500/25 bg-sky-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-500/15 disabled:opacity-50 transition"
+                  className="inline-flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-[11px] font-semibold text-sky-700 hover:bg-sky-100 disabled:opacity-50 transition"
                   data-testid="git-push-fetch-btn"
                 >
                   <FetchIcon />
@@ -257,7 +257,7 @@ export function GitPushPanel({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/[0.06] hover:text-white"
+                  className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                   aria-label="Close"
                   data-testid="git-push-close-btn"
                 >
@@ -268,8 +268,8 @@ export function GitPushPanel({
             {fetchResult !== null && (
               <div className={`mt-2 rounded-lg border px-2.5 py-1.5 text-[11px] font-mono break-all ${
                 fetchResult.newCommits
-                  ? "border-sky-500/25 bg-sky-500/10 text-sky-200"
-                  : "border-white/[0.06] bg-white/[0.02] text-zinc-500"
+                  ? "border-sky-200 bg-sky-50 text-sky-700"
+                  : "border-slate-200 bg-slate-50 text-slate-500"
               }`}>
                 {fetchResult.output}
               </div>
@@ -279,42 +279,42 @@ export function GitPushPanel({
           {/* File list body */}
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
             {loading ? (
-              <div className="flex items-center gap-2 py-8 text-sm text-zinc-400">
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/10 border-t-zinc-400" />
+              <div className="flex items-center gap-2 py-8 text-sm text-slate-500">
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-zinc-400" />
                 Loading…
               </div>
             ) : loadError !== null ? (
-              <div className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 py-3 text-xs text-rose-300">
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-3 text-xs text-rose-600">
                 <p className="font-semibold">Could not load files</p>
-                <p className="mt-1 text-rose-300/80">{loadError}</p>
+                <p className="mt-1 text-rose-600/80">{loadError}</p>
                 <button
                   type="button"
                   onClick={() => void loadFiles()}
-                  className="mt-2 rounded-lg border border-white/10 px-3 py-1.5 font-semibold text-zinc-300 hover:bg-white/[0.04]"
+                  className="mt-2 rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-600 hover:bg-slate-50"
                   data-testid="git-push-retry-btn"
                 >
                   Retry
                 </button>
               </div>
             ) : files.length === 0 ? (
-              <p className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-8 text-center text-xs text-zinc-500">
+              <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs text-slate-500">
                 No changed files — working tree is clean.
               </p>
             ) : (
               <>
-                <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                <div className="flex items-center justify-between text-[11px] text-slate-500">
                   <span>{files.length} file{files.length === 1 ? "" : "s"} changed</span>
-                  <button type="button" onClick={toggleAll} className="text-zinc-400 hover:text-white" data-testid="git-push-toggle-all-btn">
-                    {selected.size === files.length ? "Deselect all" : "Select all"}
+                  <button type="button" onClick={toggleAll} className="text-slate-500 hover:text-slate-900" data-testid="git-push-toggle-all-btn">
+                    {selected.size === files.length ? "Deselect All" : "Select All"}
                   </button>
                 </div>
 
-                <ul className="rounded-xl border border-white/[0.06] bg-black/20">
+                <ul className="rounded-xl border border-slate-200 bg-white">
                   {files.map((f) => (
                     <li
                       key={f.path}
-                      className={`group flex items-center border-b border-white/[0.04] last:border-0 ${
-                        previewFile?.path === f.path ? "bg-white/[0.07]" : "hover:bg-white/[0.04]"
+                      className={`group flex items-center border-b border-slate-200 last:border-0 ${
+                        previewFile?.path === f.path ? "bg-slate-50" : "hover:bg-slate-50"
                       }`}
                     >
                       {/* Checkbox */}
@@ -323,7 +323,7 @@ export function GitPushPanel({
                           type="checkbox"
                           checked={selected.has(f.path)}
                           onChange={() => toggleFile(f.path)}
-                          className="h-3 w-3 rounded border-white/20 bg-ink-950 accent-accent"
+                          className="h-3 w-3 rounded border-slate-200 bg-white accent-accent"
                         />
                         <span className={`w-3.5 shrink-0 font-mono font-bold text-[10px] ${LABEL_COLOR[f.label]}`} title={f.label}>
                           {LABEL_ABBR[f.label]}
@@ -337,7 +337,7 @@ export function GitPushPanel({
                         title={f.path}
                       >
                         <span className={`block truncate font-mono text-[11px] ${
-                          previewFile?.path === f.path ? "text-white" : "text-zinc-300 group-hover:text-white"
+                          previewFile?.path === f.path ? "text-slate-900" : "text-slate-600 group-hover:text-slate-900"
                         }`}>
                           {f.path}
                         </span>
@@ -345,16 +345,16 @@ export function GitPushPanel({
                       {/* Per-file discard button */}
                       {confirmDiscard === f.path ? (
                         <span className="flex shrink-0 items-center gap-1 pr-2">
-                          <span className="text-[10px] text-zinc-400">Discard?</span>
+                          <span className="text-[10px] text-slate-500">Discard?</span>
                           <button
                             type="button"
                             onClick={() => void onDiscard([f.path])}
-                            className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-rose-500/20 text-rose-300 hover:bg-rose-500/30"
+                            className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-rose-100 text-rose-600 hover:bg-rose-500/30"
                           >Yes</button>
                           <button
                             type="button"
                             onClick={() => setConfirmDiscard(null)}
-                            className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-zinc-500 hover:text-zinc-300"
+                            className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 hover:text-slate-600"
                           >No</button>
                         </span>
                       ) : (
@@ -362,8 +362,8 @@ export function GitPushPanel({
                           type="button"
                           onClick={() => setConfirmDiscard(f.path)}
                           disabled={discarding || pushing}
-                          className="mr-2 shrink-0 rounded p-1 text-zinc-600 opacity-0 group-hover:opacity-100 hover:bg-rose-500/15 hover:text-rose-400 disabled:hidden transition"
-                          title="Discard changes"
+                          className="mr-2 shrink-0 rounded p-1 text-slate-500 opacity-0 group-hover:opacity-100 hover:bg-rose-100 hover:text-rose-600 disabled:hidden transition"
+                          title="Discard Changes"
                           data-testid={`git-discard-file-btn-${f.path}`}
                         >
                           <DiscardIcon />
@@ -376,15 +376,15 @@ export function GitPushPanel({
             )}
 
             {/* Commit message */}
-            <label className="block text-xs text-zinc-400">
-              Commit message <span className="text-zinc-600">(optional)</span>
+            <label className="block text-xs text-slate-500">
+              Commit message <span className="text-slate-500">(optional)</span>
               <input
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="chore: sync test framework"
                 maxLength={500}
-                className="mt-1.5 w-full rounded-lg border border-white/10 bg-ink-950/60 px-3 py-2 text-sm text-white placeholder-zinc-600 focus:border-accent/40 focus:outline-none"
+                className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-green-400 focus:outline-none"
                 data-testid="git-push-commit-message-input"
               />
             </label>
@@ -394,7 +394,7 @@ export function GitPushPanel({
                 href={prUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-xl border border-accent/25 bg-accent/10 px-4 py-3 text-sm font-medium text-accent hover:bg-accent/15"
+                className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700 hover:bg-green-100"
                 data-testid="git-push-create-pr-link"
               >
                 <PrIcon />
@@ -404,19 +404,19 @@ export function GitPushPanel({
           </div>
 
           {/* Footer */}
-          <div className="border-t border-white/10 p-3 space-y-2">
+          <div className="border-t border-slate-200 p-3 space-y-2">
             {/* Discard selected — shown when files are selected */}
             {selected.size > 0 && (
               confirmDiscard === "selected" ? (
-                <div className="flex items-center gap-2 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2">
-                  <span className="flex-1 text-xs text-rose-300">
-                    Discard changes to {selected.size} file{selected.size === 1 ? "" : "s"}? This cannot be undone.
+                <div className="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+                  <span className="flex-1 text-xs text-rose-600">
+                    Discard Changes to {selected.size} file{selected.size === 1 ? "" : "s"}? This cannot be undone.
                   </span>
                   <button
                     type="button"
                     onClick={() => void onDiscard(Array.from(selected))}
                     disabled={discarding}
-                    className="rounded-lg px-2.5 py-1 text-xs font-semibold bg-rose-500/25 text-rose-300 hover:bg-rose-500/35 disabled:opacity-50"
+                    className="rounded-lg px-2.5 py-1 text-xs font-semibold bg-rose-500/25 text-rose-600 hover:bg-rose-500/35 disabled:opacity-50"
                     data-testid="git-discard-confirm-btn"
                   >
                     {discarding ? "Discarding…" : "Discard"}
@@ -424,7 +424,7 @@ export function GitPushPanel({
                   <button
                     type="button"
                     onClick={() => setConfirmDiscard(null)}
-                    className="rounded-lg px-2 py-1 text-xs text-zinc-500 hover:text-zinc-300"
+                    className="rounded-lg px-2 py-1 text-xs text-slate-500 hover:text-slate-600"
                   >
                     Cancel
                   </button>
@@ -434,7 +434,7 @@ export function GitPushPanel({
                   type="button"
                   onClick={() => setConfirmDiscard("selected")}
                   disabled={discarding || pushing}
-                  className="w-full rounded-lg border border-rose-500/20 bg-rose-500/[0.07] px-3 py-1.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/15 disabled:opacity-50 transition"
+                  className="w-full rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-100 disabled:opacity-50 transition"
                   data-testid="git-discard-selected-btn"
                 >
                   <span className="flex items-center justify-center gap-1.5">
@@ -454,7 +454,7 @@ export function GitPushPanel({
               >
                 {pushing ? (
                   <>
-                    <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-midnight-950/20 border-t-midnight-950" />
+                    <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 " />
                     Pushing…
                   </>
                 ) : (
@@ -483,28 +483,28 @@ export function GitPushPanel({
           <div className="flex min-w-0 flex-1 flex-col">
 
             {/* Diff header */}
-            <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+            <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
               <span className={`shrink-0 w-5 text-center font-mono text-xs font-bold ${LABEL_COLOR[previewFile.label]}`}>
                 {LABEL_ABBR[previewFile.label]}
               </span>
-              <span className="min-w-0 flex-1 truncate font-mono text-sm text-zinc-200" title={previewFile.path}>
+              <span className="min-w-0 flex-1 truncate font-mono text-sm text-slate-700" title={previewFile.path}>
                 {previewFile.path}
               </span>
               <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                 previewFile.label === "added" || previewFile.label === "untracked"
-                  ? "bg-emerald-500/15 text-emerald-300"
+                  ? "bg-emerald-100 text-emerald-700"
                   : previewFile.label === "deleted"
-                  ? "bg-rose-500/15 text-rose-300"
+                  ? "bg-rose-100 text-rose-600"
                   : previewFile.label === "renamed"
-                  ? "bg-violet-500/15 text-violet-300"
-                  : "bg-amber-500/15 text-amber-300"
+                  ? "bg-violet-100 text-violet-700"
+                  : "bg-amber-100 text-amber-600"
               }`}>
                 {previewFile.label}
               </span>
               <button
                 type="button"
                 onClick={() => { setPreviewFile(null); setPreviewDiff(null); }}
-                className="shrink-0 rounded-lg p-1.5 text-zinc-500 hover:bg-white/[0.06] hover:text-white"
+                className="shrink-0 rounded-lg p-1.5 text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                 aria-label="Close diff"
                 data-testid="git-push-close-diff-btn"
               >
@@ -514,12 +514,12 @@ export function GitPushPanel({
 
             {/* New / deleted file banner */}
             {!previewLoading && previewIsNew && (
-              <div className="border-b border-emerald-500/20 bg-emerald-500/[0.07] px-4 py-1.5 text-[11px] text-emerald-400">
+              <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-1.5 text-[11px] text-emerald-700">
                 New file — entire content shown as additions (no previous version in git history)
               </div>
             )}
             {!previewLoading && previewIsDeleted && (
-              <div className="border-b border-rose-500/20 bg-rose-500/[0.07] px-4 py-1.5 text-[11px] text-rose-400">
+              <div className="border-b border-rose-200 bg-rose-50 px-4 py-1.5 text-[11px] text-rose-600">
                 Deleted file — showing last committed content
               </div>
             )}
@@ -532,8 +532,8 @@ export function GitPushPanel({
             {/* Diff content */}
             <div className="min-h-0 flex-1 overflow-auto">
               {previewLoading ? (
-                <div className="flex items-center gap-2 px-6 py-10 text-sm text-zinc-500">
-                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/10 border-t-zinc-400" />
+                <div className="flex items-center gap-2 px-6 py-10 text-sm text-slate-500">
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-zinc-400" />
                   Loading diff…
                 </div>
               ) : (
@@ -557,12 +557,12 @@ function DiffStats({ diff }: { diff: string }) {
   }
   if (additions === 0 && deletions === 0) return null;
   return (
-    <div className="flex items-center gap-3 border-b border-white/[0.06] bg-white/[0.02] px-4 py-1.5 text-[11px]">
+    <div className="flex items-center gap-3 border-b border-slate-200 bg-slate-50 px-4 py-1.5 text-[11px]">
       {additions > 0 && (
-        <span className="font-mono font-semibold text-emerald-400">+{additions}</span>
+        <span className="font-mono font-semibold text-emerald-700">+{additions}</span>
       )}
       {deletions > 0 && (
-        <span className="font-mono font-semibold text-rose-400">−{deletions}</span>
+        <span className="font-mono font-semibold text-rose-600">−{deletions}</span>
       )}
     </div>
   );
@@ -571,7 +571,7 @@ function DiffStats({ diff }: { diff: string }) {
 // ─── Diff renderer ─────────────────────────────────────────────────────────────
 
 function DiffView({ diff }: { diff: string }) {
-  if (!diff) return <p className="px-6 py-8 text-sm text-zinc-600">(no changes)</p>;
+  if (!diff) return <p className="px-6 py-8 text-sm text-slate-500">(no changes)</p>;
 
   const lines = diff.split("\n");
   let addLine = 0, delLine = 0;
@@ -605,31 +605,31 @@ function DiffView({ diff }: { diff: string }) {
           <tr
             key={i}
             className={
-              l.isAdd  ? "bg-emerald-950/30 hover:bg-emerald-950/50" :
-              l.isDel  ? "bg-rose-950/30 hover:bg-rose-950/50" :
-              l.isHunk ? "bg-sky-950/20" :
-              "hover:bg-white/[0.02]"
+              l.isAdd  ? "bg-emerald-50 hover:bg-emerald-50" :
+              l.isDel  ? "bg-rose-50 hover:bg-rose-50" :
+              l.isHunk ? "bg-sky-50" :
+              "hover:bg-slate-50"
             }
           >
             {/* Line number */}
-            <td className={`select-none w-10 px-2 py-0 text-right text-[10px] border-r border-white/[0.05] ${
-              l.isAdd ? "text-emerald-700" : l.isDel ? "text-rose-700" : "text-zinc-700"
+            <td className={`select-none w-10 px-2 py-0 text-right text-[10px] border-r border-slate-200 ${
+              l.isAdd ? "text-emerald-700" : l.isDel ? "text-rose-700" : "text-slate-700"
             }`}>
               {l.lineNo}
             </td>
             {/* Gutter symbol */}
-            <td className={`select-none w-5 px-1 py-0 text-center text-[11px] border-r border-white/[0.05] ${
-              l.isAdd ? "text-emerald-500" : l.isDel ? "text-rose-500" : "text-zinc-700"
+            <td className={`select-none w-5 px-1 py-0 text-center text-[11px] border-r border-slate-200 ${
+              l.isAdd ? "text-emerald-500" : l.isDel ? "text-rose-500" : "text-slate-700"
             }`}>
               {l.isAdd ? "+" : l.isDel ? "−" : l.isHunk ? "↕" : ""}
             </td>
             {/* Content */}
             <td className={`whitespace-pre-wrap break-all px-4 py-[1px] ${
-              l.isAdd    ? "text-emerald-200" :
-              l.isDel    ? "text-rose-200" :
+              l.isAdd    ? "text-emerald-700" :
+              l.isDel    ? "text-rose-700" :
               l.isHunk   ? "text-sky-400 italic" :
-              l.isHeader ? "text-zinc-600" :
-              "text-zinc-300"
+              l.isHeader ? "text-slate-500" :
+              "text-slate-600"
             }`}>
               {l.isAdd || l.isDel ? l.raw.slice(1) : l.raw}
             </td>

@@ -6,8 +6,8 @@ const iconClass = "h-[18px] w-[18px]";
 
 export function WorkspaceTabIcon({ tab, active }: { tab: WorkspaceTab; active: boolean }) {
   const shell = active
-    ? "border-white/20 shadow-md shadow-black/20 ring-1 ring-white/10"
-    : "border-white/[0.08] group-hover:border-white/15";
+    ? "border-slate-300 shadow-sm ring-1 ring-slate-100"
+    : "border-slate-200 group-hover:border-slate-300";
 
   return (
     <span
@@ -21,15 +21,15 @@ export function WorkspaceTabIcon({ tab, active }: { tab: WorkspaceTab; active: b
 
 function iconTone(tab: WorkspaceTab): string {
   const tones: Record<WorkspaceTab, string> = {
-    overview: "from-slate-500/30 to-slate-700/40 text-slate-200",
-    setup: "from-violet-500/25 to-indigo-600/35 text-violet-200",
-    requirements: "from-sky-500/25 to-blue-600/35 text-sky-200",
-    recorder: "from-rose-500/30 to-orange-600/35 text-rose-100",
-    "generate-pom": "from-amber-500/25 to-yellow-600/30 text-amber-100",
-    "test-plans": "from-emerald-500/25 to-teal-600/35 text-emerald-100",
-    "test-execution": "from-accent/35 to-emerald-500/30 text-accent",
-    "test-reports": "from-cyan-500/25 to-sky-600/35 text-cyan-100",
-    framework: "from-orange-500/20 to-amber-700/35 text-orange-100",
+    overview: "from-slate-100 to-slate-200 text-slate-600",
+    setup: "from-violet-100 to-indigo-100 text-violet-700",
+    requirements: "from-sky-100 to-blue-100 text-sky-700",
+    recorder: "from-rose-100 to-orange-100 text-rose-700",
+    "generate-pom": "from-amber-100 to-yellow-100 text-amber-700",
+    "test-plans": "from-emerald-100 to-teal-100 text-emerald-700",
+    "test-execution": "from-green-100 to-emerald-100 text-green-700",
+    "test-reports": "from-cyan-100 to-sky-100 text-cyan-700",
+    framework: "from-orange-100 to-amber-100 text-orange-700",
   };
   return tones[tab];
 }
@@ -157,7 +157,7 @@ function FrameworkIcon({ className }: IconProps) {
 export function WorkspaceTabIconCompact({ tab }: { tab: WorkspaceTab }) {
   return (
     <span
-      className={`inline-flex h-5 w-5 items-center justify-center rounded-md bg-white/10 ${iconTone(tab).split(" ").slice(-1).join(" ")}`}
+      className={`inline-flex h-5 w-5 items-center justify-center rounded-md bg-slate-50 ${iconTone(tab).split(" ").slice(-1).join(" ")}`}
       aria-hidden
     >
       <span className="scale-90">{iconGlyph(tab)}</span>

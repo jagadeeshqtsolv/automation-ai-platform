@@ -10,13 +10,13 @@ export default function LoginPage() {
       subtitle="Sign in to manage requirements, environments, and AI-generated Playwright tests across your organization."
       footer={
         <>
-          <Link href="/" className="text-zinc-400 transition hover:text-white">
+          <Link href="/" className="text-slate-500 transition hover:text-slate-900">
             Back to home
           </Link>
         </>
       }
     >
-      <Suspense fallback={<p className="text-sm text-zinc-400">Loading…</p>}>
+      <Suspense fallback={<p className="text-sm text-slate-500">Loading…</p>}>
         <LoginForm />
       </Suspense>
     </AuthPageShell>

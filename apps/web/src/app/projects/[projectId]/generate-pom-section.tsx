@@ -118,91 +118,138 @@ export function GeneratePomSection({
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-white/10 bg-ink-900/40 p-6">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Page object library</h2>
-          <p className="mt-1 text-sm text-zinc-400">
-            Classes saved from the recorder or test codegen. Edit locators (<code className="text-zinc-300">L</code>) or
-            methods, then save to sync <code className="text-zinc-300">frameworks/</code>.
-          </p>
+    <section className="space-y-4 rounded-xl border border-slate-200 bg-white shadow-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+              <path strokeLinecap="round" d="M4 7h16M4 12h10M4 17h14" />
+              <rect x="15" y="10" width="5" height="5" rx="1" fill="currentColor" fillOpacity="0.15" />
+              <rect x="15" y="10" width="5" height="5" rx="1" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">Page Object Library</h2>
+            <p className="text-xs text-slate-500">
+              {pageObjects.length > 0
+                ? `${pageObjects.length} class${pageObjects.length !== 1 ? "es" : ""} — edit locators or methods, then save to sync`
+                : "Classes saved from the recorder or test codegen"}
+            </p>
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json,.ts,.tsx"
-            className="hidden"
-            onChange={(e) => void handleImport(e)}
-          />
+        <div className="flex items-center gap-2">
+          <input ref={fileInputRef} type="file" accept=".json,.ts,.tsx" className="hidden" onChange={(e) => void handleImport(e)} />
+          {pageObjects.length > 0 && (
+            <button
+              type="button"
+              disabled={busy !== null || deletingId !== null}
+              onClick={() => onEditPage(pageObjects[0]?.id ?? null)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              Open Editor
+            </button>
+          )}
           <button
             type="button"
             disabled={importing}
             onClick={() => fileInputRef.current?.click()}
-            className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-white/10 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm hover:bg-slate-50 disabled:opacity-50"
           >
-            {importing ? "Importing…" : "⬆ Import from Recorder"}
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            {importing ? "Importing…" : "Import"}
           </button>
         </div>
-      </header>
+      </div>
 
-      {pageObjects.length === 0 ? (
-        <p className="text-sm text-zinc-500">
-          No saved page objects yet. Use the <strong className="font-medium text-zinc-400">Recorder</strong> tab to
-          capture screens from a connected device.
-        </p>
-      ) : (
-        <ul className="space-y-2 max-h-[55vh] overflow-auto">
-          {pageObjects.map((p) => (
-            <li key={p.id} className="rounded-lg border border-white/10 bg-ink-950/30 p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-white">
-                    {p.className}{" "}
-                    <span className="block text-xs font-normal text-zinc-500 truncate">{p.modulePath}</span>
-                  </p>
-                  <p className="mt-1 max-h-10 overflow-hidden text-[11px] text-zinc-400 whitespace-pre-wrap">
-                    {p.methodSummary || "—"}
-                  </p>
+      {/* List */}
+      <div className="px-5 pb-5">
+        {pageObjects.length === 0 ? (
+          <div className="flex flex-col items-center py-10 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-2xl">🧩</div>
+            <p className="mt-3 text-sm font-medium text-slate-700">No page objects yet</p>
+            <p className="mt-1 text-xs text-slate-500">Use the Recorder tab to capture screens, or import a .ts file.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {pageObjects.map((p, idx) => {
+              const methods = p.methodSummary ? p.methodSummary.split(",").map((m) => m.trim()).filter(Boolean) : [];
+              return (
+                <div key={p.id} className="flex items-start gap-4 py-3 first:pt-0 last:pb-0">
+                  {/* Index */}
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100 text-[10px] font-bold text-slate-500">
+                    {idx + 1}
+                  </span>
+                  {/* Info */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-900">{p.className}</p>
+                      <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">.ts</span>
+                    </div>
+                    <p className="mt-0.5 truncate font-mono text-[11px] text-slate-400">{p.modulePath}</p>
+                    {methods.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {methods.slice(0, 6).map((m) => (
+                          <span key={m} className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">
+                            {m}
+                          </span>
+                        ))}
+                        {methods.length > 6 && (
+                          <span className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] text-slate-400">
+                            +{methods.length - 6} more
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {/* Actions */}
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={busy !== null || deletingId !== null}
+                      onClick={() => onEditPage(p.id)}
+                      className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy !== null || deletingId !== null}
+                      onClick={() => void deletePageObject(p)}
+                      className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-100 disabled:opacity-40"
+                    >
+                      {deletingId === p.id ? "…" : "Delete"}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
-                  <button
-                    type="button"
-                    className="text-xs text-accent hover:underline disabled:opacity-40"
-                    disabled={busy !== null || deletingId !== null}
-                    onClick={() => onEditPage(editingPageId === p.id ? null : p.id)}
-                  >
-                    {editingPageId === p.id ? "Close" : "Edit class"}
-                  </button>
-                  <button
-                    type="button"
-                    className="text-xs text-rose-300 hover:underline disabled:opacity-40"
-                    disabled={busy !== null || deletingId !== null}
-                    onClick={() => void deletePageObject(p)}
-                  >
-                    {deletingId === p.id ? "Deleting…" : "Delete"}
-                  </button>
-                </div>
-              </div>
-              <PageObjectEditor
-                projectId={projectId}
-                page={p}
-                disabled={busy !== null}
-                isOpen={editingPageId === p.id}
-                onClose={() => onEditPage(null)}
-                onSaved={async () => {
-                  await onReload();
-                  onFrameworkRefresh();
-                }}
-                onDeleted={async () => {
-                  await onReloadProject();
-                  onFrameworkRefresh();
-                }}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Two-panel editor — opens over the page when any Edit Class is clicked */}
+      <PageObjectEditor
+        projectId={projectId}
+        pageObjects={pageObjects}
+        initialPageId={editingPageId}
+        disabled={busy !== null}
+        isOpen={editingPageId !== null}
+        onClose={() => onEditPage(null)}
+        onSaved={async () => {
+          await onReload();
+          onFrameworkRefresh();
+        }}
+        onDeleted={async () => {
+          await onReloadProject();
+          onFrameworkRefresh();
+        }}
+      />
     </section>
   );
 }

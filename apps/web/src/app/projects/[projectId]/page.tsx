@@ -23,7 +23,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
   const isOwner = membership?.role === "owner";
 
   return (
-    <div className="ui-page py-8 sm:py-10">
+    <div className="mx-auto max-w-[1600px] px-3 py-6 sm:px-5 sm:py-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <p className="ui-eyebrow">{BRAND_NAME} · Project</p>
@@ -32,7 +32,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/dashboard" className="ui-btn-secondary">
-            All projects
+            All Projects
           </Link>
           {isOwner && <ProjectHeaderActions projectId={project.id} projectName={project.name} />}
         </div>

@@ -124,67 +124,56 @@ export function useToast(): ToastContextValue {
 }
 
 function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void }) {
-  const styles: Record<ToastVariant, string> = {
-    success:
-      "border-accent/40 bg-midnight-900/95 text-accent shadow-[0_8px_32px_-8px_rgba(141,255,181,0.35)]",
-    error: "border-rose-500/40 bg-rose-950/90 text-rose-100 shadow-[0_8px_32px_-8px_rgba(244,63,94,0.25)]",
-    info: "border-white/15 bg-midnight-900/95 text-zinc-100 shadow-panel",
+  const accent: Record<ToastVariant, string> = {
+    success: "border-l-green-500",
+    error:   "border-l-rose-500",
+    info:    "border-l-blue-500",
   };
 
-  const iconLabel: Record<ToastVariant, string> = {
-    success: "Success",
-    error: "Error",
-    info: "Notice",
+  const iconBg: Record<ToastVariant, string> = {
+    success: "bg-green-100 text-green-700",
+    error:   "bg-rose-100 text-rose-600",
+    info:    "bg-blue-100 text-blue-600",
   };
 
   return (
     <div
       role="alert"
-      className={`pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 backdrop-blur-xl animate-slide-up ${styles[item.variant]}`}
+      className={`pointer-events-auto flex w-full items-center gap-3 rounded-xl border border-l-4 border-slate-200 bg-white px-4 py-3 shadow-lg shadow-slate-200/80 animate-slide-up ${accent[item.variant]}`}
     >
-      <ToastIcon variant={item.variant} />
-      <div className="min-w-0 flex-1 pt-0.5">
-        <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70">{iconLabel[item.variant]}</p>
-        <p className="mt-0.5 text-sm leading-snug">{item.message}</p>
-      </div>
+      {/* Icon */}
+      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${iconBg[item.variant]}`}>
+        {item.variant === "success" && (
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+        {item.variant === "error" && (
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        )}
+        {item.variant === "info" && (
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        )}
+      </span>
+
+      {/* Message */}
+      <p className="min-w-0 flex-1 text-sm font-medium leading-snug text-slate-800">{item.message}</p>
+
+      {/* Dismiss */}
       <button
         type="button"
         onClick={onDismiss}
-        className="shrink-0 rounded-md p-1 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+        className="shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
         aria-label="Dismiss notification"
       >
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
     </div>
-  );
-}
-
-function ToastIcon({ variant }: { variant: ToastVariant }) {
-  if (variant === "success") {
-    return (
-      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-accent">
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-      </span>
-    );
-  }
-  if (variant === "error") {
-    return (
-      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rose-500/20 text-rose-300">
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </span>
-    );
-  }
-  return (
-    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10 text-zinc-300">
-      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    </span>
   );
 }

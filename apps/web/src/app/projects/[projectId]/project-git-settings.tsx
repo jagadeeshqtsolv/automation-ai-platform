@@ -127,7 +127,7 @@ export function ProjectGitSettings({
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        setIdentityResult({ ok: false, message: await readApiError(res, "Could not save Git settings") });
+        setIdentityResult({ ok: false, message: await readApiError(res, "Could not save Git Settings") });
         return;
       }
 
@@ -207,7 +207,7 @@ export function ProjectGitSettings({
   }
 
   if (!projectConfig || !userConfig) {
-    return <p className="text-sm text-zinc-400">Loading Git settings…</p>;
+    return <p className="text-sm text-slate-500">Loading Git Settings…</p>;
   }
 
   const repoConfigured = !!projectConfig.remoteUrl;
@@ -218,17 +218,17 @@ export function ProjectGitSettings({
     <div className="space-y-4">
 
       {/* ── Repository card ─────────────────────────────────────────── */}
-      <div className="rounded-xl border border-white/10 bg-ink-950/30 p-4 space-y-3">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-white">Repository</h3>
-            <p className="mt-0.5 text-xs text-zinc-400">Shared remote repository for this project.</p>
+            <h3 className="text-sm font-semibold text-slate-900">Repository</h3>
+            <p className="mt-0.5 text-xs text-slate-500">Shared remote repository for this project.</p>
           </div>
           {isOwner && repoConfigured && !editingRepo && (
             <button
               type="button"
               onClick={() => { setEditingRepo(true); setRepoSaveError(null); }}
-              className="shrink-0 rounded-lg border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-zinc-400 hover:bg-white/[0.06] hover:text-white transition"
+              className="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition"
               data-testid="git-repo-edit-btn"
             >
               Edit
@@ -238,43 +238,43 @@ export function ProjectGitSettings({
 
         {/* Non-owners: always read-only */}
         {!isOwner ? (
-          <div className="space-y-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+          <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
             {repoConfigured ? (
               <>
-                <p className="break-all font-mono text-xs text-zinc-300">{projectConfig.remoteUrl}</p>
-                <div className="flex items-center gap-2 text-xs text-zinc-500">
+                <p className="break-all font-mono text-xs text-slate-600">{projectConfig.remoteUrl}</p>
+                <div className="flex items-center gap-2 text-xs text-slate-500">
                   <span>Base branch:</span>
-                  <code className="text-zinc-300">{projectConfig.baseBranch}</code>
+                  <code className="text-slate-600">{projectConfig.baseBranch}</code>
                 </div>
               </>
             ) : (
-              <p className="text-xs text-zinc-500 italic">Not configured yet — ask an owner to set it up.</p>
+              <p className="text-xs text-slate-500 italic">Not Configured yet — ask an owner to set it up.</p>
             )}
-            <p className="text-[10px] text-zinc-600">Repository settings are managed by project owners.</p>
+            <p className="text-[10px] text-slate-500">Repository settings are managed by project owners.</p>
           </div>
         ) : repoConfigured && !editingRepo ? (
           /* Owner locked display */
-          <div className="space-y-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
-            <div className="flex items-center gap-1.5 text-[10px] text-zinc-500">
+          <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
               <LockIcon />
               <span>Locked — click Edit to change</span>
             </div>
-            <p className="break-all font-mono text-xs text-zinc-300">{projectConfig.remoteUrl}</p>
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
+            <p className="break-all font-mono text-xs text-slate-600">{projectConfig.remoteUrl}</p>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
               <span>Base branch:</span>
-              <code className="text-zinc-300">{projectConfig.baseBranch}</code>
+              <code className="text-slate-600">{projectConfig.baseBranch}</code>
             </div>
           </div>
         ) : (
           /* Owner editable form */
           <form onSubmit={onSaveRepo} className="space-y-3" data-testid="git-repo-form">
             {repoConfigured && editingRepo && (
-              <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-600">
                 Changing the repository URL or base branch while team members are active will break their local setup.
               </div>
             )}
-            <label className="block text-xs text-zinc-400">
-              Remote URL <span className="text-rose-300">(required)</span>
+            <label className="block text-xs text-slate-500">
+              Remote URL <span className="text-rose-600">(required)</span>
               <input
                 type="url"
                 value={remoteUrl}
@@ -282,19 +282,19 @@ export function ProjectGitSettings({
                 placeholder="https://github.com/your-org/your-repo.git"
                 required
                 disabled={savingRepo}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
                 data-testid="git-remote-url-input"
               />
             </label>
-            <label className="block text-xs text-zinc-400">
-              Base branch <span className="text-zinc-500">(PR target — e.g. main)</span>
+            <label className="block text-xs text-slate-500">
+              Base branch <span className="text-slate-500">(PR target — e.g. main)</span>
               <input
                 value={baseBranch}
                 onChange={(e) => setBaseBranch(e.target.value)}
                 placeholder="main"
                 maxLength={100}
                 disabled={savingRepo}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
                 data-testid="git-base-branch-input"
               />
             </label>
@@ -311,7 +311,7 @@ export function ProjectGitSettings({
                 <button
                   type="button"
                   onClick={() => { setEditingRepo(false); setRemoteUrl(projectConfig.remoteUrl ?? ""); setBaseBranch(projectConfig.baseBranch); setRepoSaveError(null); }}
-                  className="text-xs text-zinc-500 hover:text-zinc-300"
+                  className="text-xs text-slate-500 hover:text-slate-600"
                   data-testid="git-repo-cancel-btn"
                 >
                   Cancel
@@ -319,24 +319,24 @@ export function ProjectGitSettings({
               )}
             </div>
             {repoSaveError && (
-              <p className="text-xs text-rose-400 whitespace-pre-wrap break-words">✗ {repoSaveError}</p>
+              <p className="text-xs text-rose-600 whitespace-pre-wrap break-words">✗ {repoSaveError}</p>
             )}
           </form>
         )}
       </div>
 
       {/* ── Identity card ───────────────────────────────────────────── */}
-      <div className="rounded-xl border border-white/10 bg-ink-950/30 p-4 space-y-3">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
         <div>
-          <h3 className="text-sm font-semibold text-white">Your Git Identity</h3>
-          <p className="mt-0.5 text-xs text-zinc-400">
-            Your personal branch and commit details. Save to create your branch from <code className="text-zinc-300">{projectConfig.baseBranch}</code>.
+          <h3 className="text-sm font-semibold text-slate-900">Your Git Identity</h3>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Your personal branch and commit details. Save to create your branch from <code className="text-slate-600">{projectConfig.baseBranch}</code>.
           </p>
         </div>
 
         <form onSubmit={onSaveIdentity} className="space-y-3" data-testid="git-identity-form">
-          <label className="block text-xs text-zinc-400">
-            Your working branch <span className="text-rose-300">(required)</span>
+          <label className="block text-xs text-slate-500">
+            Your working branch <span className="text-rose-600">(required)</span>
             <input
               value={branch}
               onChange={(e) => { setBranch(e.target.value); setIdentityResult(null); }}
@@ -344,20 +344,20 @@ export function ProjectGitSettings({
               maxLength={100}
               required
               disabled={disabled || savingIdentity || initialising}
-              className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
               data-testid="git-branch-input"
             />
-            <span className="mt-1 block text-[10px] text-zinc-500">
-              Push here, then raise a PR → <code className="text-zinc-400">{projectConfig.baseBranch}</code>.
+            <span className="mt-1 block text-[10px] text-slate-500">
+              Push here, then raise a PR → <code className="text-slate-500">{projectConfig.baseBranch}</code>.
             </span>
             {branchConflicts && (
-              <span className="mt-1 block text-[10px] text-amber-400">
+              <span className="mt-1 block text-[10px] text-amber-700">
                 This is the protected base branch — choose a different name like <code>feature/your-name</code>.
               </span>
             )}
           </label>
 
-          <label className="block text-xs text-zinc-400">
+          <label className="block text-xs text-slate-500">
             Commit author name
             <input
               value={authorName}
@@ -365,12 +365,12 @@ export function ProjectGitSettings({
               placeholder="Jane Smith"
               maxLength={120}
               disabled={disabled || savingIdentity || initialising}
-              className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
               data-testid="git-author-name-input"
             />
           </label>
 
-          <label className="block text-xs text-zinc-400">
+          <label className="block text-xs text-slate-500">
             Commit author email
             <input
               type="email"
@@ -379,18 +379,18 @@ export function ProjectGitSettings({
               placeholder="jane@yourorg.com"
               maxLength={200}
               disabled={disabled || savingIdentity || initialising}
-              className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white disabled:opacity-50"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
               data-testid="git-author-email-input"
             />
           </label>
 
-          <label className="block text-xs text-zinc-400">
+          <label className="block text-xs text-slate-500">
             Personal access token{" "}
-            <span className="text-zinc-500">
+            <span className="text-slate-500">
               {userConfig.hasToken ? "(leave blank to keep current)" : "(required)"}
             </span>
             {userConfig.tokenPreview && (
-              <span className="ml-2 font-mono text-[10px] text-zinc-500">{userConfig.tokenPreview}</span>
+              <span className="ml-2 font-mono text-[10px] text-slate-500">{userConfig.tokenPreview}</span>
             )}
             <input
               type="password"
@@ -399,7 +399,7 @@ export function ProjectGitSettings({
               autoComplete="off"
               placeholder={userConfig.hasToken ? "••••••••" : "ghp_…"}
               disabled={disabled || savingIdentity || initialising}
-              className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 font-mono text-sm text-white disabled:opacity-50"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 font-mono text-sm text-slate-900 disabled:opacity-50"
               data-testid="git-token-input"
             />
           </label>
@@ -410,7 +410,7 @@ export function ProjectGitSettings({
             className="ui-btn-primary ui-btn-xs disabled:opacity-50"
             data-testid="git-identity-save-btn"
           >
-            {initialising ? <><Spinner />Setting up branch…</> : savingIdentity ? <><Spinner />Saving…</> : "Save settings"}
+            {initialising ? <><Spinner />Setting up branch…</> : savingIdentity ? <><Spinner />Saving…</> : "Save Settings"}
           </button>
         </form>
 
@@ -419,8 +419,8 @@ export function ProjectGitSettings({
             role="alert"
             className={`rounded-lg border px-3 py-2 text-xs whitespace-pre-wrap break-words ${
               identityResult.ok
-                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-rose-200 bg-rose-50 text-rose-600"
             }`}
           >
             {identityResult.ok ? "✓ " : "✗ "}{identityResult.message}
@@ -430,27 +430,27 @@ export function ProjectGitSettings({
 
       {/* ── Test Connection ─────────────────────────────────────────── */}
       {projectConfig.remoteUrl && (
-        <div className="rounded-xl border border-white/10 bg-ink-950/30 p-4 space-y-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
           <div>
-            <h3 className="text-sm font-semibold text-white">Test Connection</h3>
-            <p className="mt-0.5 text-xs text-zinc-400">Verify the repository is reachable with your access token.</p>
+            <h3 className="text-sm font-semibold text-slate-900">Test Connection</h3>
+            <p className="mt-0.5 text-xs text-slate-500">Verify the repository is reachable with your access token.</p>
           </div>
           <button
             type="button"
             onClick={() => void onTest()}
             disabled={testing}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/[0.07] disabled:opacity-50 transition"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition"
             data-testid="git-test-connection-btn"
           >
-            {testing ? <><Spinner />Testing…</> : "Test connection"}
+            {testing ? <><Spinner />Testing…</> : "Test Connection"}
           </button>
           {testResult !== null && (
             <div
               role="alert"
               className={`rounded-lg border px-3 py-2 text-xs whitespace-pre-wrap break-words ${
                 testResult.ok
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                  : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-rose-200 bg-rose-50 text-rose-600"
               }`}
             >
               {testResult.ok ? "✓ " : "✗ "}{testResult.message}
@@ -461,12 +461,12 @@ export function ProjectGitSettings({
 
       {/* ── Initialize Main Branch ──────────────────────────────────── */}
       {isOwner && projectConfig.remoteUrl && (
-        <div className="rounded-xl border border-white/10 bg-ink-950/30 p-4 space-y-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
           <div>
-            <h3 className="text-sm font-semibold text-white">Initialize Main Branch</h3>
-            <p className="mt-0.5 text-xs text-zinc-400">
+            <h3 className="text-sm font-semibold text-slate-900">Initialize Main Branch</h3>
+            <p className="mt-0.5 text-xs text-slate-500">
               Push the base project structure to{" "}
-              <code className="text-zinc-200">{projectConfig.baseBranch}</code>.
+              <code className="text-slate-700">{projectConfig.baseBranch}</code>.
               Run once to seed the repository; after this your branch switches back automatically.
             </p>
           </div>
@@ -474,23 +474,23 @@ export function ProjectGitSettings({
             type="button"
             onClick={() => void onPushToMain()}
             disabled={pushing}
-            className="inline-flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-xs font-semibold text-accent hover:bg-accent/15 disabled:opacity-50 transition"
+            className="inline-flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-xs font-semibold text-green-700 hover:bg-accent/15 disabled:opacity-50 transition"
             data-testid="git-push-to-main-btn"
           >
             {pushing ? <><Spinner />Pushing to {projectConfig.baseBranch}…</> : <><RocketIcon />Push to {projectConfig.baseBranch}</>}
           </button>
 
           {pushResult !== null && (
-            <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
               {pushResult.committed ? (
-                <>✓ Pushed to <code className="text-emerald-200">{pushResult.branch}</code> — base structure is on main.</>
+                <>✓ Pushed to <code className="text-emerald-700">{pushResult.branch}</code> — base structure is on main.</>
               ) : (
-                <>✓ <code className="text-emerald-200">{pushResult.branch}</code> is already up to date.</>
+                <>✓ <code className="text-emerald-700">{pushResult.branch}</code> is already up to date.</>
               )}
             </div>
           )}
           {pushError && (
-            <div className="rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-300 whitespace-pre-wrap break-words">
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600 whitespace-pre-wrap break-words">
               ✗ {pushError}
             </div>
           )}

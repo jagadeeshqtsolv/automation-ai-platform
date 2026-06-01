@@ -34,7 +34,7 @@ export function QuarksLogoMark({
   const px = markHeight[size];
   return (
     <span
-      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-midnight-900/60 p-1 ring-1 ring-white/10 ${className}`}
+      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 p-1 ring-1 ring-white/10 ${className}`}
       style={{ width: px, height: px }}
     >
       <Image

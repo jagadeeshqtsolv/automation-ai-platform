@@ -136,7 +136,7 @@ export function ProjectAISettings({
   }
 
   if (settings === null) {
-    return <p className="text-sm text-zinc-400">Loading AI settings…</p>;
+    return <p className="text-sm text-slate-500">Loading AI settings…</p>;
   }
 
   const active = settings.activeProvider;
@@ -144,17 +144,17 @@ export function ProjectAISettings({
   const isActive = active === selectedTab;
 
   return (
-    <div className="space-y-4 rounded-xl border border-white/10 bg-ink-950/30 p-4">
+    <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
       <div>
-        <h3 className="text-sm font-semibold text-white">AI Provider</h3>
-        <p className="mt-1 text-xs text-zinc-400">
+        <h3 className="text-sm font-semibold text-slate-900">AI Provider</h3>
+        <p className="mt-1 text-xs text-slate-500">
           Choose your AI provider (OpenAI or Claude) and add an API key. Used for all test plan, page object, and code generation.
         </p>
       </div>
 
       {/* Active provider badge */}
       {active !== null && (
-        <div className="rounded-xl border border-accent/25 bg-accent/10 px-4 py-2 text-xs text-accent">
+        <div className="rounded-xl border border-accent/25 bg-accent/10 px-4 py-2 text-xs text-green-700">
           Active provider: <span className="font-semibold">{PROVIDER_LABELS[active]}</span>
           {settings[active].model.length > 0
             ? ` — ${settings[active].model}`
@@ -177,8 +177,8 @@ export function ProjectAISettings({
             onClick={() => handleTabChange(tab)}
             className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-xs font-semibold transition-colors ${
               selectedTab === tab
-                ? "border-accent/40 bg-accent/10 text-accent"
-                : "border-white/10 bg-white/[0.03] text-zinc-400 hover:text-zinc-200"
+                ? "border-accent/40 bg-accent/10 text-green-700"
+                : "border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-700"
             }`}
             data-testid={`ai-provider-tab-${tab}`}
           >
@@ -191,42 +191,42 @@ export function ProjectAISettings({
       </div>
 
       {/* Provider panel */}
-      <div className="rounded-lg border border-white/10 p-4 space-y-3">
+      <div className="rounded-lg border border-slate-200 p-4 space-y-3">
         <div>
-          <p className="text-xs text-zinc-400">{PROVIDER_DESCRIPTIONS[selectedTab]}</p>
+          <p className="text-xs text-slate-500">{PROVIDER_DESCRIPTIONS[selectedTab]}</p>
         </div>
 
         <dl className="grid gap-2 text-xs sm:grid-cols-2">
           <div>
-            <dt className="text-zinc-500">Status</dt>
-            <dd className="mt-0.5 font-medium text-zinc-200">
+            <dt className="text-slate-500">Status</dt>
+            <dd className="mt-0.5 font-medium text-slate-700">
               {providerSettings.configured
                 ? isActive
                   ? "Active & ready"
                   : "Configured (not active)"
-                : "Not configured"}
+                : "Not Configured"}
             </dd>
           </div>
           {providerSettings.apiKeyPreview !== null && (
             <div>
-              <dt className="text-zinc-500">Saved key</dt>
-              <dd className="mt-0.5 font-mono text-zinc-300">{providerSettings.apiKeyPreview}</dd>
+              <dt className="text-slate-500">Saved key</dt>
+              <dd className="mt-0.5 font-mono text-slate-600">{providerSettings.apiKeyPreview}</dd>
             </div>
           )}
           {providerSettings.model.length > 0 && (
             <div>
-              <dt className="text-zinc-500">Model</dt>
-              <dd className="mt-0.5 font-mono text-zinc-300">{providerSettings.model}</dd>
+              <dt className="text-slate-500">Model</dt>
+              <dd className="mt-0.5 font-mono text-slate-600">{providerSettings.model}</dd>
             </div>
           )}
         </dl>
 
         {settings.canEdit ? (
-          <form onSubmit={onSubmit} className="space-y-3 border-t border-white/10 pt-3" data-testid="ai-settings-form">
-            <label className="block text-xs text-zinc-400">
+          <form onSubmit={onSubmit} className="space-y-3 border-t border-slate-200 pt-3" data-testid="ai-settings-form">
+            <label className="block text-xs text-slate-500">
               API key{" "}
               {!providerSettings.configured && (
-                <span className="text-rose-300">(required)</span>
+                <span className="text-rose-600">(required)</span>
               )}
               <input
                 type="password"
@@ -241,18 +241,18 @@ export function ProjectAISettings({
                     ? "sk-…"
                     : "sk-ant-…"
                 }
-                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 font-mono text-sm text-white"
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 font-mono text-sm text-slate-900"
                 data-testid="ai-settings-apikey-input"
               />
             </label>
-            <label className="block text-xs text-zinc-400">
-              Model <span className="text-zinc-500">(optional)</span>
+            <label className="block text-xs text-slate-500">
+              Model <span className="text-slate-500">(optional)</span>
               <input
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
                 placeholder={providerSettings.suggestedModel}
                 maxLength={80}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1.5 text-sm text-white"
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900"
                 data-testid="ai-settings-model-input"
               />
             </label>
@@ -270,7 +270,7 @@ export function ProjectAISettings({
                   type="button"
                   disabled={disabled || busy}
                   onClick={() => void removeKey()}
-                  className="rounded-lg border border-rose-500/30 px-3 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
+                  className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                   data-testid="ai-settings-remove-key-btn"
                 >
                   Remove saved key
@@ -279,7 +279,7 @@ export function ProjectAISettings({
             </div>
           </form>
         ) : (
-          <p className="border-t border-white/10 pt-3 text-xs text-zinc-500">
+          <p className="border-t border-slate-200 pt-3 text-xs text-slate-500">
             You need access to this project to configure AI settings.
           </p>
         )}

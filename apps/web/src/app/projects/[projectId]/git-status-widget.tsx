@@ -99,21 +99,21 @@ export function GitStatusWidget({ projectId }: { projectId: string }) {
   return (
     <>
       {/* GIT section in the nav */}
-      <div className="border-t border-white/[0.06] px-1 pt-3 pb-1">
+      <div className="border-t border-slate-200 px-1 pt-3 pb-1">
         {/* Section label */}
-        <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
+        <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
           Git
         </p>
 
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 space-y-2">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 space-y-2">
           {/* Warning: on base branch */}
           {onBaseBranch && (
-            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[10px] text-amber-300 leading-snug">
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-[10px] text-amber-600 leading-snug">
               You&apos;re on <code className="font-mono">{status?.baseBranch}</code> — open{" "}
               <button
                 type="button"
                 onClick={() => setSettingsOpen(true)}
-                className="underline hover:text-amber-200"
+                className="underline hover:text-amber-700"
               >
                 Git Settings
               </button>{" "}
@@ -125,17 +125,17 @@ export function GitStatusWidget({ projectId }: { projectId: string }) {
           <div className="flex items-center gap-2">
             <BranchIcon />
             <span
-              className="min-w-0 flex-1 truncate font-mono text-[11px] text-zinc-300"
+              className="min-w-0 flex-1 truncate font-mono text-[11px] text-slate-600"
               title={status?.branch ?? undefined}
             >
               {status?.branch ?? "—"}
             </span>
             {status !== null && hasPending ? (
-              <span className="shrink-0 rounded-md bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-amber-300">
+              <span className="shrink-0 rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-amber-600">
                 {status.pendingFiles}
               </span>
             ) : status !== null ? (
-              <span className="shrink-0 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">
+              <span className="shrink-0 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
                 clean
               </span>
             ) : null}
@@ -146,7 +146,7 @@ export function GitStatusWidget({ projectId }: { projectId: string }) {
             type="button"
             onClick={() => void handleSync()}
             disabled={syncing || !status?.remoteConfigured}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/[0.08] px-2 py-1.5 text-[11px] font-semibold text-zinc-300 hover:bg-white/[0.05] hover:text-white transition disabled:opacity-40"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition disabled:opacity-40"
           >
             {syncing ? (
               <>
@@ -163,7 +163,7 @@ export function GitStatusWidget({ projectId }: { projectId: string }) {
 
           {/* Sync result */}
           {syncResult !== null && (
-            <p className={`text-[10px] leading-snug px-0.5 ${syncResult.ok ? "text-emerald-400" : "text-red-400"}`}>
+            <p className={`text-[10px] leading-snug px-0.5 ${syncResult.ok ? "text-emerald-700" : "text-red-400"}`}>
               {syncResult.ok ? "✓" : "✗"} {syncResult.message}
             </p>
           )}
@@ -173,7 +173,7 @@ export function GitStatusWidget({ projectId }: { projectId: string }) {
             <button
               type="button"
               onClick={() => setSettingsOpen(true)}
-              className="flex items-center justify-center gap-1 rounded-lg border border-white/[0.08] px-2 py-1.5 text-[11px] font-semibold text-zinc-300 hover:bg-white/[0.05] hover:text-white transition"
+              className="flex items-center justify-center gap-1 rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
             >
               <GearIcon />
               Settings
@@ -198,8 +198,8 @@ export function GitStatusWidget({ projectId }: { projectId: string }) {
               }
               className={`flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition disabled:opacity-40 ${
                 ready && hasPending
-                  ? "bg-accent text-midnight-950 hover:bg-accent/90"
-                  : "border border-white/[0.08] text-zinc-300 hover:bg-white/[0.05] hover:text-white"
+                  ? "bg-accent text-slate-900 hover:bg-accent/90"
+                  : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               }`}
             >
               <PushIcon />
@@ -211,10 +211,10 @@ export function GitStatusWidget({ projectId }: { projectId: string }) {
           <button
             type="button"
             onClick={() => setTerminalOpen(true)}
-            className="flex w-full items-center gap-1.5 rounded-lg border border-white/[0.06] px-2 py-1 text-[10px] font-mono text-zinc-600 hover:bg-white/[0.04] hover:text-zinc-400 transition"
+            className="flex w-full items-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1 text-[10px] font-mono text-slate-500 hover:bg-slate-50 hover:text-slate-500 transition"
           >
             <TerminalIcon />
-            <span className="text-accent/60">$</span>
+            <span className="text-green-700/60">$</span>
             <span>git terminal</span>
           </button>
         </div>
@@ -244,7 +244,7 @@ export function GitStatusWidget({ projectId }: { projectId: string }) {
 
 function BranchIcon() {
   return (
-    <svg className="h-3.5 w-3.5 shrink-0 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+    <svg className="h-3.5 w-3.5 shrink-0 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v10.5a3 3 0 003 3h4.5M9 7.5L6 5.25M9 7.5L12 5.25" />
     </svg>
   );

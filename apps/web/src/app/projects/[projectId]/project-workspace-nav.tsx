@@ -36,12 +36,12 @@ export function ProjectWorkspaceNav({
 }) {
   return (
     <>
-      <nav className="ui-nav-rail" aria-label="Project workspace">
-        <div className="mb-4 flex items-center gap-2.5 px-2">
+      <nav className="ui-nav-rail sticky top-6 self-start rounded-xl border border-slate-200 bg-white px-3 py-4 shadow-sm" aria-label="Project workspace">
+        <div className="mb-4 flex items-center gap-2.5 border-b border-slate-100 pb-4">
           <QuarksLogoMark size="sm" variant="mark" className="!h-8 !w-8 !rounded-lg !p-0.5" />
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Workspace</p>
-            <p className="text-xs font-medium text-zinc-300">{BRAND_NAME}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Workspace</p>
+            <p className="text-xs font-medium text-slate-600">{BRAND_NAME}</p>
           </div>
         </div>
         <ul className="ui-nav-list">
@@ -55,9 +55,9 @@ export function ProjectWorkspaceNav({
       </nav>
 
       <div
-        className="flex gap-2 overflow-x-auto border-b border-white/[0.08] pb-3 lg:hidden"
+        className="flex gap-2 overflow-x-auto border-b border-slate-200 pb-3 lg:hidden"
         role="tablist"
-        aria-label="Project sections"
+        aria-label="Project Sections"
       >
         {items.map((item) => (
           <button
@@ -68,15 +68,12 @@ export function ProjectWorkspaceNav({
             onClick={() => onChange(item.id)}
             className={`inline-flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold transition duration-200 ${
               active === item.id
-                ? "border border-accent/50 bg-accent text-midnight-950 shadow-md shadow-accent/30"
-                : "border border-white/[0.1] bg-white/[0.04] text-zinc-300 hover:bg-white/[0.08]"
+                ? "border border-accent/50 bg-accent text-slate-900 shadow-md shadow-accent/30"
+                : "border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-50"
             }`}
           >
             <WorkspaceTabIconCompact tab={item.id} />
-            <span>
-              {item.label}
-              {item.badge !== undefined ? ` · ${item.badge}` : ""}
-            </span>
+            <span>{item.label}</span>
           </button>
         ))}
       </div>
@@ -105,21 +102,10 @@ function NavButton({
         <span className="flex gap-3">
           <WorkspaceTabIcon tab={item.id} active={active} />
           <span className="min-w-0 flex-1">
-            <span className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold tracking-tight">{item.label}</span>
-              {item.badge !== undefined ? (
-                <span
-                  className={`min-w-[1.25rem] rounded-md px-1.5 py-0.5 text-center text-[10px] font-bold tabular-nums ${
-                    active ? "bg-accent/20 text-accent-muted" : "bg-white/[0.06] text-zinc-500"
-                  }`}
-                >
-                  {item.badge}
-                </span>
-              ) : null}
-            </span>
+            <span className="text-sm font-semibold tracking-tight">{item.label}</span>
             <span
               className={`mt-0.5 block text-[11px] leading-snug ${
-                active ? "text-accent-muted/80" : "text-zinc-500"
+                active ? "text-green-700" : "text-slate-500"
               }`}
             >
               {item.description}

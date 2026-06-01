@@ -11,7 +11,7 @@ const AUTH_FEATURES = [
 
 export const authFieldClassName = "ui-input mt-1.5";
 
-export const authLabelClassName = "ui-label text-zinc-300";
+export const authLabelClassName = "ui-label text-slate-600";
 
 export function AuthPageShell({
   title,
@@ -40,16 +40,16 @@ export function AuthPageShell({
               {BRAND_TAGLINE}
             </p>
 
-            <h1 className="mt-6 text-balance text-3xl font-semibold leading-tight tracking-tight text-white sm:text-4xl">
+            <h1 className="mt-6 text-balance text-3xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-4xl">
               {title}
             </h1>
-            <p className="mt-3 max-w-md text-pretty text-base leading-relaxed text-zinc-400">{subtitle}</p>
+            <p className="mt-3 max-w-md text-pretty text-base leading-relaxed text-slate-500">{subtitle}</p>
 
             <ul className="mt-8 hidden space-y-3 sm:block">
               {AUTH_FEATURES.map((item) => (
-                <li key={item} className="flex items-start gap-3 text-sm text-zinc-400">
+                <li key={item} className="flex items-start gap-3 text-sm text-slate-500">
                   <span
-                    className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-accent/15 text-accent"
+                    className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-accent/15 text-green-700"
                     aria-hidden
                   >
                     <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -62,22 +62,22 @@ export function AuthPageShell({
             </ul>
           </div>
 
-          <p className="mt-10 hidden text-sm text-zinc-500 lg:block">{footer}</p>
+          <p className="mt-10 hidden text-sm text-slate-500 lg:block">{footer}</p>
         </aside>
 
         <main className={`flex flex-1 flex-col justify-center lg:py-4 ${wide ? "lg:max-w-xl" : "lg:max-w-[480px]"}`}>
           <div className="ui-panel w-full p-6 sm:p-8">
-            <div className="mb-6 border-b border-accent/10 pb-6 lg:hidden">
-              <h2 className="text-xl font-semibold text-white">{title}</h2>
-              <p className="mt-1 text-sm text-zinc-400">{subtitle}</p>
+            <div className="mb-6 border-b border-green-200 pb-6 lg:hidden">
+              <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
+              <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
             </div>
             <div className="hidden lg:block">
-              <h2 className="text-lg font-semibold text-white">Account</h2>
-              <p className="mt-1 text-sm text-zinc-500">Use your work email and password.</p>
+              <h2 className="text-lg font-semibold text-slate-900">Account</h2>
+              <p className="mt-1 text-sm text-slate-500">Use your work email and password.</p>
             </div>
             <div className="mt-6 lg:mt-5">{children}</div>
           </div>
-          <p className="mt-6 text-center text-sm text-zinc-500 lg:hidden">{footer}</p>
+          <p className="mt-6 text-center text-sm text-slate-500 lg:hidden">{footer}</p>
         </main>
       </div>
     </div>
@@ -95,7 +95,7 @@ function AuthBackground() {
     <div className="pointer-events-none absolute inset-0" aria-hidden>
       <div className="absolute inset-0 opacity-[0.5]" style={gridStyle} />
       <div className="absolute left-0 top-0 h-[420px] w-[560px] -translate-x-1/4 rounded-full bg-accent/10 blur-[100px]" />
-      <div className="absolute bottom-0 right-0 h-[360px] w-[480px] translate-x-1/4 rounded-full bg-accent/[0.06] blur-[90px]" />
+      <div className="absolute bottom-0 right-0 h-[360px] w-[480px] translate-x-1/4 rounded-full bg-green-50 blur-[90px]" />
     </div>
   );
 }

@@ -165,6 +165,7 @@ export type HealChangedFile = {
   path: string;
   linesAdded: number;
   linesRemoved: number;
+  before: string;
   after: string;
 };
 
@@ -318,7 +319,7 @@ export async function healTestsFromRun(params: {
     model,
     system: [
       `You repair ${runnerName} TypeScript tests and page objects from Playwright failure output.`,
-      'Return JSON ONLY: { "testFiles": [...], "pageObjectFiles": [...] } — each entry { "path", "content" } with FULL file contents.',
+      'Return ONLY raw JSON — no markdown, no code fences, no commentary. Format: { "testFiles": [...], "pageObjectFiles": [...] } — each entry { "path", "content" } with FULL file contents.',
       "Include testFiles entries for EVERY failing spec listed under 'Specs to repair' (use exact paths like tests/foo.spec.ts).",
       isWeb
         ? "Include pageObjectFiles when locator or page-class fixes are required (paths under pageobjects/, e.g. pageobjects/LoginPage.ts). Use click*/fill*/check* methods and webLocator — never raw page.locator().click(). Checkboxes: checkWhenVisible via check{Key}/uncheck{Key}, not click*."
@@ -380,9 +381,14 @@ export async function healTestsFromRun(params: {
 
   let parsedJson: unknown;
   try {
-    parsedJson = JSON.parse(raw) as unknown;
+    const stripped = raw
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```\s*$/, "")
+      .trim();
+    const jsonMatch = stripped.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    parsedJson = JSON.parse(jsonMatch ? jsonMatch[0] : stripped) as unknown;
   } catch {
-    throw new Error("Model returned non-JSON");
+    throw new Error(`Model returned non-JSON: ${raw.slice(0, 300)}`);
   }
 
   const healed = healResponseSchema.parse(parsedJson);
@@ -448,7 +454,7 @@ export async function healTestsFromRun(params: {
   for (const [rel, after] of diskByRel) {
     const before = fileSnapshots.find((f) => f.path === rel)?.content ?? "";
     const { added, removed } = lineStats(before, after);
-    changedFiles.push({ path: rel, linesAdded: added, linesRemoved: removed, after });
+    changedFiles.push({ path: rel, linesAdded: added, linesRemoved: removed, before, after });
   }
 
   for (const f of healed.pageObjectFiles) {
@@ -456,7 +462,7 @@ export async function healTestsFromRun(params: {
     if (!healedPagePaths.some((p) => p.endsWith(rel) || rel.endsWith(p))) continue;
     const before = library.find((p) => p.modulePath === rel)?.content ?? "";
     const { added, removed } = lineStats(before, f.content);
-    changedFiles.push({ path: rel, linesAdded: added, linesRemoved: removed, after: f.content });
+    changedFiles.push({ path: rel, linesAdded: added, linesRemoved: removed, before, after: f.content });
   }
 
   return { healedTestPaths, healedPagePaths, model: modelId, changedFiles };

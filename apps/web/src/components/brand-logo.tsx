@@ -18,9 +18,9 @@ export function BrandLogo({
     <>
       <QuarksLogoMark size={markSize} variant="full" />
       <span className="min-w-0">
-        <span className={`block font-semibold tracking-tight text-white ${name}`}>{BRAND_NAME}</span>
+        <span className={`block font-semibold tracking-tight text-slate-900 ${name}`}>{BRAND_NAME}</span>
         {showTagline ? (
-          <span className="mt-0.5 block text-[11px] font-medium leading-snug text-accent/90">{BRAND_TAGLINE}</span>
+          <span className="mt-0.5 block text-[11px] font-medium leading-snug text-green-700/90">{BRAND_TAGLINE}</span>
         ) : null}
       </span>
     </>

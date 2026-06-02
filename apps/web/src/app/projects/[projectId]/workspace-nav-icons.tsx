@@ -29,6 +29,7 @@ function iconTone(tab: WorkspaceTab): string {
     "test-plans": "from-emerald-100 to-teal-100 text-emerald-700",
     "test-execution": "from-green-100 to-emerald-100 text-green-700",
     "test-reports": "from-cyan-100 to-sky-100 text-cyan-700",
+    "smart-import": "from-green-100 to-emerald-100 text-green-700",
     framework: "from-orange-100 to-amber-100 text-orange-700",
   };
   return tones[tab];
@@ -52,6 +53,8 @@ function iconGlyph(tab: WorkspaceTab) {
       return <ExecutionIcon className={iconClass} />;
     case "test-reports":
       return <ReportsIcon className={iconClass} />;
+    case "smart-import":
+      return <SmartImportIcon className={iconClass} />;
     case "framework":
       return <FrameworkIcon className={iconClass} />;
   }
@@ -139,6 +142,17 @@ function ReportsIcon({ className }: IconProps) {
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
       <path strokeLinecap="round" d="M6 4h9l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
       <path strokeLinecap="round" d="M14 4v4h4M8 12h8M8 16h5" />
+    </svg>
+  );
+}
+
+function SmartImportIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-8m0 0l-3 3m3-3l3 3" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5V19a1 1 0 001 1h16a1 1 0 001-1v-2.5" />
+      <rect x="4" y="4" width="7" height="5" rx="1" />
+      <rect x="13" y="4" width="7" height="5" rx="1" />
     </svg>
   );
 }

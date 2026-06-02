@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 // import { BrowserRecorderPanel } from "./browser-recorder"; // hidden — replaced by setup guide
 import { BrowserRecorderSetupPanel } from "./browser-recorder-setup";
+import { SmartImportPanel } from "./smart-import-panel";
 import { DeviceRecorderPanel } from "./device-recorder";
 import { GeneratePomSection } from "./generate-pom-section";
 import { ProjectWorkspaceNav, type WorkspaceTab } from "./project-workspace-nav";
@@ -431,6 +432,16 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                 setReportsHighlightRunId(runId);
               }}
               onNavigate={setActiveTab}
+            />
+          ) : null}
+
+          {activeTab === "smart-import" ? (
+            <SmartImportPanel
+              projectId={projectId}
+              onImported={async () => {
+                await load();
+                setFrameworkTick((n) => n + 1);
+              }}
             />
           ) : null}
 

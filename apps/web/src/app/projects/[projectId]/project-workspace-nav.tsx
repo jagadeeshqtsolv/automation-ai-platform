@@ -14,6 +14,7 @@ export type WorkspaceTab =
   | "test-plans"
   | "test-execution"
   | "test-reports"
+  | "smart-import"
   | "framework";
 
 export type WorkspaceNavItem = {

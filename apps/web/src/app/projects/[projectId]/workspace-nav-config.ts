@@ -11,6 +11,7 @@ export const WORKSPACE_TAB_ORDER: readonly WorkspaceTab[] = [
   "test-plans",
   "test-execution",
   "test-reports",
+  "smart-import",
   "framework",
 ];
 
@@ -65,6 +66,11 @@ export function buildWorkspaceNavItems(
       id: "test-reports",
       label: "Test reports",
       description: "Analyze Execution Results",
+    },
+    "smart-import": {
+      id: "smart-import",
+      label: "Smart Import",
+      description: "Import from smart-generate CLI",
     },
     framework: { id: "framework", label: "Framework", description: "Export Automation Framework" },
   };

@@ -24,6 +24,7 @@
     "@prisma/client": "^6.8.2",
     "ai": "^6.0.191",
     "archiver": "^7.0.1",
+    "jszip": "^3.10.1",
     "next": "^15.3.2",
     "nodemailer": "^8.0.9",
     "openai": "^4.100.1",

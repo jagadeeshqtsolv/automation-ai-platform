@@ -291,7 +291,7 @@ export function AdminWorkspace() {
 
       <header className="border-b border-slate-200 pb-6">
         <p className="ui-eyebrow text-green-700">Platform admin</p>
-        <h1 className="ui-title-lg">Organizations & users</h1>
+        <h1 className="ui-title-lg">Organizations & User Management</h1>
         <p className="ui-subtitle mt-2 max-w-2xl">
           Create organizations, invite new users, and manage existing accounts. Users cannot
           self-register without an invite link.
@@ -333,10 +333,10 @@ export function AdminWorkspace() {
                     type="button"
                     onClick={() => { setSelectedOrgId(o.id); writeSelectedOrganizationId(o.id); }}
                     className={`w-full rounded-lg px-2 py-2 text-left text-xs transition ${o.id === selectedOrgId
-                        ? "bg-accent/15 text-green-700 ring-1 ring-green-400/20"
-                        : o.disabled
-                          ? "bg-rose-50 text-slate-500 hover:bg-slate-50"
-                          : "text-slate-600 hover:bg-slate-50"
+                      ? "bg-accent/15 text-green-700 ring-1 ring-green-400/20"
+                      : o.disabled
+                        ? "bg-rose-50 text-slate-500 hover:bg-slate-50"
+                        : "text-slate-600 hover:bg-slate-50"
                       }`}
                     data-testid={`admin-org-item-${o.id}`}
                   >
@@ -387,8 +387,8 @@ export function AdminWorkspace() {
                     disabled={busy !== null}
                     onClick={() => void toggleOrganizationEnabled(selectedOrg)}
                     className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${selectedOrg.disabled
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50"
-                        : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50"
+                      : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50"
                       }`}
                     data-testid="admin-org-toggle-btn"
                   >

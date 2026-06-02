@@ -6,7 +6,7 @@ import { LoginForm } from "./login-form";
 export default function LoginPage() {
   return (
     <AuthPageShell
-      title="Welcome back"
+      title="Sign in"
       subtitle="Sign in to manage requirements, environments, and AI-generated Playwright tests across your organization."
       footer={
         <>

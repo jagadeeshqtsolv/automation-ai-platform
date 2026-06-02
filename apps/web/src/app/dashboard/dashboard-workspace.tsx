@@ -156,16 +156,11 @@ function DashboardContent({
 
         {/* Projects table */}
         <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
+          <div className="border-b border-slate-100 px-5 py-3.5">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">Projects</h2>
               <p className="text-xs text-slate-500">All automation workspaces</p>
             </div>
-            {data !== null && (
-              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
-                {data.projects.length}
-              </span>
-            )}
           </div>
 
           {data === null ? (

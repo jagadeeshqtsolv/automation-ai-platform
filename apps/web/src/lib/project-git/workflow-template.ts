@@ -10,19 +10,15 @@ export function generateWorkflowTemplate(
 ): string {
   const cfg = ciConfig ?? DEFAULT_CI_RUN_CONFIG;
 
-  let testCmd: string;
-  if (platformType === "web") {
-    const flags = [
-      `$SPEC_PATHS_ARG`,
-      `$GREP_ARG`,
-      `--workers=${cfg.workers}`,
-      `--retries=${cfg.retries}`,
-      ...cfg.browsers.map((b: string) => `--project=${b}`),
-    ].join(" ");
-    testCmd = `npx playwright test ${flags}`;
-  } else {
-    testCmd = "npx mobilewright test $SPEC_PATHS_ARG $GREP_ARG";
-  }
+  // workers, retries, and browser/project come from environments/<env>.json via playwright.config.ts.
+  // GREP_PATTERN must be quoted so test titles with spaces work. SPEC_PATHS_ARG is unquoted
+  // intentionally so space-separated paths undergo word-splitting into separate CLI args.
+  const baseCmd = platformType === "web" ? "npx playwright test" : "npx mobilewright test";
+  const testCmd = `if [ -n "$GREP_PATTERN" ]; then
+    ${baseCmd} $SPEC_PATHS_ARG --grep "$GREP_PATTERN"
+  else
+    ${baseCmd} $SPEC_PATHS_ARG
+  fi`;
 
   switch (provider) {
     case "github":
@@ -40,7 +36,6 @@ function githubTemplate(workflowFile: string, testCmd: string, platformType: "we
   const installBrowsersStep = platformType === "web"
     ? `\n      - run: npx playwright install --with-deps ${browsersArg}\n`
     : "";
-  const reportEmails = cfg.reportEmails?.trim() ?? "";
   // Email sending is handled server-side via the callback — no extra step needed in the YML.
   return `# .github/workflows/${workflowFile}
 # Triggered by AutomationAI via workflow_dispatch.
@@ -50,6 +45,10 @@ name: ${name}
 on:
   workflow_dispatch:
     inputs:
+      branch:
+        description: "Feature branch to check out and run tests on"
+        required: false
+        default: ""
       spec_paths:
         description: "Space-separated spec file paths to run"
         required: false
@@ -78,7 +77,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${cfg.branch}
+          ref: \${{ inputs.branch || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -95,12 +94,10 @@ ${installBrowsersStep}
       - name: Run tests
         env:
           AUTOM_ENVIRONMENT: \${{ inputs.environment }}
+          TEST_ENV: \${{ inputs.environment }}
         run: |
           SPEC_PATHS_ARG="\${{ inputs.spec_paths }}"
-          GREP_ARG=""
-          if [ -n "\${{ inputs.grep }}" ]; then
-            GREP_ARG="--grep \${{ inputs.grep }}"
-          fi
+          GREP_PATTERN="\${{ inputs.grep }}"
           ${testCmd}
         continue-on-error: true
         id: run
@@ -147,8 +144,7 @@ run-tests:
     - if [ -f package-lock.json ]; then npm ci; else npm install; fi
 ${installBrowsers}    - |
       SPEC_PATHS_ARG="\${SPEC_PATHS:-}"
-      GREP_ARG=""
-      if [ -n "\${GREP:-}" ]; then GREP_ARG="--grep \${GREP}"; fi
+      GREP_PATTERN="\${GREP:-}"
       ${testCmd}
       TEST_EXIT=\$?
       STATUS="passed"
@@ -189,8 +185,7 @@ pipelines:
             - if [ -f package-lock.json ]; then npm ci; else npm install; fi
 ${installBrowsers}            - |
               SPEC_PATHS_ARG="\${SPEC_PATHS:-}"
-              GREP_ARG=""
-              [ -n "\${GREP:-}" ] && GREP_ARG="--grep \${GREP}"
+              GREP_PATTERN="\${GREP:-}"
               ${testCmd}
               TEST_EXIT=\$?
               STATUS="passed"

@@ -38,6 +38,7 @@ export async function GET(_req: Request, context: { params: Promise<{ projectId:
         id: true,
         provider: true,
         status: true,
+        label: true,
         specPaths: true,
         environmentId: true,
         exitCode: true,
@@ -102,6 +103,7 @@ export async function GET(_req: Request, context: { params: Promise<{ projectId:
     recentRuns: runs.map((r) => ({
       id: r.id,
       provider: r.provider,
+      label: r.label ?? null,
       status: r.status,
       specPaths: JSON.parse(r.specPaths) as string[],
       environmentId: r.environmentId,
@@ -134,16 +136,14 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const running = await prisma.testRun.findFirst({
-    where: { projectId: parsedParams.data.projectId, status: "running", finishedAt: null },
-    select: { id: true },
-  });
-  if (running !== null) {
-    return NextResponse.json(
-      { error: "A test run is already in progress for this project", runId: running.id },
-      { status: 409 },
-    );
-  }
+  // Extract user-defined run label (not in core schema — read directly from raw body)
+  const rawLabel =
+    json !== null && typeof json === "object" && "label" in json
+      ? (json as Record<string, unknown>).label
+      : undefined;
+  const label = typeof rawLabel === "string" && rawLabel.trim().length > 0
+    ? rawLabel.trim()
+    : null;
 
   const project = await prisma.project.findUnique({
     where: { id: parsedParams.data.projectId },
@@ -154,22 +154,25 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
   }
 
   let environmentConfigJson: string | null = null;
+  let environmentSlug: string | null = null;
   if (parsed.data.environmentId !== undefined) {
     const env = await prisma.environment.findFirst({
       where: { id: parsed.data.environmentId, projectId: parsedParams.data.projectId },
-      select: { configJson: true },
+      select: { configJson: true, slug: true },
     });
     if (env === null) {
       return NextResponse.json({ error: "Environment not found" }, { status: 404 });
     }
     environmentConfigJson = env.configJson;
+    environmentSlug = env.slug;
   } else {
     const defaultEnv = await prisma.environment.findFirst({
       where: { projectId: parsedParams.data.projectId },
       orderBy: { slug: "asc" },
-      select: { configJson: true },
+      select: { configJson: true, slug: true },
     });
     environmentConfigJson = defaultEnv?.configJson ?? null;
+    environmentSlug = defaultEnv?.slug ?? null;
   }
 
   const doc = parseExecutionConfigDocument(project.executionConfigJson);
@@ -186,6 +189,7 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
       specPaths: JSON.stringify(parsed.data.specPaths),
       environmentId: parsed.data.environmentId ?? null,
       output: "Queued test run…\n",
+      label,
     },
     select: { id: true },
   });
@@ -194,6 +198,8 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
     projectId: parsedParams.data.projectId,
     config: runConfig,
     environmentConfigJson,
+    environmentSlug,
+    label,
     secrets: {
       saucelabsAccessKey: decryptAccessKey(doc.secrets.saucelabsAccessKeyEnc),
       browserstackAccessKey: decryptAccessKey(doc.secrets.browserstackAccessKeyEnc),

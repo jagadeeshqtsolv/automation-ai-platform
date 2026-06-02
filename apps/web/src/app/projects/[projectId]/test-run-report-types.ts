@@ -38,6 +38,7 @@ export type RecentRun = {
   id: string;
   provider: string;
   status: string;
+  label: string | null;
   specPaths: string[];
   environmentId: string | null;
   exitCode: number | null;
@@ -53,6 +54,7 @@ export type RunDetailBody = {
   id: string;
   provider: string;
   status: string;
+  label?: string | null;
   output: string;
   command: string;
   specPaths: string[];

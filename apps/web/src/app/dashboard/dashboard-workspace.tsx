@@ -42,13 +42,13 @@ type AnalyticsPayload = {
 const PAGE_SIZE = 5;
 
 const METRIC_CONFIG = [
-  { key: "projects" as const,       label: "Projects",        icon: "🗂️", color: "text-violet-700", bg: "bg-violet-50",  border: "border-violet-100" },
-  { key: "requirements" as const,   label: "Requirements",    icon: "📋", color: "text-blue-700",   bg: "bg-blue-50",    border: "border-blue-100" },
-  { key: "environments" as const,   label: "Environments",    icon: "🌐", color: "text-cyan-700",   bg: "bg-cyan-50",    border: "border-cyan-100" },
-  { key: "pageObjects" as const,    label: "Page Objects",    icon: "🧩", color: "text-amber-700",  bg: "bg-amber-50",   border: "border-amber-100" },
-  { key: "testPlans" as const,      label: "Test Plans",      icon: "🗺️", color: "text-emerald-700",bg: "bg-emerald-50", border: "border-emerald-100" },
-  { key: "testCases" as const,      label: "Test Cases",      icon: "✅", color: "text-green-700",  bg: "bg-green-50",   border: "border-green-100" },
-  { key: "generatedCodes" as const, label: "Generated Code",  icon: "⚡", color: "text-rose-700",   bg: "bg-rose-50",    border: "border-rose-100" },
+  { key: "projects" as const, label: "Projects", icon: "🗂️", color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-100" },
+  { key: "requirements" as const, label: "Requirements", icon: "📋", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-100" },
+  { key: "environments" as const, label: "Environments", icon: "🌐", color: "text-cyan-700", bg: "bg-cyan-50", border: "border-cyan-100" },
+  { key: "pageObjects" as const, label: "Page Objects", icon: "🧩", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100" },
+  { key: "testPlans" as const, label: "Test Plans", icon: "🗺️", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" },
+  { key: "testCases" as const, label: "Test Cases", icon: "✅", color: "text-green-700", bg: "bg-green-50", border: "border-green-100" },
+  { key: "generatedCodes" as const, label: "Generated Code", icon: "⚡", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-100" },
 ] as const;
 
 const AVATAR_COLORS = [
@@ -217,16 +217,14 @@ function DashboardContent({
                           </div>
                         </td>
                         <td className="px-3 py-3 text-center">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                            activity === "active" ? "bg-green-50 text-green-700" :
-                            activity === "setup"  ? "bg-amber-50 text-amber-700" :
-                                                   "bg-slate-100 text-slate-500"
-                          }`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${
-                              activity === "active" ? "bg-green-500" :
-                              activity === "setup"  ? "bg-amber-400" :
-                                                     "bg-slate-400"
-                            }`} />
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${activity === "active" ? "bg-green-50 text-green-700" :
+                              activity === "setup" ? "bg-amber-50 text-amber-700" :
+                                "bg-slate-100 text-slate-500"
+                            }`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${activity === "active" ? "bg-green-500" :
+                                activity === "setup" ? "bg-amber-400" :
+                                  "bg-slate-400"
+                              }`} />
                             {activity === "active" ? "Active" : activity === "setup" ? "In Setup" : "Empty"}
                           </span>
                         </td>
@@ -412,11 +410,10 @@ function CreateProjectForm({
       <fieldset className="space-y-2">
         <legend className="text-xs font-semibold text-slate-600">Platform</legend>
         <div className="grid grid-cols-2 gap-2">
-          <label className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-medium transition ${
-            platformType === "web"
+          <label className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-medium transition ${platformType === "web"
               ? "border-green-300 bg-green-50 text-green-800 shadow-sm"
               : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-          }`}>
+            }`}>
             <input type="radio" name="platformType" value="web" checked={platformType === "web"}
               onChange={() => setPlatformType("web")} className="sr-only"
               data-testid="create-project-platform-web-radio" />

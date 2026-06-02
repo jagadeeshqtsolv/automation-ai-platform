@@ -14,18 +14,6 @@ export async function startProjectTestRun(params: {
   environmentId?: string | null;
   grep?: string;
 }): Promise<StartTestRunResult> {
-  const running = await prisma.testRun.findFirst({
-    where: { projectId: params.projectId, status: "running", finishedAt: null },
-    select: { id: true },
-  });
-  if (running !== null) {
-    return {
-      ok: false,
-      error: "A test run is already in progress.",
-      runId: running.id,
-    };
-  }
-
   const specPaths =
     params.specPaths !== undefined && params.specPaths.length > 0
       ? params.specPaths
@@ -44,22 +32,25 @@ export async function startProjectTestRun(params: {
   }
 
   let environmentConfigJson: string | null = null;
+  let environmentSlug: string | null = null;
   if (params.environmentId !== undefined && params.environmentId !== null) {
     const env = await prisma.environment.findFirst({
       where: { id: params.environmentId, projectId: params.projectId },
-      select: { configJson: true },
+      select: { configJson: true, slug: true },
     });
     if (env === null) {
       return { ok: false, error: "Environment not found." };
     }
     environmentConfigJson = env.configJson;
+    environmentSlug = env.slug;
   } else {
     const defaultEnv = await prisma.environment.findFirst({
       where: { projectId: params.projectId },
       orderBy: { slug: "asc" },
-      select: { configJson: true },
+      select: { configJson: true, slug: true },
     });
     environmentConfigJson = defaultEnv?.configJson ?? null;
+    environmentSlug = defaultEnv?.slug ?? null;
   }
 
   const doc = parseExecutionConfigDocument(project.executionConfigJson);
@@ -80,6 +71,7 @@ export async function startProjectTestRun(params: {
     projectId: params.projectId,
     config: doc.config,
     environmentConfigJson,
+    environmentSlug,
     secrets: {
       saucelabsAccessKey: decryptAccessKey(doc.secrets.saucelabsAccessKeyEnc),
       browserstackAccessKey: decryptAccessKey(doc.secrets.browserstackAccessKeyEnc),

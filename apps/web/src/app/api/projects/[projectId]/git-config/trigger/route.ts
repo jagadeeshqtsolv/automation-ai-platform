@@ -22,17 +22,14 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
   const parsed = triggerPipelineBodySchema.safeParse(json);
   if (!parsed.success) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
 
-  // Reject if a run is already in progress
-  const running = await prisma.testRun.findFirst({
-    where: { projectId, status: "running", finishedAt: null },
-    select: { id: true },
-  });
-  if (running) {
-    return NextResponse.json(
-      { error: "A test run is already in progress", runId: running.id },
-      { status: 409 },
-    );
-  }
+  // Extract user-defined run label from the raw body (not in core schema)
+  const rawLabel =
+    json !== null && typeof json === "object" && "label" in json
+      ? (json as Record<string, unknown>).label
+      : undefined;
+  const label = typeof rawLabel === "string" && rawLabel.trim().length > 0
+    ? rawLabel.trim()
+    : null;
 
   const [gitConfig, ciConfig, userGit] = await Promise.all([
     getProjectGitConfigView(projectId),
@@ -53,8 +50,9 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
     );
   }
 
-  const branch = userGit?.branch ?? gitConfig.baseBranch;
-  if (!branch) {
+  // The branch whose code will be tested (user's feature branch, or base branch as fallback).
+  const checkoutBranch = userGit?.branch ?? gitConfig.baseBranch;
+  if (!checkoutBranch) {
     return NextResponse.json(
       { error: "No branch configured. Set your working branch in Setup → Git." },
       { status: 422 },
@@ -85,8 +83,9 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
       status: "running",
       specPaths: JSON.stringify(parsed.data.specPaths),
       environmentId: parsed.data.environmentId ?? null,
-      output: `Triggering CI pipeline on branch "${branch}"…\n`,
+      output: `Triggering CI pipeline — checking out branch "${checkoutBranch}"…\n`,
       callbackToken,
+      label,
     },
     select: { id: true },
   });
@@ -101,7 +100,7 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
     remoteUrl: gitConfig.remoteUrl,
     ciToken,
     workflowFile: ciConfig.workflowFile,
-    branch,
+    branch: checkoutBranch,
     inputs: {
       spec_paths: parsed.data.specPaths.join(" "),
       environment: environmentSlug,
@@ -128,7 +127,7 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
     where: { id: run.id },
     data: {
       output:
-        `CI pipeline triggered on branch "${branch}".\n` +
+        `CI pipeline triggered — checking out branch "${checkoutBranch}".\n` +
         `Callback origin: ${origin}\n` +
         `Waiting for pipeline to report results…\n`,
     },
@@ -151,7 +150,7 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
             remoteUrl,
             ciToken,
             workflowFile,
-            branch,
+            branch: checkoutBranch,
             triggeredAt,
           });
           if (runUrl !== null) {

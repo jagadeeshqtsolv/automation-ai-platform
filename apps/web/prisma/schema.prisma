@@ -154,6 +154,8 @@ model TestRun {
   callbackToken String?
   /// URL of the triggered CI pipeline run (e.g. GitHub Actions run URL)
   pipelineUrl   String?
+  /// Optional user-defined label for this run (e.g. "Sprint 42 smoke tests")
+  label         String?
   createdAt    DateTime  @default(now())
   finishedAt   DateTime?
 

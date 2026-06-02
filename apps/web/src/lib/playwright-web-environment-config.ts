@@ -8,6 +8,12 @@ export type PlaywrightWebEnvironmentConfig = {
   headless?: boolean;
   timeout?: number;
   actionTimeout?: number;
+  workers?: number;
+  retries?: number;
+  fullyParallel?: boolean;
+  video?: "off" | "on" | "retain-on-failure" | "on-first-retry";
+  trace?: "off" | "on" | "retain-on-failure" | "on-all-retries";
+  screenshot?: "off" | "on" | "only-on-failure";
 };
 
 export const DEFAULT_WEB_ENVIRONMENT_CONFIG_JSON = JSON.stringify(
@@ -16,10 +22,17 @@ export const DEFAULT_WEB_ENVIRONMENT_CONFIG_JSON = JSON.stringify(
     browser: "chromium",
     headless: true,
     timeout: 30_000,
+    workers: 1,
+    retries: 0,
+    fullyParallel: false,
   } satisfies PlaywrightWebEnvironmentConfig,
   null,
   2,
 );
+
+const VIDEO_VALUES = new Set(["off", "on", "retain-on-failure", "on-first-retry"]);
+const TRACE_VALUES = new Set(["off", "on", "retain-on-failure", "on-all-retries"]);
+const SCREENSHOT_VALUES = new Set(["off", "on", "only-on-failure"]);
 
 export function parseWebEnvironmentConfig(configJson: string | null): PlaywrightWebEnvironmentConfig {
   if (configJson === null || configJson.trim().length === 0) {
@@ -47,6 +60,24 @@ export function parseWebEnvironmentConfig(configJson: string | null): Playwright
     if (typeof obj.actionTimeout === "number" && Number.isFinite(obj.actionTimeout)) {
       out.actionTimeout = obj.actionTimeout;
     }
+    if (typeof obj.workers === "number" && Number.isInteger(obj.workers) && obj.workers >= 1) {
+      out.workers = obj.workers;
+    }
+    if (typeof obj.retries === "number" && Number.isInteger(obj.retries) && obj.retries >= 0) {
+      out.retries = obj.retries;
+    }
+    if (typeof obj.fullyParallel === "boolean") {
+      out.fullyParallel = obj.fullyParallel;
+    }
+    if (typeof obj.video === "string" && VIDEO_VALUES.has(obj.video)) {
+      out.video = obj.video as PlaywrightWebEnvironmentConfig["video"];
+    }
+    if (typeof obj.trace === "string" && TRACE_VALUES.has(obj.trace)) {
+      out.trace = obj.trace as PlaywrightWebEnvironmentConfig["trace"];
+    }
+    if (typeof obj.screenshot === "string" && SCREENSHOT_VALUES.has(obj.screenshot)) {
+      out.screenshot = obj.screenshot as PlaywrightWebEnvironmentConfig["screenshot"];
+    }
     return out;
   } catch {
     return {};
@@ -66,7 +97,8 @@ export function buildPlaywrightWebConfig(_configJson: string | null): string {
     `import path from "node:path";`,
     ``,
     `// Select environment: TEST_ENV=staging npm test  (default: qa)`,
-    `const envName = process.env.TEST_ENV ?? "qa";`,
+    `// AUTOM_ENVIRONMENT is set by the AutomationAI CI workflow.`,
+    `const envName = process.env.TEST_ENV || process.env.AUTOM_ENVIRONMENT || "qa";`,
     ``,
     `let env: Record<string, unknown> = {};`,
     `try {`,
@@ -148,17 +180,17 @@ export function buildDefaultEnvironmentJson(configJson: string | null): string {
       headless:      cfg.headless      ?? true,
       timeout:       cfg.timeout       ?? 30000,
       actionTimeout: cfg.actionTimeout ?? 10000,
-      retries:       0,
-      fullyParallel: false,
-      workers:       1,
+      retries:       cfg.retries       ?? 0,
+      fullyParallel: cfg.fullyParallel ?? false,
+      workers:       cfg.workers       ?? 1,
 
       // ── Artifacts ────────────────────────────────────────────────────────────
       // video:      off | on | retain-on-failure | on-first-retry
-      video:         "retain-on-failure",
+      video:         cfg.video         ?? "retain-on-failure",
       // trace:      off | on | retain-on-failure | on-all-retries
-      trace:         "retain-on-failure",
+      trace:         cfg.trace         ?? "retain-on-failure",
       // screenshot: off | on | only-on-failure
-      screenshot:    "only-on-failure",
+      screenshot:    cfg.screenshot    ?? "only-on-failure",
     },
     null,
     2,

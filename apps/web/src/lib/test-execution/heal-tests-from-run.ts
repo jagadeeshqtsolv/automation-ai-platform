@@ -66,18 +66,28 @@ function normalizeTestRelative(file: string): string | null {
 
 function resolveHealedTestRel(modelPath: string, filesNeeded: Set<string>): string | null {
   const rel = normalizeTestRelative(modelPath);
-  if (rel === null) {
-    return null;
-  }
-  if (filesNeeded.has(rel)) {
-    return rel;
-  }
-  const bn = path.basename(rel);
+
+  // 1. Exact normalized match
+  if (rel !== null && filesNeeded.has(rel)) return rel;
+
+  // 2. Basename match (handles missing tests/ prefix or slight path differences)
+  const bn = rel !== null
+    ? path.basename(rel)
+    : path.basename(stripLocationSuffix(modelPath.trim()).replace(/\\/g, "/"));
   for (const need of filesNeeded) {
-    if (path.basename(need) === bn) {
-      return need;
-    }
+    if (path.basename(need) === bn) return need;
   }
+
+  // 3. Partial suffix match (e.g. model returns "spec.ts" path with different root)
+  for (const need of filesNeeded) {
+    if (modelPath.endsWith(path.basename(need)) || need.endsWith(bn)) return need;
+  }
+
+  // 4. Last resort: if there is exactly one file needed and the model path looks like a spec, use it
+  if (filesNeeded.size === 1 && /\.(spec|test)\.(ts|tsx|js)$/.test(modelPath)) {
+    return [...filesNeeded][0]!;
+  }
+
   return null;
 }
 
@@ -185,6 +195,49 @@ function lineStats(before: string, after: string): { added: number; removed: num
     added: afterLines.filter((l) => !beforeSet.has(l)).length,
     removed: beforeLines.filter((l) => !afterSet.has(l)).length,
   };
+}
+
+function removeTrailingCommas(text: string): string {
+  return text.replace(/,(\s*[}\]])/g, "$1");
+}
+
+function extractHealJson(text: string): unknown {
+  const trimmed = text.trim();
+
+  // 1. Direct parse
+  try { return JSON.parse(trimmed); } catch {}
+
+  // 2. Strip markdown code fences
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/s);
+  if (fenced) {
+    const inner = fenced[1]!.trim();
+    try { return JSON.parse(inner); } catch {}
+    try { return JSON.parse(removeTrailingCommas(inner)); } catch {}
+  }
+
+  // 3. Trailing comma fix on full text
+  const commaFixed = removeTrailingCommas(trimmed);
+  try { return JSON.parse(commaFixed); } catch {}
+
+  // 4. Find the outermost balanced { } — walk char-by-char respecting strings/escapes
+  const start = commaFixed.indexOf("{");
+  if (start !== -1) {
+    let depth = 0, inStr = false, esc = false;
+    for (let i = start; i < commaFixed.length; i++) {
+      const c = commaFixed[i]!;
+      if (esc) { esc = false; continue; }
+      if (c === "\\") { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === "{") depth++;
+      else if (c === "}") { depth--; if (depth === 0) { return JSON.parse(commaFixed.slice(start, i + 1)); } }
+    }
+    // Truncated response — try parsing what we have after removing trailing commas
+    const partial = removeTrailingCommas(commaFixed.slice(start));
+    try { return JSON.parse(partial); } catch {}
+  }
+
+  throw new SyntaxError("No valid JSON object found in model response");
 }
 
 export async function healTestsFromRun(params: {
@@ -381,14 +434,12 @@ export async function healTestsFromRun(params: {
 
   let parsedJson: unknown;
   try {
-    const stripped = raw
-      .replace(/^```(?:json)?\s*/i, "")
-      .replace(/\s*```\s*$/, "")
-      .trim();
-    const jsonMatch = stripped.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
-    parsedJson = JSON.parse(jsonMatch ? jsonMatch[0] : stripped) as unknown;
-  } catch {
-    throw new Error(`Model returned non-JSON: ${raw.slice(0, 300)}`);
+    parsedJson = extractHealJson(raw);
+  } catch (err) {
+    const snippet = raw.length > 400 ? `${raw.slice(0, 400)}…` : raw;
+    throw new Error(
+      `Model returned non-JSON heal response: ${err instanceof SyntaxError ? err.message : String(err)}. Raw (first 400 chars): ${snippet}`,
+    );
   }
 
   const healed = healResponseSchema.parse(parsedJson);

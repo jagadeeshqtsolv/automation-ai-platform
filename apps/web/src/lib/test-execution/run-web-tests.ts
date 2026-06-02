@@ -1,4 +1,4 @@
-import { access, mkdir, readFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
@@ -48,6 +48,20 @@ export async function runWebProjectTests(
   log("Syncing playwright.config.ts (video + trace on failure)…\n");
   await writePlaywrightWebConfig(params.projectId, params.environmentConfigJson);
 
+  // Write the user-selected environment's config directly to environments/<slug>.json
+  // so playwright.config.ts loads all user-defined values (workers, retries, browser,
+  // video, trace, screenshot, etc.) from the environment configured in the UI.
+  if (params.environmentSlug && params.environmentConfigJson) {
+    const envFilePath = resolveFrameworkFilePath(
+      params.projectId,
+      `environments/${params.environmentSlug}.json`,
+      "web",
+    );
+    if (envFilePath !== null) {
+      await writeFile(envFilePath, params.environmentConfigJson, "utf8");
+    }
+  }
+
   log("Preparing execution config…\n");
   await writeExecutionArtifacts({
     projectId: params.projectId,
@@ -83,6 +97,10 @@ export async function runWebProjectTests(
   // Build env: start from process env, then layer in execution/.env.execution
   const env: NodeJS.ProcessEnv = { ...process.env };
   env.AUTOM_EXECUTION_PROVIDER = params.config.provider;
+  if (params.environmentSlug) {
+    env.TEST_ENV = params.environmentSlug;
+    env.AUTOM_ENVIRONMENT = params.environmentSlug;
+  }
 
   // Point BrowserStack SDK directly to the existing CLI binary, bypassing the
   // update-check API call that fails when auth credentials aren't yet resolved.

@@ -220,8 +220,10 @@ export function TestReportsPanel({
   const [runLogOpen, setRunLogOpen] = useState(false);
   const [rerunning, setRerunning] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [healLog, setHealLog] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activeRunIdRef = useRef<string | null>(null);
+  const prevHighlightRunIdRef = useRef<string | null | undefined>(undefined);
 
   const stopPolling = useCallback(() => {
     if (pollRef.current !== null) {
@@ -257,7 +259,7 @@ export function TestReportsPanel({
       setFocusedRunId(run.id);
       setHealFormOpen(false);
       setHealProblemDescription("");
-      setHealChanges(null);
+      setHealLog(null);
       setRunLogOpen(false);
       setFocusedPipelineUrl(run.pipelineUrl ?? null);
       setFocusedProvider(run.provider);
@@ -395,8 +397,15 @@ useEffect(() => {
     if (highlightRunId === undefined || highlightRunId === null) {
       return;
     }
+    // Only navigate when highlightRunId itself changes, not every time recentRuns refreshes.
+    // Without this guard, loadRuns() calls inside submitHeal trigger this effect and
+    // loadRunDetail resets healChanges/healLog, wiping the just-displayed heal result.
+    if (highlightRunId === prevHighlightRunIdRef.current) {
+      return;
+    }
     const run = recentRuns.find((r) => r.id === highlightRunId);
     if (run !== undefined) {
+      prevHighlightRunIdRef.current = highlightRunId;
       void loadRunDetail(run);
     }
   }, [highlightRunId, recentRuns, loadRunDetail]);
@@ -429,14 +438,20 @@ useEffect(() => {
       }
       const tests = body.healedTestPaths ?? [];
       const pages = body.healedPagePaths ?? [];
+      const allHealed = [...tests, ...pages];
       toast.success(
-        tests.length + pages.length > 0
-          ? `Healed ${tests.length + pages.length} file(s)`
+        allHealed.length > 0
+          ? `Healed ${allHealed.length} file(s)`
           : "Heal Completed",
       );
+      const logSummary =
+        allHealed.length > 0
+          ? `Updated ${allHealed.length} file(s): ${allHealed.map((f) => f.split("/").pop()).join(", ")}`
+          : "Heal analysis complete — model found no changes needed";
       setHealFormOpen(false);
       setHealProblemDescription("");
       setHealChanges(body.changedFiles ?? null);
+      setHealLog(logSummary);
       setRunLogOpen(true);
       await loadRuns();
       const detailRes = await fetch(`/api/projects/${projectId}/test-runs/${focusedRunId}`);
@@ -488,11 +503,16 @@ useEffect(() => {
 
       <div className="grid gap-0 lg:grid-cols-[minmax(0,280px)_1fr] lg:divide-x lg:divide-slate-100">
         {/* Left — run history */}
-        <div className="p-4">
+        <div className="bg-slate-50/60 p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Run History</p>
+            <div className="flex items-center gap-1.5">
+              <svg className="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Run History</p>
+            </div>
             <button type="button" disabled={disabled} onClick={() => void loadRuns()}
-              className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-40"
+              className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600 disabled:opacity-40 transition"
               title="Refresh" data-testid="reports-refresh-btn">
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -500,19 +520,29 @@ useEffect(() => {
             </button>
           </div>
           {recentRuns.length === 0 ? (
-            <div className="flex flex-col items-center py-8 text-center">
-              <p className="text-sm font-medium text-slate-500">No runs yet</p>
+            <div className="flex flex-col items-center rounded-xl border border-dashed border-slate-200 bg-white py-10 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
+                <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="mt-2.5 text-sm font-medium text-slate-500">No runs yet</p>
               <p className="mt-0.5 text-xs text-slate-400">Start a run from Test Execution.</p>
             </div>
           ) : (
-            <ul className="max-h-[min(70vh,520px)] space-y-1 overflow-auto pr-0.5">
+            <ul className="max-h-[min(70vh,520px)] space-y-1.5 overflow-auto pr-0.5">
               {recentRuns.map((r) => {
                 const isActive = focusedRunId === r.id;
-                const statusColor =
-                  r.status === "passed"  ? "bg-green-500" :
-                  r.status === "failed"  ? "bg-rose-500" :
-                  r.status === "running" ? "bg-amber-400" :
+                const statusDot =
+                  r.status === "passed"  ? "bg-emerald-500 shadow-emerald-200 shadow-sm" :
+                  r.status === "failed"  ? "bg-rose-500 shadow-rose-200 shadow-sm" :
+                  r.status === "running" ? "bg-amber-400 shadow-amber-200 shadow-sm" :
                                            "bg-slate-400";
+                const activeStyle =
+                  r.status === "passed"  ? "border-emerald-200 bg-emerald-50/70 shadow-emerald-100" :
+                  r.status === "failed"  ? "border-rose-200 bg-rose-50/60 shadow-rose-100" :
+                  r.status === "running" ? "border-amber-200 bg-amber-50/60 shadow-amber-100" :
+                                           "border-cyan-200 bg-cyan-50 shadow-cyan-100";
                 const dt = new Date(r.createdAt);
                 const dateStr = dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
                 const timeStr = dt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
@@ -521,45 +551,63 @@ useEffect(() => {
                     <button
                       type="button"
                       disabled={disabled}
-                      onClick={() => void loadRunDetail(r)}
+                      onClick={() => {
+                        setHealChanges(null);
+                        setHealLog(null);
+                        void loadRunDetail(r);
+                      }}
                       data-testid={`reports-run-item-${r.id}`}
-                      className={`group w-full rounded-xl border px-3 py-3 text-left transition ${
+                      className={`group w-full rounded-xl border px-3 py-3 text-left shadow-sm transition-all duration-150 ${
                         isActive
-                          ? "border-cyan-200 bg-cyan-50"
-                          : "border-transparent hover:border-slate-200 hover:bg-slate-50"
+                          ? `${activeStyle} shadow-sm`
+                          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 hover:shadow-md"
                       }`}
                     >
-                      {/* Row 1: status dot + label + provider */}
-                      <div className="flex items-center gap-2">
-                        <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${statusColor} ${r.status === "running" ? "animate-pulse" : ""}`} />
-                        <span className={`text-[11px] font-semibold ${
-                          r.status === "passed"  ? "text-green-700" :
-                          r.status === "failed"  ? "text-rose-600" :
-                          r.status === "running" ? "text-amber-700" :
-                                                   "text-slate-600"
-                        }`}>
-                          {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                      {/* Name row: label (if set) or date as primary identifier */}
+                      <div className="flex items-start justify-between gap-2">
+                        <span
+                          title={r.label ?? undefined}
+                          className={`min-w-0 flex-1 truncate text-[11px] font-bold leading-snug ${
+                            isActive ? "text-slate-900" : "text-slate-800"
+                          }`}
+                        >
+                          {r.label !== null && r.label.length > 0
+                            ? r.label
+                            : `${dateStr} · ${timeStr}`}
                         </span>
-                        <span className="ml-auto shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-500">
+                        <span className={`mt-px shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-medium ${
+                          isActive ? "bg-white/70 text-slate-600" : "bg-slate-100 text-slate-500"
+                        }`}>
                           {r.provider === "ci" ? "CI" : executionProviderLabel(r.provider as ExecutionProvider)}
                         </span>
                       </div>
-                      {/* Row 2: date + time */}
-                      <div className="mt-1.5 flex items-center gap-1.5 pl-4">
-                        <span className="text-[10px] font-medium text-slate-600">{dateStr}</span>
-                        <span className="text-[10px] text-slate-400">{timeStr}</span>
+                      {/* Status row */}
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <span className={`h-2 w-2 shrink-0 rounded-full ${statusDot} ${r.status === "running" ? "animate-pulse" : ""}`} />
+                        <span className={`text-[10px] font-semibold ${
+                          r.status === "passed"  ? "text-emerald-700" :
+                          r.status === "failed"  ? "text-rose-600" :
+                          r.status === "running" ? "text-amber-700" :
+                                                   "text-slate-500"
+                        }`}>
+                          {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                        </span>
+                        {/* Show date/time only when label is present (otherwise it's the name) */}
+                        {r.label !== null && r.label.length > 0 && (
+                          <span className="ml-1 text-[10px] text-slate-400">{dateStr} · {timeStr}</span>
+                        )}
                       </div>
-                      {/* Row 3: pass / fail pills */}
+                      {/* Pass / fail pills */}
                       {r.analysisSummary !== undefined ? (
-                        <div className="mt-1.5 flex items-center gap-1.5 pl-4">
-                          <span className="inline-flex items-center gap-1 rounded-md bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
+                        <div className="mt-1.5 flex items-center gap-1.5 pl-3.5">
+                          <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
                             Pass {r.analysisSummary.passed}
                           </span>
-                          <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600">
+                          <span className="inline-flex items-center gap-1 rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600">
                             Fail {r.analysisSummary.failed}
                           </span>
                           {r.analysisSummary.flaky > 0 && (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
                               ≈ {r.analysisSummary.flaky}
                             </span>
                           )}
@@ -588,6 +636,33 @@ useEffect(() => {
             </div>
           ) : (
             <>
+              {/* Run name / label header */}
+              {(() => {
+                const focusedRun = recentRuns.find((r) => r.id === focusedRunId);
+                const focusedLabel = focusedRun?.label ?? null;
+                const focusedDt = focusedRun ? new Date(focusedRun.createdAt) : null;
+                const focusedDateStr = focusedDt
+                  ? focusedDt.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+                  : null;
+                const focusedTimeStr = focusedDt
+                  ? focusedDt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
+                  : null;
+                return (
+                  <div className="border-b border-slate-100 pb-3">
+                    <h3 className="truncate text-sm font-bold text-slate-900" title={focusedLabel ?? undefined}>
+                      {focusedLabel !== null && focusedLabel.length > 0
+                        ? focusedLabel
+                        : focusedDateStr
+                          ? `Run · ${focusedDateStr} ${focusedTimeStr ?? ""}`
+                          : "Test Run"}
+                    </h3>
+                    {focusedLabel !== null && focusedLabel.length > 0 && focusedDateStr !== null && (
+                      <p className="mt-0.5 text-[11px] text-slate-400">{focusedDateStr} · {focusedTimeStr}</p>
+                    )}
+                  </div>
+                );
+              })()}
+
               {lastStatus !== null && (
                 <div className="flex items-center gap-3">
                   <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
@@ -828,8 +903,21 @@ useEffect(() => {
                 </p>
               ) : null}
 
-              {healChanges !== null && healChanges.length > 0 ? (
-                <HealChangesPanel changes={healChanges} />
+              {(healLog !== null || (healChanges !== null && healChanges.length > 0)) ? (
+                <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    <h3 className="text-sm font-semibold text-amber-800">Auto-heal result</h3>
+                  </div>
+                  {healLog !== null && (
+                    <p className="text-xs text-amber-700/90">{healLog}</p>
+                  )}
+                  {healChanges !== null && healChanges.length > 0 && (
+                    <HealChangesPanel changes={healChanges} />
+                  )}
+                </div>
               ) : null}
 
               {runLog !== null ? (

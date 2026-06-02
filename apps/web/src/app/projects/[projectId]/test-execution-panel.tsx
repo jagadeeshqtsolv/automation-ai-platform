@@ -47,6 +47,7 @@ export function TestExecutionPanel({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [environmentId, setEnvironmentId] = useState("");
   const [grep, setGrep] = useState("");
+  const [runLabel, setRunLabel] = useState("");
   const [running, setRunning] = useState(false);
   const [output, setOutput] = useState<string | null>(null);
   const [lastStatus, setLastStatus] = useState<string | null>(null);
@@ -165,22 +166,6 @@ export function TestExecutionPanel({
     [pollRun, stopPolling],
   );
 
-  useEffect(() => {
-    if (running || activeRunIdRef.current !== null) {
-      return;
-    }
-    void (async () => {
-      const res = await fetch(`/api/projects/${projectId}/test-runs`);
-      if (!res.ok) {
-        return;
-      }
-      const body = (await res.json()) as { recentRuns: Array<{ id: string; status: string; finishedAt: string | null }> };
-      const inProgress = body.recentRuns.find((r) => r.status === "running" && r.finishedAt === null);
-      if (inProgress !== undefined) {
-        startPolling(inProgress.id);
-      }
-    })();
-  }, [projectId, running, startPolling]);
 
   function toggleSpec(path: string) {
     setSelected((prev) => {
@@ -237,15 +222,11 @@ export function TestExecutionPanel({
           specPaths: [...selected],
           ...(environmentId.length > 0 ? { environmentId } : {}),
           ...(grep.trim().length > 0 ? { grep: grep.trim() } : {}),
+          ...(runLabel.trim().length > 0 ? { label: runLabel.trim() } : {}),
         }),
       });
       const body = (await res.json()) as { runId?: string; error?: string };
 
-      if (res.status === 409 && typeof body.runId === "string") {
-        toast.info("Resuming in-progress run");
-        startPolling(body.runId);
-        return;
-      }
       if (!res.ok) {
         toast.error(body.error ?? "Could not trigger CI pipeline");
         return;
@@ -280,6 +261,7 @@ export function TestExecutionPanel({
           ...(environmentId.length > 0 ? { environmentId } : {}),
           ...(grep.trim().length > 0 ? { grep: grep.trim() } : {}),
           ...(selectedProvider.length > 0 && selectedProvider !== "github-ci" ? { provider: selectedProvider } : {}),
+          ...(runLabel.trim().length > 0 ? { label: runLabel.trim() } : {}),
         }),
       });
       const body = (await res.json()) as {
@@ -287,12 +269,6 @@ export function TestExecutionPanel({
         status?: string;
         error?: string;
       };
-
-      if (res.status === 409 && typeof body.runId === "string") {
-        toast.info("Resuming in-progress test run");
-        startPolling(body.runId);
-        return;
-      }
 
       if (!res.ok) {
         toast.error(body.error ?? "Could not start test run");
@@ -373,6 +349,21 @@ export function TestExecutionPanel({
       </div>
 
       <div className="space-y-4 px-5 pb-5">
+        {/* Run label */}
+        <label className="block text-xs font-semibold text-slate-600">
+          Run label
+          <span className="ml-1 font-normal text-slate-400">(optional)</span>
+          <input
+            value={runLabel}
+            disabled={disabled || running}
+            onChange={(e) => setRunLabel(e.target.value)}
+            maxLength={120}
+            placeholder="e.g. Sprint 42 regression, smoke before deploy…"
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-xs placeholder:text-slate-400 disabled:opacity-50"
+            data-testid="execution-run-label-input"
+          />
+        </label>
+
         {/* Provider + Environment + Grep */}
         <div className="grid gap-3 sm:grid-cols-3">
           {availableProviders.length > 1 ? (
@@ -447,10 +438,10 @@ export function TestExecutionPanel({
             <ul className="max-h-56 overflow-auto divide-y divide-slate-100">
               {specs.map((s) => (
                 <li key={s.path}>
-                  <label className="flex cursor-pointer items-center gap-2.5 px-4 py-2 hover:bg-slate-50">
+                  <label className="flex min-w-0 cursor-pointer items-center gap-2.5 px-4 py-2 hover:bg-slate-50">
                     <input type="checkbox" checked={selected.has(s.path)} disabled={disabled || running}
-                      onChange={() => toggleSpec(s.path)} className="h-3.5 w-3.5 rounded border-slate-300 accent-green-600" />
-                    <span className="font-mono text-[11px] text-slate-600">{s.path}</span>
+                      onChange={() => toggleSpec(s.path)} className="h-3.5 w-3.5 shrink-0 rounded border-slate-300 accent-green-600" />
+                    <span title={s.path} className="truncate font-mono text-[11px] text-slate-600">{s.path}</span>
                   </label>
                 </li>
               ))}

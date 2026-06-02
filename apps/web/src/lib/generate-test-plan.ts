@@ -153,8 +153,11 @@ export async function generateTestPlanFromRequirement(params: {
   let parsed: unknown;
   try {
     parsed = JSON.parse(cleaned) as unknown;
-  } catch {
-    throw new Error("Model returned non-JSON content");
+  } catch (err) {
+    const snippet = raw.length > 300 ? `${raw.slice(0, 300)}…` : raw;
+    throw new Error(
+      `Model returned non-JSON content: ${err instanceof SyntaxError ? err.message : String(err)}. Raw (first 300 chars): ${snippet}`,
+    );
   }
 
   const normalized = normalizeLlmTestPlan(parsed);
@@ -168,32 +171,90 @@ export async function generateTestPlanFromRequirement(params: {
   return { plan: filtered, model: modelId };
 }
 
+/** Remove trailing commas before ] or } — a common AI mistake. */
+function removeTrailingCommas(text: string): string {
+  return text.replace(/,(\s*[}\]])/g, "$1");
+}
+
+/**
+ * Walk character-by-character to extract the outermost balanced JSON object.
+ * Returns [extracted, wasTruncated].
+ */
+function extractOutermostObject(text: string): [string, boolean] {
+  const start = text.indexOf("{");
+  if (start === -1) return [text, false];
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = start; i < text.length; i++) {
+    const c = text[i]!;
+    if (escape) { escape = false; continue; }
+    if (c === "\\") { escape = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (c === "{") depth++;
+    else if (c === "}") {
+      depth--;
+      if (depth === 0) return [text.slice(start, i + 1), false];
+    }
+  }
+
+  // Truncated — try to close the open braces/arrays so JSON.parse has a chance
+  if (depth > 0) {
+    const partial = text.slice(start);
+    // Close any unclosed string
+    let closed = inString ? partial + '"' : partial;
+    // Count open arrays inside to close them too
+    let arrayDepth = 0;
+    let inStr2 = false;
+    let esc2 = false;
+    for (const ch of closed) {
+      if (esc2) { esc2 = false; continue; }
+      if (ch === "\\") { esc2 = true; continue; }
+      if (ch === '"') { inStr2 = !inStr2; continue; }
+      if (inStr2) continue;
+      if (ch === "[") arrayDepth++;
+      else if (ch === "]" && arrayDepth > 0) arrayDepth--;
+    }
+    closed += "]".repeat(arrayDepth) + "}".repeat(depth);
+    return [closed, true];
+  }
+
+  return [text.slice(start), false];
+}
+
 function extractJsonFromResponse(text: string): string {
   const trimmed = text.trim();
-  // Try direct parse first
+
+  // Try the simplest path first: the entire response is already valid JSON
   try { JSON.parse(trimmed); return trimmed; } catch {}
-  // Strip markdown code fences
+
+  // Strip markdown code fences (```json ... ``` or ``` ... ```)
   const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/s);
   if (fenced) {
     const inner = fenced[1]!.trim();
     try { JSON.parse(inner); return inner; } catch {}
+    // Repair trailing commas and retry
+    const repaired = removeTrailingCommas(inner);
+    try { JSON.parse(repaired); return repaired; } catch {}
   }
-  // Walk character-by-character to find the balanced outermost JSON object
-  const start = trimmed.indexOf("{");
-  if (start !== -1) {
-    let depth = 0;
-    let inString = false;
-    let escape = false;
-    for (let i = start; i < trimmed.length; i++) {
-      const c = trimmed[i]!;
-      if (escape) { escape = false; continue; }
-      if (c === "\\") { escape = true; continue; }
-      if (c === '"') { inString = !inString; continue; }
-      if (inString) continue;
-      if (c === "{") depth++;
-      else if (c === "}") { depth--; if (depth === 0) return trimmed.slice(start, i + 1); }
-    }
+
+  // Repair trailing commas on the full text and retry
+  const commaFixed = removeTrailingCommas(trimmed);
+  try { JSON.parse(commaFixed); return commaFixed; } catch {}
+
+  // Walk to find the outermost balanced object, repairing trailing commas as we go
+  const [extracted, wasTruncated] = extractOutermostObject(commaFixed);
+  if (!wasTruncated) {
+    try { JSON.parse(extracted); return extracted; } catch {}
   }
+
+  // Last resort: extracted may be truncated — repair commas and try
+  const repairedExtracted = removeTrailingCommas(extracted);
+  try { JSON.parse(repairedExtracted); return repairedExtracted; } catch {}
+
   return trimmed;
 }
 

@@ -17,6 +17,8 @@ export type RunTestsParams = {
   projectId: string;
   config: ExecutionConfig;
   environmentConfigJson: string | null;
+  environmentSlug?: string | null;
+  label?: string | null;
   secrets: {
     saucelabsAccessKey?: string | null;
     browserstackAccessKey?: string | null;

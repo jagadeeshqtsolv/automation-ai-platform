@@ -33,6 +33,7 @@ export function GeneratePomSection({
 }) {
   const toast = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingAll, setDeletingAll] = useState(false);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -95,6 +96,29 @@ export function GeneratePomSection({
     }
   }
 
+  async function deleteAllPageObjects() {
+    const confirmed = window.confirm(
+      `Delete all ${pageObjects.length} page object${pageObjects.length !== 1 ? "s" : ""}? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    setDeletingAll(true);
+    try {
+      await Promise.all(
+        pageObjects.map((p) =>
+          fetch(`/api/projects/${projectId}/page-objects/${p.id}`, { method: "DELETE" }),
+        ),
+      );
+      if (editingPageId !== null) onEditPage(null);
+      await onReloadProject();
+      onFrameworkRefresh();
+      toast.success("All page objects deleted");
+    } catch {
+      toast.error("Could not delete all page objects");
+    } finally {
+      setDeletingAll(false);
+    }
+  }
+
   async function deletePageObject(page: PageObjectRow) {
     const confirmed = window.confirm(
       `Delete ${page.className}?\n\nThis removes the database record and deletes ${page.modulePath} from your framework folder.`,
@@ -140,6 +164,19 @@ export function GeneratePomSection({
         </div>
         <div className="flex items-center gap-2">
           <input ref={fileInputRef} type="file" accept=".json,.ts,.tsx" className="hidden" onChange={(e) => void handleImport(e)} />
+          {pageObjects.length > 0 && (
+            <button
+              type="button"
+              disabled={busy !== null || deletingId !== null || deletingAll}
+              onClick={() => void deleteAllPageObjects()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-100 disabled:opacity-50"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              {deletingAll ? "Deleting…" : "Delete All"}
+            </button>
+          )}
           {pageObjects.length > 0 && (
             <button
               type="button"

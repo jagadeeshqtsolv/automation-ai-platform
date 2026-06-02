@@ -30,43 +30,43 @@ export function buildWorkspaceNavItems(
     setup: {
       id: "setup",
       label: "Setup",
-      description: "API keys, execution & environments",
+      description: "Configure Test Environment",
       badge: stats.environmentsCount,
     },
     requirements: {
       id: "requirements",
       label: "Requirements",
-      description: "Write & generate plans",
+      description: "Define Requirements",
       badge: stats.requirementsCount,
     },
     recorder: {
       id: "recorder",
       label: "Recorder",
-      description: platformType === "web" ? "Browser DOM capture" : "Connect device & capture",
+      description: platformType === "web" ? "Capture Application Interactions" : "Connect device & capture",
     },
     "generate-pom": {
       id: "generate-pom",
-      label: "Page objects",
-      description: "Browse & edit library",
+      label: "Page Objects",
+      description: "Import & Manage Page Objects",
       badge: stats.pageObjectsCount,
     },
     "test-plans": {
       id: "test-plans",
-      label: "Test plans",
-      description: "Review plans & codegen",
+      label: "Test Plans",
+      description: "Create And Review Test Plans",
       badge: stats.planCount,
     },
     "test-execution": {
       id: "test-execution",
       label: "Test execution",
-      description: "Run specs & live logs",
+      description: "Run Automated Test Suites",
     },
     "test-reports": {
       id: "test-reports",
       label: "Test reports",
-      description: "HTML report & run history",
+      description: "Analyze Execution Results",
     },
-    framework: { id: "framework", label: "Framework", description: "Zip & files on disk" },
+    framework: { id: "framework", label: "Framework", description: "Export Automation Framework" },
   };
 
   return WORKSPACE_TAB_ORDER.map((id) => byTab[id]);

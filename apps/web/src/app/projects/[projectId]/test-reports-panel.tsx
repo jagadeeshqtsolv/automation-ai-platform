@@ -367,7 +367,7 @@ export function TestReportsPanel({
     }
   }, [projectId, rerunning, toast]);
 
-useEffect(() => {
+  useEffect(() => {
     void (async () => {
       setLoading(true);
       const runs = await loadRuns();
@@ -534,15 +534,15 @@ useEffect(() => {
               {recentRuns.map((r) => {
                 const isActive = focusedRunId === r.id;
                 const statusDot =
-                  r.status === "passed"  ? "bg-emerald-500 shadow-emerald-200 shadow-sm" :
-                  r.status === "failed"  ? "bg-rose-500 shadow-rose-200 shadow-sm" :
-                  r.status === "running" ? "bg-amber-400 shadow-amber-200 shadow-sm" :
-                                           "bg-slate-400";
+                  r.status === "passed" ? "bg-emerald-500 shadow-emerald-200 shadow-sm" :
+                    r.status === "failed" ? "bg-rose-500 shadow-rose-200 shadow-sm" :
+                      r.status === "running" ? "bg-amber-400 shadow-amber-200 shadow-sm" :
+                        "bg-slate-400";
                 const activeStyle =
-                  r.status === "passed"  ? "border-emerald-200 bg-emerald-50/70 shadow-emerald-100" :
-                  r.status === "failed"  ? "border-rose-200 bg-rose-50/60 shadow-rose-100" :
-                  r.status === "running" ? "border-amber-200 bg-amber-50/60 shadow-amber-100" :
-                                           "border-cyan-200 bg-cyan-50 shadow-cyan-100";
+                  r.status === "passed" ? "border-emerald-200 bg-emerald-50/70 shadow-emerald-100" :
+                    r.status === "failed" ? "border-rose-200 bg-rose-50/60 shadow-rose-100" :
+                      r.status === "running" ? "border-amber-200 bg-amber-50/60 shadow-amber-100" :
+                        "border-cyan-200 bg-cyan-50 shadow-cyan-100";
                 const dt = new Date(r.createdAt);
                 const dateStr = dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
                 const timeStr = dt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
@@ -557,39 +557,35 @@ useEffect(() => {
                         void loadRunDetail(r);
                       }}
                       data-testid={`reports-run-item-${r.id}`}
-                      className={`group w-full rounded-xl border px-3 py-3 text-left shadow-sm transition-all duration-150 ${
-                        isActive
+                      className={`group w-full rounded-xl border px-3 py-3 text-left shadow-sm transition-all duration-150 ${isActive
                           ? `${activeStyle} shadow-sm`
                           : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 hover:shadow-md"
-                      }`}
+                        }`}
                     >
                       {/* Name row: label (if set) or date as primary identifier */}
                       <div className="flex items-start justify-between gap-2">
                         <span
                           title={r.label ?? undefined}
-                          className={`min-w-0 flex-1 truncate text-[11px] font-bold leading-snug ${
-                            isActive ? "text-slate-900" : "text-slate-800"
-                          }`}
+                          className={`min-w-0 flex-1 truncate text-[11px] font-bold leading-snug ${isActive ? "text-slate-900" : "text-slate-800"
+                            }`}
                         >
                           {r.label !== null && r.label.length > 0
                             ? r.label
                             : `${dateStr} · ${timeStr}`}
                         </span>
-                        <span className={`mt-px shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-medium ${
-                          isActive ? "bg-white/70 text-slate-600" : "bg-slate-100 text-slate-500"
-                        }`}>
+                        <span className={`mt-px shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-medium ${isActive ? "bg-white/70 text-slate-600" : "bg-slate-100 text-slate-500"
+                          }`}>
                           {r.provider === "ci" ? "CI" : executionProviderLabel(r.provider as ExecutionProvider)}
                         </span>
                       </div>
                       {/* Status row */}
                       <div className="mt-1 flex items-center gap-1.5">
                         <span className={`h-2 w-2 shrink-0 rounded-full ${statusDot} ${r.status === "running" ? "animate-pulse" : ""}`} />
-                        <span className={`text-[10px] font-semibold ${
-                          r.status === "passed"  ? "text-emerald-700" :
-                          r.status === "failed"  ? "text-rose-600" :
-                          r.status === "running" ? "text-amber-700" :
-                                                   "text-slate-500"
-                        }`}>
+                        <span className={`text-[10px] font-semibold ${r.status === "passed" ? "text-emerald-700" :
+                            r.status === "failed" ? "text-rose-600" :
+                              r.status === "running" ? "text-amber-700" :
+                                "text-slate-500"
+                          }`}>
                           {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
                         </span>
                         {/* Show date/time only when label is present (otherwise it's the name) */}
@@ -665,12 +661,11 @@ useEffect(() => {
 
               {lastStatus !== null && (
                 <div className="flex items-center gap-3">
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-                    lastStatus === "passed"   ? "bg-green-50 text-green-700 ring-1 ring-green-200" :
-                    lastStatus === "failed"   ? "bg-rose-50 text-rose-600 ring-1 ring-rose-200" :
-                    lastStatus === "running"  ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200" :
-                                               "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
-                  }`}>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${lastStatus === "passed" ? "bg-green-50 text-green-700 ring-1 ring-green-200" :
+                      lastStatus === "failed" ? "bg-rose-50 text-rose-600 ring-1 ring-rose-200" :
+                        lastStatus === "running" ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200" :
+                          "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
+                    }`}>
                     {lastStatus === "running" && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />}
                     {lastStatus ? lastStatus.charAt(0).toUpperCase() + lastStatus.slice(1) : ""}
                   </span>
@@ -711,43 +706,43 @@ useEffect(() => {
                 ) : null}
                 {lastStatus !== null && lastStatus !== "running" ? (
                   <>
-                  {focusedProvider !== "ci" && focusedProvider !== "browserstack" ? (
-                    <button
-                      type="button"
-                      disabled={disabled}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-slate-50 disabled:opacity-50"
-                      onClick={() =>
-                        window.open(
-                          `/api/projects/${projectId}/framework/playwright-report/index.html`,
-                          "_blank",
-                          "noopener,noreferrer",
-                        )
-                      }
-                      data-testid="reports-html-btn"
-                    >
-                      HTML report
-                    </button>
-                  ) : null}
-                  {(lastStatus === "failed" || (analysisSummary !== undefined && analysisSummary.failed + analysisSummary.flaky > 0)) ? (
-                    <button
-                      type="button"
-                      disabled={disabled || healing}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
-                      onClick={() => setHealFormOpen((open) => !open)}
-                      data-testid="reports-autoheal-toggle-btn"
-                    >
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                      </svg>
-                      {healFormOpen ? "Hide" : "Auto-heal with AI"}
-                    </button>
-                  ) : null}
+                    {focusedProvider !== "ci" && focusedProvider !== "browserstack" ? (
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-slate-50 disabled:opacity-50"
+                        onClick={() =>
+                          window.open(
+                            `/api/projects/${projectId}/framework/playwright-report/index.html`,
+                            "_blank",
+                            "noopener,noreferrer",
+                          )
+                        }
+                        data-testid="reports-html-btn"
+                      >
+                        HTML report
+                      </button>
+                    ) : null}
+                    {(lastStatus === "failed" || (analysisSummary !== undefined && analysisSummary.failed + analysisSummary.flaky > 0)) ? (
+                      <button
+                        type="button"
+                        disabled={disabled || healing}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                        onClick={() => setHealFormOpen((open) => !open)}
+                        data-testid="reports-autoheal-toggle-btn"
+                      >
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        {healFormOpen ? "Hide" : "Auto-heal with AI"}
+                      </button>
+                    ) : null}
                   </>
                 ) : null}
               </div>
 
               {healFormOpen &&
-              (lastStatus === "failed" || (analysisSummary !== undefined && analysisSummary.failed + analysisSummary.flaky > 0)) ? (
+                (lastStatus === "failed" || (analysisSummary !== undefined && analysisSummary.failed + analysisSummary.flaky > 0)) ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
                   <div>
                     <h3 className="text-sm font-semibold text-amber-800">How auto-heal works</h3>

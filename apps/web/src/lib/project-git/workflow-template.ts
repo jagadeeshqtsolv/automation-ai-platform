@@ -15,10 +15,10 @@ export function generateWorkflowTemplate(
   // intentionally so space-separated paths undergo word-splitting into separate CLI args.
   const baseCmd = platformType === "web" ? "npx playwright test" : "npx mobilewright test";
   const testCmd = `if [ -n "$GREP_PATTERN" ]; then
-    ${baseCmd} $SPEC_PATHS_ARG --grep "$GREP_PATTERN"
-  else
-    ${baseCmd} $SPEC_PATHS_ARG
-  fi`;
+  ${baseCmd} $SPEC_PATHS_ARG --grep "$GREP_PATTERN"
+else
+  ${baseCmd} $SPEC_PATHS_ARG
+fi`;
 
   switch (provider) {
     case "github":
@@ -28,6 +28,13 @@ export function generateWorkflowTemplate(
     case "bitbucket":
       return bitbucketTemplate(testCmd, platformType);
   }
+}
+
+function indentLines(text: string, prefix: string): string {
+  return text
+    .split("\n")
+    .map((line) => `${prefix}${line}`)
+    .join("\n");
 }
 
 function githubTemplate(workflowFile: string, testCmd: string, platformType: "web" | "mobile", cfg: CiRunConfig): string {
@@ -98,7 +105,7 @@ ${installBrowsersStep}
         run: |
           SPEC_PATHS_ARG="\${{ inputs.spec_paths }}"
           GREP_PATTERN="\${{ inputs.grep }}"
-          ${testCmd}
+${indentLines(testCmd, "          ")}
         continue-on-error: true
         id: run
 
@@ -145,7 +152,7 @@ run-tests:
 ${installBrowsers}    - |
       SPEC_PATHS_ARG="\${SPEC_PATHS:-}"
       GREP_PATTERN="\${GREP:-}"
-      ${testCmd}
+${indentLines(testCmd, "      ")}
       TEST_EXIT=\$?
       STATUS="passed"
       [ \$TEST_EXIT -ne 0 ] && STATUS="failed"
@@ -186,7 +193,7 @@ pipelines:
 ${installBrowsers}            - |
               SPEC_PATHS_ARG="\${SPEC_PATHS:-}"
               GREP_PATTERN="\${GREP:-}"
-              ${testCmd}
+${indentLines(testCmd, "              ")}
               TEST_EXIT=\$?
               STATUS="passed"
               [ \$TEST_EXIT -ne 0 ] && STATUS="failed"

@@ -293,9 +293,8 @@ export function AdminWorkspace() {
         <p className="ui-eyebrow text-green-700">Platform admin</p>
         <h1 className="ui-title-lg">Organizations & User Management</h1>
         <p className="ui-subtitle mt-2 max-w-2xl">
-          Create organizations, invite new users, and manage existing accounts.
-          <br />
-          Users cannot self-register without an invite link.
+          Create organizations, invite new users, and manage existing accounts. Users cannot
+          self-register without an invite link.
         </p>
         <div className="mt-4 flex gap-2">
           <Link href="/dashboard" className="ui-btn-secondary ui-btn-sm" data-testid="admin-dashboard-link">

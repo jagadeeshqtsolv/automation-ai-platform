@@ -917,7 +917,7 @@ function ProjectSetupSection(props: {
               <button
                 type="submit"
                 disabled={busy !== null}
-                className="ui-btn-primary ui-btn-sm w-full"
+                className="ui-btn-secondary ui-btn-sm w-full"
               >
                 {busy === "env" ? "Saving…" : isEditing ? "Save Changes" : "Add Environment"}
               </button>
@@ -926,7 +926,7 @@ function ProjectSetupSection(props: {
                   type="button"
                   disabled={busy !== null}
                   onClick={resetEnvironmentForm}
-                  className="ui-btn-tertiary ui-btn-sm w-full text-red-600"
+                  className="ui-btn-tertiary ui-btn-sm w-full"
                 >
                   Cancel
                 </button>

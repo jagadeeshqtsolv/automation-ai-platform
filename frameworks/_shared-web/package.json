@@ -12,9 +12,9 @@
     "@automation-ai/web-support": "npm:@jagadeeshqtsolv/web-support@^1.0.7"
   },
   "devDependencies": {
-    "@playwright/test": "1.48.2",
+    "@playwright/test": "^1.58.2",
     "@types/node": "^22.0.0",
-    "browserstack-node-sdk": "latest",
+    "browserstack-node-sdk": "^1.0.0",
     "@faker-js/faker": "^9.5.0",
     "typescript": "^5.8.3"
   }

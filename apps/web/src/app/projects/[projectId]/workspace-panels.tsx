@@ -512,7 +512,7 @@ export function RequirementsWorkspacePanel({
         <div className="flex flex-col items-center rounded-xl border border-slate-200 bg-white py-12 text-center shadow-sm">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-50 text-2xl">📋</div>
           <p className="mt-3 text-sm font-medium text-slate-700">No requirements yet</p>
-          <p className="mt-1 text-xs text-slate-500">Click "New Requirement" to add your first one.</p>
+          <p className="mt-1 text-xs text-slate-500">Click &quot;New Requirement&quot; to add your first one.</p>
         </div>
       ) : (
         <div className="space-y-3">

@@ -105,6 +105,28 @@ export function getAllProjectFrameworkRoots(projectId: string): string[] {
 export type FrameworkRelativePath = string;
 
 /**
+ * Resolves any relative path within the project framework root for read-only use.
+ * Only prevents directory traversal — does NOT enforce the write allowlist.
+ * Use this for diff/preview operations where the path comes from git (not LLM output).
+ */
+export function resolveFrameworkFilePathForRead(
+  projectId: string,
+  relativePath: string,
+  platformType?: ProjectPlatformType,
+): string | null {
+  const normalized = relativePath.trim().replace(/^\.\//, "").replace(/\\/g, "/");
+  if (normalized.length === 0 || normalized.includes("..")) {
+    return null;
+  }
+  const frameworkRoot = getProjectFrameworkRoot(projectId, platformType);
+  const absolute = path.resolve(frameworkRoot, normalized);
+  if (!absolute.startsWith(frameworkRoot + path.sep) && absolute !== frameworkRoot) {
+    return null;
+  }
+  return absolute;
+}
+
+/**
  * Maps LLM paths like `pageobjects/LoginPage.ts` to a safe absolute path under the project root.
  * Rejects traversal and paths outside allowed prefixes.
  */
@@ -129,6 +151,7 @@ export function resolveFrameworkFilePath(
     normalized.startsWith("execution/") ||
     normalized.startsWith("utils/") ||
     normalized.startsWith("testdata/") ||
+    normalized.startsWith(".auth/") ||
     normalized === "package.json" ||
     normalized === "tsconfig.json" ||
     normalized === "mobilewright.config.ts" ||

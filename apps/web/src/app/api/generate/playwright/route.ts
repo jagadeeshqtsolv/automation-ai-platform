@@ -20,6 +20,7 @@ import { generateTestFixturesSource, TEST_FIXTURES_MODULE_PATH } from "@/lib/gen
 import { aiGenerationErrorStatus } from "@/lib/ai-generation-error-status";
 import { getProjectPlatformType } from "@/lib/project-platform";
 import { resolveFrameworkFilePath } from "@/lib/local-framework/paths";
+import { buildPlaywrightWebConfig } from "@/lib/playwright-web-environment-config";
 
 const generatingProjects = new Set<string>();
 
@@ -139,6 +140,14 @@ export async function POST(req: Request) {
     ? await readFile(testDataPath, "utf8").catch(() => "{}")
     : "{}";
 
+  // Pick the most recently updated auth file for this project (if any)
+  const authFileRecord = await prisma.projectAuthFile.findFirst({
+    where: { projectId },
+    orderBy: { updatedAt: "desc" },
+    select: { filename: true },
+  });
+  const authFile = authFileRecord?.filename;
+
   generatingProjects.add(projectId);
   try {
     const { bundle, model } = await generatePlaywrightWebPomBundle({
@@ -150,7 +159,17 @@ export async function POST(req: Request) {
       scope: singleCaseId !== undefined ? "single-case" : "full-plan",
       focusTestCaseId: singleCaseId,
       currentTestData,
+      authFile,
     });
+
+    // When an auth file is present, ensure playwright.config.ts references it as storageState
+    if (authFile !== undefined) {
+      const configPath = resolveFrameworkFilePath(projectId, "playwright.config.ts", "web");
+      if (configPath !== null) {
+        const { writeFile } = await import("node:fs/promises");
+        await writeFile(configPath, buildPlaywrightWebConfig(null, `.auth/${authFile}`), "utf8").catch(() => {});
+      }
+    }
 
     if (bundle.pageObjectFiles.length > 0) {
       await upsertPageObjectFilesFromPomBundle({

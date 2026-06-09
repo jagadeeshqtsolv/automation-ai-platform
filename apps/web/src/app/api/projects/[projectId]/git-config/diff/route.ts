@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
-import { getProjectFrameworkRoot, getProjectUserGitDir, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
+import { getProjectFrameworkRoot, getProjectUserGitDir, resolveFrameworkFilePathForRead } from "@/lib/local-framework/paths";
 import { prisma } from "@/lib/prisma";
 
 const execFile = promisify(_execFile);
@@ -43,8 +43,8 @@ export async function GET(req: Request, context: { params: Promise<{ projectId: 
 
   const platformType = project.platformType as "web" | "mobile";
 
-  // Use allowlist-based path validator — rejects traversal and paths outside permitted prefixes
-  const resolvedPath = resolveFrameworkFilePath(params.data.projectId, filePath, platformType);
+  // Use traversal-safe read resolver — no write allowlist needed for diff/preview
+  const resolvedPath = resolveFrameworkFilePathForRead(params.data.projectId, filePath, platformType);
   if (resolvedPath === null) {
     return NextResponse.json({ error: "Invalid path" }, { status: 400 });
   }

@@ -258,7 +258,7 @@ async function clearStaleLock(gitDir: string): Promise<void> {
  */
 async function ensureGitignore(root: string, gitDir: string): Promise<void> {
   const gitignorePath = path.join(root, ".gitignore");
-  const required = [".git-users/", "node_modules/"];
+  const required = [".git-users/", "node_modules/", ".auth/"];
 
   let existing = "";
   try { existing = await readFile(gitignorePath, "utf-8"); } catch { /* new file */ }

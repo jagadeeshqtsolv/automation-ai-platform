@@ -90,8 +90,11 @@ export function parseWebEnvironmentConfig(configJson: string | null): Playwright
  * (defaulting to `environments/qa.json`).  Set the TEST_ENV shell variable
  * to switch environments:  TEST_ENV=staging npm test
  */
-export function buildPlaywrightWebConfig(_configJson: string | null): string {
-  return [
+export function buildPlaywrightWebConfig(_configJson: string | null, storageStatePath?: string): string {
+  const storageStateLine = storageStatePath
+    ? `    storageState:  ${JSON.stringify(storageStatePath)},`
+    : null;
+  return ([
     `import { defineConfig, devices } from "@playwright/test";`,
     `import { readFileSync } from "node:fs";`,
     `import path from "node:path";`,
@@ -129,6 +132,7 @@ export function buildPlaywrightWebConfig(_configJson: string | null): string {
     `  fullyParallel: Boolean(env.fullyParallel ?? false),`,
     `  workers:       Number(env.workers        ?? 1),`,
     `  use: {`,
+    storageStateLine,
     `    baseURL:       String(env.baseURL       ?? "https://example.com"),`,
     `    headless:      env.headless !== false,`,
     `    trace:         (String(env.trace        ?? "retain-on-failure")) as "off" | "on" | "retain-on-failure" | "on-all-retries",`,
@@ -155,7 +159,7 @@ export function buildPlaywrightWebConfig(_configJson: string | null): string {
     : ${DEFAULT_PLAYWRIGHT_REPORTER_CONFIG},`,
     `});`,
     ``,
-  ].join("\n");
+  ] as (string | null)[]).filter((l): l is string => l !== null).join("\n");
 }
 
 /**

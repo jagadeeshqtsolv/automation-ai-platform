@@ -46,6 +46,10 @@ export async function POST(req: Request) {
 
   const platformType = await getProjectPlatformType(requirement.projectId);
 
+  const hasAuthFile = platformType === "web" && await prisma.projectAuthFile.count({
+    where: { projectId: requirement.projectId },
+  }).then((n) => n > 0);
+
   generatingProjects.add(requirement.projectId);
   try {
     const { plan, model } = await generateTestPlanFromRequirement({
@@ -54,6 +58,7 @@ export async function POST(req: Request) {
       projectId: requirement.projectId,
       platform: platformType === "web" ? "web" : "mobile",
       testCaseTypes: parsed.data.testCaseTypes,
+      hasAuthFile,
     });
 
     const saved = await prisma.testPlan.create({

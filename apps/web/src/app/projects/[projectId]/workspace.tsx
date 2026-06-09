@@ -21,6 +21,7 @@ import { ProjectAISettings } from "./project-ai-settings";
 import { ProjectExecutionSettings } from "./project-execution-settings";
 import { ProjectGitSettings } from "./project-git-settings";
 import { ProjectJiraSettings } from "./project-jira-settings";
+import { ProjectAuthSettings } from "./project-auth-settings";
 import { GitStatusWidget } from "./git-status-widget";
 import { TestExecutionPanel } from "./test-execution-panel";
 import { TestReportsPanel } from "./test-reports-panel";
@@ -629,7 +630,7 @@ function RefreshIcon() {
   );
 }
 
-type SetupTab = "ai" | "execution" | "git" | "environments" | "jira";
+type SetupTab = "ai" | "execution" | "git" | "environments" | "jira" | "auth";
 
 const SETUP_TABS: { id: SetupTab; label: string }[] = [
   { id: "ai", label: "AI" },
@@ -637,6 +638,7 @@ const SETUP_TABS: { id: SetupTab; label: string }[] = [
   { id: "git", label: "Git" },
   { id: "jira", label: "Jira" },
   { id: "execution", label: "Execution" },
+  { id: "auth", label: "Auth" },
 ];
 
 function ProjectSetupSection(props: {
@@ -832,6 +834,10 @@ function ProjectSetupSection(props: {
             {!isOwner && <MemberReadOnlyNotice tab="Jira" />}
             <ProjectJiraSettings projectId={projectId} disabled={busy !== null || !isOwner} />
           </>
+        )}
+
+        {setupTab === "auth" && (
+          <ProjectAuthSettings projectId={projectId} disabled={busy !== null} />
         )}
 
         {setupTab === "environments" && <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">

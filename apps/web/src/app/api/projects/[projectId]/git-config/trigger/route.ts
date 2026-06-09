@@ -74,6 +74,17 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
     environmentSlug = env?.slug ?? "";
   }
 
+  // Load auth file from DB (if any) to inject into CI runner
+  const authFileRecord = await prisma.projectAuthFile.findFirst({
+    where: { projectId },
+    orderBy: { updatedAt: "desc" },
+    select: { filename: true, content: true },
+  });
+  const authState = authFileRecord
+    ? Buffer.from(authFileRecord.content, "utf8").toString("base64")
+    : "";
+  const authStateFilename = authFileRecord?.filename ?? "";
+
   // Create the TestRun record so polling works immediately
   const callbackToken = randomBytes(32).toString("hex");
   const run = await prisma.testRun.create({
@@ -107,6 +118,8 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
       grep: parsed.data.grep ?? "",
       callback_url: callbackUrl,
       run_id: run.id,
+      auth_state: authState,
+      auth_state_filename: authStateFilename,
     },
   });
 

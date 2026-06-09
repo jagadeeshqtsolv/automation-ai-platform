@@ -75,6 +75,9 @@ logs/*.zip
 execution/.env.execution
 browserstack.yml
 
+# Auth state — contains session cookies/tokens, never commit
+.auth/
+
 # Recorder artifacts
 .dom-captures/
 `;

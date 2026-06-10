@@ -246,7 +246,13 @@ export async function GET(
   const buf = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
   const bytes = new Uint8Array(buf);
 
-  const filename = `test-cases-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const reqTitle = requirements.find((r) => (r.title ?? "").trim().length > 0)?.title?.trim();
+  const suiteName = requirements.flatMap((r) => r.testPlans).map((p) => {
+    try { return (testPlanSchema.parse(JSON.parse(p.json) as unknown)).suiteName; } catch { return ""; }
+  }).find((s) => s.length > 0);
+  const rawName = reqTitle ?? suiteName ?? "Test-Cases";
+  const safeName = rawName.replace(/[^a-zA-Z0-9_\- ]/g, "").replace(/\s+/g, "-");
+  const filename = `${safeName}-${Date.now()}.xlsx`;
 
   return new Response(bytes, {
     headers: {

@@ -89,19 +89,23 @@ export async function POST(_req: Request, context: { params: Promise<{ projectId
     });
 
     // Switch the admin back to their personal working branch so they don't end up on main.
-    // This is a best-effort step — if the branch isn't set yet, skip silently.
+    // Best-effort: a failure here must not turn a successful push into a 500.
     if (userConfig.branch && userConfig.branch !== baseBranch) {
-      await initRepo({
-        projectId: params.data.projectId,
-        platformType,
-        remoteUrl: projectConfig.remoteUrl,
-        branch: userConfig.branch,
-        baseBranch,
-        authorName: userConfig.authorName,
-        authorEmail: userConfig.authorEmail,
-        token,
-        userId: guard.user.id,
-      });
+      try {
+        await initRepo({
+          projectId: params.data.projectId,
+          platformType,
+          remoteUrl: projectConfig.remoteUrl,
+          branch: userConfig.branch,
+          baseBranch,
+          authorName: userConfig.authorName,
+          authorEmail: userConfig.authorEmail,
+          token,
+          userId: guard.user.id,
+        });
+      } catch {
+        // Non-fatal — push succeeded; branch switch is cosmetic.
+      }
     }
 
     return NextResponse.json({

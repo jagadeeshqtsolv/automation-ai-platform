@@ -107,9 +107,28 @@ export async function fetchAndSaveCiReport({
 
     // The workflow uploads the artifact with name `playwright-report-{run_id}`
     const artifactName = `playwright-report-${runId}`;
-    const artifact = artifactsData.artifacts.find(
+    let artifact = artifactsData.artifacts.find(
       (a) => a.name === artifactName && !a.expired,
     );
+
+    // GitHub's artifact API can lag a few seconds after upload — retry up to 3×
+    if (!artifact) {
+      for (let attempt = 1; attempt <= 3 && !artifact; attempt++) {
+        await new Promise((r) => setTimeout(r, attempt * 4_000));
+        const retryRes = await fetch(
+          `https://api.github.com/repos/${ownerRepo}/actions/runs/${githubRunId}/artifacts`,
+          { headers, signal: AbortSignal.timeout(15_000) },
+        );
+        if (!retryRes.ok) break;
+        const retryData = (await retryRes.json()) as {
+          artifacts: Array<{ id: number; name: string; expired: boolean }>;
+        };
+        artifact = retryData.artifacts.find(
+          (a) => a.name === artifactName && !a.expired,
+        );
+      }
+    }
+
     if (!artifact) {
       console.warn(
         `[fetch-ci-report] artifact "${artifactName}" not found in run ${githubRunId}`,

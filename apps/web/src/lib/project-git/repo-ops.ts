@@ -258,7 +258,7 @@ async function clearStaleLock(gitDir: string): Promise<void> {
  */
 async function ensureGitignore(root: string, gitDir: string): Promise<void> {
   const gitignorePath = path.join(root, ".gitignore");
-  const required = [".git-users/", "node_modules/"];
+  const required = [".git-users/", "node_modules/", ".auth/"];
 
   let existing = "";
   try { existing = await readFile(gitignorePath, "utf-8"); } catch { /* new file */ }
@@ -292,7 +292,14 @@ async function checkoutBranch(
   try {
     await git(root, ["checkout", ...args], undefined, gitDir);
   } catch (err) {
-    if (/untracked working tree files would be overwritten/i.test(getStderr(err))) {
+    const stderr = getStderr(err);
+    // The shared work tree contains all users' files. Force-checkout is safe here:
+    // untracked files that would be overwritten are already the correct content,
+    // and tracked-modified files in the shared tree must yield to the target branch.
+    if (
+      /untracked working tree files would be overwritten/i.test(stderr) ||
+      /local changes.*would be overwritten by checkout/i.test(stderr)
+    ) {
       await git(root, ["checkout", "-f", ...args], undefined, gitDir);
     } else {
       throw err;

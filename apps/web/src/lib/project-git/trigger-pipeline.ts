@@ -8,6 +8,10 @@ export type TriggerInputs = {
   grep: string;
   callback_url: string;
   run_id: string;
+  /** Base64-encoded Playwright storageState JSON, empty string when unused. */
+  auth_state: string;
+  /** Filename to write inside .auth/, empty string when unused. */
+  auth_state_filename: string;
 };
 
 export type TriggerParams = {

@@ -100,7 +100,10 @@ function buildMobileSystemPrompt(types: TestCaseType[]): string {
   ].join("\n");
 }
 
-function buildWebSystemPrompt(types: TestCaseType[]): string {
+function buildWebSystemPrompt(types: TestCaseType[], hasAuthFile?: boolean): string {
+  const authNote = hasAuthFile
+    ? "Authentication is pre-handled via Playwright storageState — do NOT include login/sign-in as a precondition or setup step. Tests start already authenticated."
+    : "";
   return [
     "You are a web QA engineer. Respond with JSON only — no markdown, no commentary.",
     categoryInstruction(types),
@@ -108,7 +111,8 @@ function buildWebSystemPrompt(types: TestCaseType[]): string {
     "Use exact action strings (tap=click, fill=form input). No mobile-only actions.",
     "platforms: always use only [\"chrome\"]. Do not include other browsers.",
     "Encode setup as first step, not as preconditions. Keep steps concise.",
-  ].join("\n");
+    authNote,
+  ].filter(Boolean).join("\n");
 }
 
 export async function generateTestPlanFromRequirement(params: {
@@ -117,12 +121,13 @@ export async function generateTestPlanFromRequirement(params: {
   projectId: string;
   platform?: "web" | "mobile";
   testCaseTypes?: TestCaseType[];
+  hasAuthFile?: boolean;
 }): Promise<{ plan: TestPlan; model: string }> {
   const { model, modelId, isReasoningModel } = await resolveAIModel(params.projectId);
   const isWeb = params.platform === "web";
   const types = params.testCaseTypes ?? ALL_TEST_CASE_TYPES;
   const systemPrompt = isWeb
-    ? buildWebSystemPrompt(types)
+    ? buildWebSystemPrompt(types, params.hasAuthFile)
     : buildMobileSystemPrompt(types);
 
   const categoryLabel = types.map((t) => t.toUpperCase()).join(" + ");

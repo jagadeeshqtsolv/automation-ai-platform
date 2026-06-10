@@ -107,6 +107,7 @@ model Project {
   pageObjects     PageObject[]
   testRuns        TestRun[]
   userGitConfigs  ProjectUserGitConfig[]
+  authFiles       ProjectAuthFile[]
 
   @@index([organizationId])
 }
@@ -247,4 +248,19 @@ model GeneratedCode {
 
   @@index([testPlanId])
   @@index([environmentId])
+}
+
+/// Playwright storageState auth files — content stored in DB, synced to .auth/ on disk
+model ProjectAuthFile {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  filename  String
+  content   String
+  sizeBytes Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, filename])
+  @@index([projectId])
 }

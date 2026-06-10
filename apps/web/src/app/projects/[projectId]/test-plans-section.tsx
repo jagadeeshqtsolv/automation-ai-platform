@@ -248,7 +248,7 @@ function TestCaseCard({
             </button>
           ) : null}
           <button type="button" disabled={busy !== null || editing} onClick={() => void onGenerate(planId, testCase.id)}
-            className="rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700 hover:bg-sky-100 disabled:opacity-50">
+            className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">
             {generating ? "Generating…" : "Generate"}
           </button>
           <button type="button" disabled={busy !== null || editing} onClick={() => void onDelete(planId, testCase.id, testCase.title)}
@@ -628,10 +628,22 @@ export function TestPlansSection({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {folders.length > 0 && (
+              <a
+                href={`/api/projects/${projectId}/test-plans/export`}
+                download
+                className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Export Excel
+              </a>
+            )}
+            {folders.length > 0 && (
               <button
                 type="button"
                 onClick={() => openEditor()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -949,7 +961,7 @@ function SuiteBlock({
             <button
               type="button"
               onClick={onOpenEditor}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100"
             >
               <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -961,7 +973,7 @@ function SuiteBlock({
             type="button"
             disabled={busy !== null || data.cases.length === 0}
             onClick={() => void onGenerateCode(plan.id)}
-            className="ui-btn-primary ui-btn-xs disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
             title={data.cases.length === 0 ? "Add at least one test case first" : undefined}
           >
             {busy === codegenBusyKey(plan.id) ? (
@@ -1213,7 +1225,7 @@ export function TestPlanEditor({
                         type="button"
                         disabled={busy !== null || selected.data.cases.length === 0}
                         onClick={() => void onGenerateCode(selected.plan.id)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-accent px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-accent-dim disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
                       >
                         {busy === codegenBusyKey(selected.plan.id) ? (
                           <><span className="h-3 w-3 animate-spin rounded-full border-2 border-current/20 border-t-current" />Generating…</>

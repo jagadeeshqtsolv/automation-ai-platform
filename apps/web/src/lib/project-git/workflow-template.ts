@@ -74,6 +74,14 @@ on:
       run_id:
         description: "AutomationAI run ID"
         required: true
+      auth_state:
+        description: "Base64-encoded Playwright storageState JSON (auth file)"
+        required: false
+        default: ""
+      auth_state_filename:
+        description: "Filename to write inside .auth/ (e.g. auth.json)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -91,12 +99,13 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
+        run: npm install
+
+      - name: Write auth state
+        if: \${{ inputs.auth_state != '' && inputs.auth_state_filename != '' }}
         run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
+          mkdir -p .auth
+          echo "\${{ inputs.auth_state }}" | base64 -d > ".auth/\${{ inputs.auth_state_filename }}"
 ${installBrowsersStep}
       - name: Run tests
         env:
@@ -127,13 +136,19 @@ ${indentLines(testCmd, "          ")}
           if [ "\${{ steps.run.outcome }}" != "success" ]; then
             STATUS="failed"
           fi
-          curl -s -X POST "\${{ inputs.callback_url }}" \\
-            -H "Content-Type: application/json" \\
-            -d "{
-              \\"status\\": \\"\${STATUS}\\",
-              \\"run_id\\": \\"\${{ inputs.run_id }}\\",
-              \\"pipelineUrl\\": \\"\${{ github.server_url }}/\${{ github.repository }}/actions/runs/\${{ github.run_id }}\\"
-            }" || true
+          PAYLOAD="{\\"status\\":\\"$\{STATUS}\\",\\"run_id\\":\\"\${{ inputs.run_id }}\\",\\"pipelineUrl\\":\\"\${{ github.server_url }}/\${{ github.repository }}/actions/runs/\${{ github.run_id }}\\"}"
+          for attempt in 1 2 3 4 5; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "\${{ inputs.callback_url }}" \\
+              -H "Content-Type: application/json" \\
+              -d "$PAYLOAD")
+            echo "Attempt $attempt — HTTP $HTTP_CODE"
+            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+              echo "Callback delivered."
+              break
+            fi
+            [ $attempt -lt 5 ] && sleep $((attempt * 10))
+          done
+          true
 `;
 }
 

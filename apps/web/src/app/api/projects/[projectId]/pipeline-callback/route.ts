@@ -75,7 +75,7 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
             remoteUrl: gitConfig.remoteUrl,
             ciToken,
           }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 40_000)),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 70_000)),
         ]);
 
         if (ciReport !== null) {

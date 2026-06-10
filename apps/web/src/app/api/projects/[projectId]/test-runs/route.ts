@@ -118,6 +118,20 @@ export async function GET(_req: Request, context: { params: Promise<{ projectId:
   });
 }
 
+export async function DELETE(_req: Request, context: { params: Promise<{ projectId: string }> }) {
+  const params = await context.params;
+  const parsedParams = paramsSchema.safeParse(params);
+  if (!parsedParams.success) {
+    return NextResponse.json({ error: "Invalid project id" }, { status: 400 });
+  }
+
+  const guard = await withAuthAndProject(parsedParams.data.projectId);
+  if ("error" in guard) return guard.error;
+
+  await prisma.testRun.deleteMany({ where: { projectId: parsedParams.data.projectId } });
+  return NextResponse.json({ ok: true });
+}
+
 export async function POST(req: Request, context: { params: Promise<{ projectId: string }> }) {
   const params = await context.params;
   const parsedParams = paramsSchema.safeParse(params);

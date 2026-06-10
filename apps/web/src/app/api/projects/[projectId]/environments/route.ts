@@ -8,6 +8,7 @@ import { ensureProjectFrameworkScaffold } from "@/lib/local-framework/ensure-pro
 import { writeProjectTestConfig } from "@/lib/local-framework/project-config-writer";
 import { projectPlatformTypeSchema } from "@jagadeeshqtsolv/core";
 import { syncEnvironmentToDisk } from "@/lib/sync-environment-disk";
+import { recordUserFiles } from "@/lib/local-framework/user-file-tracker";
 
 const paramsSchema = z.object({
   projectId: z.string().uuid(),
@@ -100,6 +101,10 @@ export async function POST(req: Request, context: { params: Promise<{ projectId:
     });
 
     await writeProjectTestConfig(parsedParams.data.projectId, cfg.value);
+
+    const envFiles: string[] = [`environments/${env.slug}.json`];
+    if (platformType === "web") envFiles.push("playwright.config.ts");
+    await recordUserFiles(parsedParams.data.projectId, platformType, guard.user.id, envFiles).catch(() => {});
 
     return NextResponse.json(env, { status: 201 });
   } catch {

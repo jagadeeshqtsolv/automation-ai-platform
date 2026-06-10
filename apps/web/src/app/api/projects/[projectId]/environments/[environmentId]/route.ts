@@ -5,9 +5,11 @@ import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
 import { normalizeConfigJsonString } from "@/lib/config-json";
 import { syncEnvironmentToDisk } from "@/lib/sync-environment-disk";
-import { writeMobilewrightConfig } from "@/lib/local-framework/scaffold";
+import { writeProjectTestConfig } from "@/lib/local-framework/project-config-writer";
 import { resolveFrameworkFilePath } from "@/lib/local-framework/paths";
 import { unlink } from "node:fs/promises";
+import { getProjectPlatformType } from "@/lib/project-platform";
+import { recordUserFiles } from "@/lib/local-framework/user-file-tracker";
 
 const paramsSchema = z.object({
   projectId: z.string().uuid(),
@@ -87,7 +89,15 @@ export async function PATCH(req: Request, context: { params: Promise<{ projectId
     configJson: diskPayload,
   });
 
-  await writeMobilewrightConfig(parsedParams.data.projectId, updated.configJson);
+  const platformType = await getProjectPlatformType(parsedParams.data.projectId);
+  await writeProjectTestConfig(parsedParams.data.projectId, updated.configJson);
+
+  await recordUserFiles(
+    parsedParams.data.projectId,
+    platformType,
+    guard.user.id,
+    [`environments/${updated.slug}.json`],
+  ).catch(() => {});
 
   return NextResponse.json(updated);
 }

@@ -1,12 +1,9 @@
-import { writeFile } from "node:fs/promises";
 import type { WebPageElement } from "@jagadeeshqtsolv/core";
-import { buildPlaywrightWebConfig } from "@/lib/playwright-web-environment-config";
 import { ensureWebFrameworkScaffold, writePlaywrightWebConfig } from "@/lib/local-framework/web-scaffold";
 import { buildWebPageAssets } from "@/lib/screen-codegen/build-web-page-assets";
 import { syncWebSupportHelpersToDisk } from "@/lib/local-framework/sync-web-support-helpers";
 import { writeFrameworkFiles } from "@/lib/local-framework/writer";
 import { syncEnvironmentToDisk } from "@/lib/sync-environment-disk";
-import { resolveFrameworkFilePath } from "@/lib/local-framework/paths";
 import { normalizePageClassName } from "@/lib/page-object-naming";
 import { prisma } from "@/lib/prisma";
 
@@ -45,10 +42,6 @@ export async function savePageFromBrowser(params: {
         slug: env.slug,
         configJson: diskPayload,
       });
-      const cfgPath = resolveFrameworkFilePath(params.projectId, "playwright.config.ts", "web");
-      if (cfgPath !== null) {
-        await writeFile(cfgPath, buildPlaywrightWebConfig(env.configJson), "utf8");
-      }
     }
   }
 

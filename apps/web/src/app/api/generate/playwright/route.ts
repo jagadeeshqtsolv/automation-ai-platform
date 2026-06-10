@@ -162,15 +162,6 @@ export async function POST(req: Request) {
       authFile,
     });
 
-    // When an auth file is present, ensure playwright.config.ts references it as storageState
-    if (authFile !== undefined) {
-      const configPath = resolveFrameworkFilePath(projectId, "playwright.config.ts", "web");
-      if (configPath !== null) {
-        const { writeFile } = await import("node:fs/promises");
-        await writeFile(configPath, buildPlaywrightWebConfig(null, `.auth/${authFile}`), "utf8").catch(() => {});
-      }
-    }
-
     if (bundle.pageObjectFiles.length > 0) {
       await upsertPageObjectFilesFromPomBundle({
         projectId,
@@ -270,6 +261,15 @@ export async function POST(req: Request) {
       environment: environmentDisk,
       userId: guard.user.id,
     });
+
+    // Ensure storageState is always set after writeFrameworkFiles may have rewritten the config.
+    if (authFile !== undefined) {
+      const configPath = resolveFrameworkFilePath(projectId, "playwright.config.ts", "web");
+      if (configPath !== null) {
+        const { writeFile } = await import("node:fs/promises");
+        await writeFile(configPath, buildPlaywrightWebConfig(null, `.auth/${authFile}`), "utf8").catch(() => {});
+      }
+    }
 
     const combined = flattenPomBundleForStorage(bundle);
 

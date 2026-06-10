@@ -254,6 +254,7 @@ export function TestReportsPanel({
     return runs;
   }, [projectId, toast]);
 
+
   const loadRunDetail = useCallback(
     async (run: RecentRun) => {
       setFocusedRunId(run.id);
@@ -511,13 +512,22 @@ export function TestReportsPanel({
               </svg>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Run History</p>
             </div>
-            <button type="button" disabled={disabled} onClick={() => void loadRuns()}
-              className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600 disabled:opacity-40 transition"
-              title="Refresh" data-testid="reports-refresh-btn">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-1">
+              <button type="button" disabled={disabled} onClick={() => void (async () => {
+                  const runs = await loadRuns();
+                  if (focusedRunId !== null) {
+                    const focused = runs.find((r) => r.id === focusedRunId);
+                    if (focused !== undefined) void loadRunDetail(focused);
+                  }
+                })()}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600 disabled:opacity-40 transition"
+                title="Refresh" data-testid="reports-refresh-btn">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+              {/* Clear history button hidden for now */}
+            </div>
           </div>
           {recentRuns.length === 0 ? (
             <div className="flex flex-col items-center rounded-xl border border-dashed border-slate-200 bg-white py-10 text-center">

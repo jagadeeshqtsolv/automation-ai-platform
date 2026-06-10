@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { buildPlaywrightWebConfig, buildDefaultEnvironmentJson } from "@/lib/playwright-web-environment-config";
 import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
@@ -88,7 +88,18 @@ export async function writePlaywrightWebConfig(
 ): Promise<void> {
   const cfgPath = resolveFrameworkFilePath(projectId, "playwright.config.ts");
   if (cfgPath === null) return;
-  await writeFile(cfgPath, buildPlaywrightWebConfig(configJson), "utf8");
+
+  // Preserve any storageState already set in the file (e.g. auth file was uploaded).
+  let existingStorageState: string | undefined;
+  try {
+    const existing = await readFile(cfgPath, "utf8");
+    const match = /storageState:\s*["']([^"']+)["']/.exec(existing);
+    if (match?.[1]) existingStorageState = match[1];
+  } catch {
+    // File doesn't exist yet — nothing to preserve.
+  }
+
+  await writeFile(cfgPath, buildPlaywrightWebConfig(configJson, existingStorageState), "utf8");
 
   // Write environments/qa.json only if it doesn't exist yet — preserve user edits.
   const qaPath = resolveFrameworkFilePath(projectId, "environments/qa.json", "web");

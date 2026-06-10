@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
 import { getProjectPlatformType } from "@/lib/project-platform";
 import { buildPlaywrightWebConfig } from "@/lib/playwright-web-environment-config";
+import { recordUserFiles } from "@/lib/local-framework/user-file-tracker";
 
 function sanitizeFilename(name: string): string | null {
   const base = path.basename(name).replace(/[^a-zA-Z0-9._-]/g, "");
@@ -107,6 +108,7 @@ export async function POST(
     const configPath = resolveFrameworkFilePath(projectId, "playwright.config.ts", "web");
     if (configPath !== null) {
       await writeFile(configPath, buildPlaywrightWebConfig(null, `.auth/${safeFilename}`), "utf8").catch(() => {});
+      await recordUserFiles(projectId, platformType, guard.user.id, ["playwright.config.ts"]).catch(() => {});
     }
   }
 

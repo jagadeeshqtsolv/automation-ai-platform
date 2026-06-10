@@ -166,7 +166,7 @@ export function ProjectAuthSettings({
             type="button"
             disabled={disabled || importing}
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-50"
             data-testid="auth-import-btn"
           >
             {importing ? <><Spinner />Importing…</> : <><UploadIcon />Import .json</>}

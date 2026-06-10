@@ -1,7 +1,14 @@
 import { readFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { updatePageObjectBodySchema } from "@jagadeeshqtsolv/core";
+// Use a local schema with a higher content limit — the core package caps at 120K
+// which is too small for large recorded page objects (HomePage, LeadListPage etc.)
+const updatePageObjectBodySchema = z.object({
+  className: z.string().min(1).max(120).optional(),
+  content: z.string().min(1).max(1_000_000).optional(),
+  methodSummary: z.string().max(100_000).optional(),
+  elementsJson: z.string().max(500_000).optional(),
+});
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
 import { inferMethodSummary } from "@/lib/page-object-utils";

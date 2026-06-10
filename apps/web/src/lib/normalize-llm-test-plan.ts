@@ -229,7 +229,7 @@ function normalizeCase(raw: unknown, index: number): Record<string, unknown> | n
     priority: normalizePriority(item.priority),
     platforms: normalizePlatforms(item.platforms),
     preconditions: asStringArray(item.preconditions),
-    tags: asStringArray(item.tags),
+    tags: asStringArray(item.tags).map((t) => (t.startsWith("@") ? t : `@${t}`)),
     steps,
   };
 }

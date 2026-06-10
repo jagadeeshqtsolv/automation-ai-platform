@@ -151,6 +151,25 @@ export async function GET(
   // Collect all rows across all requirements into one sheet
   const allRows: (string | number)[][] = [];
 
+  // Per-suite sequential counters for TC IDs (e.g. CreateLead_001)
+  const suiteCounters = new Map<string, number>();
+
+  function suitePrefix(suiteName: string): string {
+    return suiteName
+      .replace(/[^a-zA-Z0-9 ]/g, " ")
+      .split(" ")
+      .filter((w) => w.length > 0)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join("");
+  }
+
+  function nextTcId(suiteName: string): string {
+    const prefix = suitePrefix(suiteName);
+    const count = (suiteCounters.get(prefix) ?? 0) + 1;
+    suiteCounters.set(prefix, count);
+    return `${prefix}_${String(count).padStart(3, "0")}`;
+  }
+
   for (const req of requirements) {
     for (const planRow of req.testPlans) {
       let plan: ReturnType<typeof testPlanSchema.parse> | null = null;
@@ -164,9 +183,9 @@ export async function GET(
         const preconditions = tc.preconditions.length > 0
           ? tc.preconditions.join("; ")
           : "Login required; User should have access to the application";
-        const tags = tc.tags.join(", ");
+        const tags = tc.tags.map((t) => t.replace(/^@/, "")).join(", ");
         const platforms = tc.platforms.join(", ");
-        const tcId = tc.id;
+        const tcId = nextTcId(req.title ?? plan.suiteName);
 
         if (tc.steps.length === 0) {
           allRows.push([

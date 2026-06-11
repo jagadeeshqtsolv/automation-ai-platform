@@ -163,6 +163,41 @@ export function buildPlaywrightWebConfig(_configJson: string | null, storageStat
 }
 
 /**
+ * Patches an existing playwright.config.ts content to set (or clear) the
+ * `storageState` property inside the `use: {}` block.
+ * - If `storageStatePath` is provided, the line is added/replaced.
+ * - If `storageStatePath` is null/undefined, the line is removed.
+ * Falls back to a full regeneration when the file is unrecognisable.
+ */
+export function patchPlaywrightStorageState(
+  existingContent: string,
+  storageStatePath: string | null | undefined,
+): string {
+  const newLine = storageStatePath
+    ? `    storageState:  ${JSON.stringify(storageStatePath)},`
+    : null;
+
+  // Remove any existing storageState line
+  const withoutStorage = existingContent
+    .split("\n")
+    .filter((l) => !/^\s*storageState\s*:/.test(l))
+    .join("\n");
+
+  if (!newLine) return withoutStorage;
+
+  // Insert after the `use: {` opening line
+  const useLineIdx = withoutStorage.split("\n").findIndex((l) => /^\s*use\s*:\s*\{/.test(l));
+  if (useLineIdx === -1) {
+    // Can't find use block — fall back to full regen
+    return buildPlaywrightWebConfig(null, storageStatePath ?? undefined);
+  }
+
+  const lines = withoutStorage.split("\n");
+  lines.splice(useLineIdx + 1, 0, newLine);
+  return lines.join("\n");
+}
+
+/**
  * Generates the content for `environments/qa.json` — the default environment
  * file that `playwright.config.ts` reads at runtime.  Seeded from configJson
  * when available so the values from Setup → Environments are preserved.

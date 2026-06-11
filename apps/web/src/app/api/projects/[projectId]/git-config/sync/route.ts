@@ -1,3 +1,4 @@
+import { readFile, writeFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
@@ -5,6 +6,9 @@ import { getProjectGitConfigView } from "@/lib/project-git/git-config";
 import { getUserGitConfigView, getUserGitToken } from "@/lib/project-git/user-git-config";
 import { initRepo, getRepoStatus } from "@/lib/project-git/repo-ops";
 import { prisma } from "@/lib/prisma";
+import { resolveFrameworkFilePath } from "@/lib/local-framework/paths";
+import { recordUserFiles } from "@/lib/local-framework/user-file-tracker";
+import { patchPlaywrightStorageState } from "@/lib/playwright-web-environment-config";
 
 const paramsSchema = z.object({ projectId: z.string().uuid() });
 
@@ -37,9 +41,11 @@ export async function POST(_req: Request, context: { params: Promise<{ projectId
   if (!token) return NextResponse.json({ error: "Add your access token in Git Settings first." }, { status: 400 });
 
   try {
+    const platformType = project.platformType as "web" | "mobile";
+
     await initRepo({
       projectId: params.data.projectId,
-      platformType: project.platformType as "web" | "mobile",
+      platformType,
       remoteUrl: projectConfig.remoteUrl,
       branch: userConfig.branch,
       baseBranch: projectConfig.baseBranch,
@@ -48,6 +54,32 @@ export async function POST(_req: Request, context: { params: Promise<{ projectId
       token,
       userId: guard.user.id,
     });
+
+    // Re-apply storageState after sync — git reset/checkout can revert uncommitted
+    // playwright.config.ts changes. Re-read the auth file list and patch if any exist.
+    if (platformType === "web") {
+      const authFiles = await prisma.projectAuthFile.findMany({
+        where: { projectId: params.data.projectId },
+        select: { filename: true },
+        orderBy: { updatedAt: "desc" },
+        take: 1,
+      });
+      const activeAuth = authFiles[0];
+      const configPath = resolveFrameworkFilePath(params.data.projectId, "playwright.config.ts", "web");
+      if (configPath !== null) {
+        try {
+          const existing = await readFile(configPath, "utf-8").catch(() => "");
+          const patched = patchPlaywrightStorageState(
+            existing,
+            activeAuth ? `.auth/${activeAuth.filename}` : null,
+          );
+          await writeFile(configPath, patched, "utf-8");
+          await recordUserFiles(params.data.projectId, platformType, guard.user.id, ["playwright.config.ts"]).catch(() => {});
+        } catch {
+          // Best-effort — don't fail the sync if config patch fails
+        }
+      }
+    }
 
     const repoStatus = await getRepoStatus(
       params.data.projectId,

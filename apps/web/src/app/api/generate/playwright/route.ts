@@ -20,7 +20,7 @@ import { generateTestFixturesSource, TEST_FIXTURES_MODULE_PATH } from "@/lib/gen
 import { aiGenerationErrorStatus } from "@/lib/ai-generation-error-status";
 import { getProjectPlatformType } from "@/lib/project-platform";
 import { resolveFrameworkFilePath } from "@/lib/local-framework/paths";
-import { buildPlaywrightWebConfig } from "@/lib/playwright-web-environment-config";
+import { patchPlaywrightStorageState } from "@/lib/playwright-web-environment-config";
 
 const generatingProjects = new Set<string>();
 
@@ -262,12 +262,15 @@ export async function POST(req: Request) {
       userId: guard.user.id,
     });
 
-    // Ensure storageState is always set after writeFrameworkFiles may have rewritten the config.
+    // Re-apply storageState after writeFrameworkFiles may have regenerated the config.
     if (authFile !== undefined) {
       const configPath = resolveFrameworkFilePath(projectId, "playwright.config.ts", "web");
       if (configPath !== null) {
-        const { writeFile } = await import("node:fs/promises");
-        await writeFile(configPath, buildPlaywrightWebConfig(null, `.auth/${authFile}`), "utf8").catch(() => {});
+        const { readFile: rf, writeFile: wf } = await import("node:fs/promises");
+        try {
+          const existing = await rf(configPath, "utf-8").catch(() => "");
+          await wf(configPath, patchPlaywrightStorageState(existing, `.auth/${authFile}`), "utf-8");
+        } catch { /* best-effort */ }
       }
     }
 

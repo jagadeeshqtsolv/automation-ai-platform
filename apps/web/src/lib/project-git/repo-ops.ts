@@ -518,6 +518,11 @@ function isNonFastForward(err: unknown): boolean {
   );
 }
 
+function isTransientNetworkError(err: unknown): boolean {
+  const code = (err as { cause?: { code?: string } })?.cause?.code;
+  return code === "UND_ERR_SOCKET" || code === "ECONNRESET" || code === "ECONNREFUSED";
+}
+
 export async function commitAndPush(params: {
   projectId: string;
   platformType: ProjectPlatformType;
@@ -630,9 +635,14 @@ export async function commitAndPush(params: {
     await gitNet(root, ["push", "--set-upstream", "origin", params.branch], undefined, resolvedGitDir);
   } else {
     // Normal user push: try once, on non-fast-forward stash → rebase → pop → retry.
+    // Also retry once on transient socket errors (IPv6/NAT64 glitches).
     try {
       await gitNet(root, ["push", "--set-upstream", "origin", params.branch], undefined, resolvedGitDir);
     } catch (firstErr) {
+      if (isTransientNetworkError(firstErr)) {
+        await gitNet(root, ["push", "--set-upstream", "origin", params.branch], undefined, resolvedGitDir);
+        return { committed, pushed: true, pulled, summary };
+      }
       if (!isNonFastForward(firstErr)) throw firstErr;
 
       // Check whether the remote branch actually exists before attempting a rebase.

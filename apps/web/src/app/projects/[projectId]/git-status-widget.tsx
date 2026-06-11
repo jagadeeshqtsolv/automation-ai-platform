@@ -58,6 +58,13 @@ export function GitStatusWidget({ projectId }: { projectId: string }) {
     return () => clearInterval(interval);
   }, [load, status?.remoteConfigured]);
 
+  // Immediately refresh when git settings are saved from the Setup tab.
+  useEffect(() => {
+    const handler = () => void load();
+    window.addEventListener("git-config-saved", handler);
+    return () => window.removeEventListener("git-config-saved", handler);
+  }, [load]);
+
   function handlePushClose() {
     setPushOpen(false);
     void load();

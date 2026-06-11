@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -6,7 +6,7 @@ import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
 import { getProjectFrameworkRoot, resolveFrameworkFilePath } from "@/lib/local-framework/paths";
 import { getProjectPlatformType } from "@/lib/project-platform";
-import { buildPlaywrightWebConfig } from "@/lib/playwright-web-environment-config";
+import { patchPlaywrightStorageState } from "@/lib/playwright-web-environment-config";
 import { recordUserFiles } from "@/lib/local-framework/user-file-tracker";
 
 function sanitizeFilename(name: string): string | null {
@@ -107,8 +107,14 @@ export async function POST(
   if (platformType === "web") {
     const configPath = resolveFrameworkFilePath(projectId, "playwright.config.ts", "web");
     if (configPath !== null) {
-      await writeFile(configPath, buildPlaywrightWebConfig(null, `.auth/${safeFilename}`), "utf8").catch(() => {});
-      await recordUserFiles(projectId, platformType, guard.user.id, ["playwright.config.ts"]).catch(() => {});
+      try {
+        const existing = await readFile(configPath, "utf-8").catch(() => "");
+        const patched = patchPlaywrightStorageState(existing, `.auth/${safeFilename}`);
+        await writeFile(configPath, patched, "utf-8");
+        await recordUserFiles(projectId, platformType, guard.user.id, ["playwright.config.ts"]).catch(() => {});
+      } catch (err) {
+        console.error("[auth-files] Failed to patch playwright.config.ts:", err);
+      }
     }
   }
 

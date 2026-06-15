@@ -76,6 +76,13 @@ export function GitPushPanel({
       setFiles(body.files);
       setSelected(new Set(body.files.map((f) => f.path)));
       setPrUrl(null);
+      setPreviewFile((prev) => {
+        if (prev && !body.files.some((f) => f.path === prev.path)) {
+          setPreviewDiff(null);
+          return null;
+        }
+        return prev;
+      });
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Failed to load files");
     } finally {

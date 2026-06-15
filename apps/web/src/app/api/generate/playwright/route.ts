@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { generateCodeBodySchema, testPlanSchema } from "@jagadeeshqtsolv/core";
 import { withAuthAndProject } from "@/lib/auth/route-guards";
 import { prisma } from "@/lib/prisma";
@@ -23,6 +23,53 @@ import { resolveFrameworkFilePath } from "@/lib/local-framework/paths";
 import { patchPlaywrightStorageState } from "@/lib/playwright-web-environment-config";
 
 const generatingProjects = new Set<string>();
+
+function toCamelCase(str: string): string {
+  const words = str.replace(/[^a-zA-Z0-9]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "value";
+  return (
+    words[0]!.toLowerCase() +
+    words.slice(1).map((w) => w[0]!.toUpperCase() + w.slice(1).toLowerCase()).join("")
+  );
+}
+
+function extractTestDataFromPlan(
+  plan: { cases: Array<{ title: string; steps: Array<{ action: string; targetDescription: string; value?: string }> }> },
+): Record<string, Record<string, string>> {
+  const FILL_ACTIONS = new Set(["fill", "typeText", "selectOption"]);
+  const result: Record<string, Record<string, string>> = {};
+  for (const tc of plan.cases) {
+    const caseKey = toCamelCase(tc.title);
+    const caseData: Record<string, string> = {};
+    for (const step of tc.steps) {
+      if (!FILL_ACTIONS.has(step.action) || !step.value?.trim()) continue;
+      let key = toCamelCase(step.targetDescription) || "value";
+      if (key in caseData) {
+        let n = 2;
+        while (`${key}${n}` in caseData) n++;
+        key = `${key}${n}`;
+      }
+      caseData[key] = step.value.trim();
+    }
+    if (Object.keys(caseData).length > 0) result[caseKey] = caseData;
+  }
+  return result;
+}
+
+function mergeTestData(
+  extracted: Record<string, Record<string, string>>,
+  existing: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...existing };
+  for (const [caseKey, caseData] of Object.entries(extracted)) {
+    if (merged[caseKey] !== undefined && typeof merged[caseKey] === "object" && merged[caseKey] !== null) {
+      merged[caseKey] = { ...caseData, ...(merged[caseKey] as Record<string, unknown>) };
+    } else if (merged[caseKey] === undefined) {
+      merged[caseKey] = caseData;
+    }
+  }
+  return merged;
+}
 
 function parseStoredPlans(rows: Array<{ json: string }>) {
   const plans = [];
@@ -135,8 +182,8 @@ export async function POST(req: Request) {
     environmentDisk = { slug: env.slug, configJson: env.configJson };
   }
 
-  const testDataPath = resolveFrameworkFilePath(projectId, "testdata/test-data.json");
-  const currentTestData = testDataPath !== null
+  const testDataPath = resolveFrameworkFilePath(projectId, "testdata/test-data.json", "web");
+  let currentTestData = testDataPath !== null
     ? await readFile(testDataPath, "utf8").catch(() => "{}")
     : "{}";
 
@@ -147,6 +194,22 @@ export async function POST(req: Request) {
     select: { filename: true },
   });
   const authFile = authFileRecord?.filename;
+
+  // Extract fill/typeText/selectOption values from plan steps and pre-populate testdata/test-data.json.
+  // Existing values win on key conflicts so manual edits are preserved.
+  if (testDataPath !== null) {
+    try {
+      const extracted = extractTestDataFromPlan(planForGeneration);
+      if (Object.keys(extracted).length > 0) {
+        let existing: Record<string, unknown> = {};
+        try { existing = JSON.parse(currentTestData) as Record<string, unknown>; } catch { /* keep empty */ }
+        const merged = mergeTestData(extracted, existing);
+        const mergedStr = JSON.stringify(merged, null, 2) + "\n";
+        await writeFile(testDataPath, mergedStr, "utf-8");
+        currentTestData = JSON.stringify(merged, null, 2);
+      }
+    } catch { /* best-effort — don't fail generation */ }
+  }
 
   generatingProjects.add(projectId);
   try {
@@ -223,14 +286,6 @@ export async function POST(req: Request) {
       }
 
       diskFiles.push({ relativePath: rel, content: f.content });
-    }
-
-    if (bundle.testDataFile !== undefined) {
-      const tdRel = bundle.testDataFile.path.trim().replace(/^\.\//, "");
-      if (!seen.has(tdRel)) {
-        seen.add(tdRel);
-        diskFiles.push({ relativePath: tdRel, content: bundle.testDataFile.content });
-      }
     }
 
     const fixturePageRows: Array<{ className: string; modulePath: string }> = [

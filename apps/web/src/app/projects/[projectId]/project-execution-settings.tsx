@@ -27,7 +27,7 @@ type ConfigResponse = {
   ciRunConfig?: CiRunConfigResponse;
 };
 
-type Provider = "local" | "browserstack" | "github-ci";
+type Provider = "browserstack" | "github-ci";
 
 export function ProjectExecutionSettings({
   projectId,
@@ -43,7 +43,7 @@ export function ProjectExecutionSettings({
 
   const [loaded, setLoaded] = useState(false);
   const [response, setResponse] = useState<ConfigResponse | null>(null);
-  const [provider, setProvider] = useState<Provider>("local");
+  const [provider, setProvider] = useState<Provider>("browserstack");
   const [ciInfo, setCiInfo] = useState<CiInfo | null>(null);
   const [ciToken, setCiToken] = useState("");
   const [workflowFile, setWorkflowFile] = useState("run-tests.yml");
@@ -74,7 +74,7 @@ export function ProjectExecutionSettings({
     if (!execRes.ok) return;
     const body = (await execRes.json()) as ConfigResponse;
     setResponse(body);
-    const p: Provider = body.config.provider === "browserstack" ? "browserstack" : "local";
+    const p: Provider = body.config.provider === "browserstack" ? "browserstack" : "browserstack";
     setProvider(p);
     if (body.config.browserstack) {
       const bs = body.config.browserstack;
@@ -96,7 +96,7 @@ export function ProjectExecutionSettings({
       if (gitBody.ciConfig) {
         setCiInfo(gitBody.ciConfig);
         setWorkflowFile(gitBody.ciConfig.workflowFile);
-        if (gitBody.ciConfig.hasCiToken && p === "local") {
+        if (gitBody.ciConfig.hasCiToken) {
           setProvider("github-ci");
         }
       }
@@ -198,7 +198,7 @@ export function ProjectExecutionSettings({
               },
               ...(bsAccessKey.trim().length > 0 ? { browserstackAccessKey: bsAccessKey.trim() } : {}),
             }
-          : { config: { provider: "local" } };
+          : { config: { provider: "browserstack" as const } };
 
       const res = await fetch(`/api/projects/${projectId}/execution-config`, {
         method: "PATCH",
@@ -231,14 +231,6 @@ export function ProjectExecutionSettings({
       <div className="space-y-2">
         <p className="text-xs font-medium text-slate-500">Execution Provider</p>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          <ProviderCard
-            active={provider === "local"}
-            disabled={disabled || saving}
-            onClick={() => setProvider("local")}
-            title="Local"
-            description={`Run ${configLabel} tests on this server using your environment config`}
-            testId="execution-provider-local-btn"
-          />
           <ProviderCard
             active={provider === "browserstack"}
             disabled={disabled || saving}

@@ -92,7 +92,7 @@ export async function fetchAndSaveCiReport({
     // ── 1. List artifacts for this Actions run ────────────────────────────────
     const artifactsRes = await fetch(
       `https://api.github.com/repos/${ownerRepo}/actions/runs/${githubRunId}/artifacts`,
-      { headers, signal: AbortSignal.timeout(15_000) },
+      { headers, signal: AbortSignal.timeout(30_000) },
     );
     if (!artifactsRes.ok) {
       console.warn(
@@ -117,7 +117,7 @@ export async function fetchAndSaveCiReport({
         await new Promise((r) => setTimeout(r, attempt * 4_000));
         const retryRes = await fetch(
           `https://api.github.com/repos/${ownerRepo}/actions/runs/${githubRunId}/artifacts`,
-          { headers, signal: AbortSignal.timeout(15_000) },
+          { headers, signal: AbortSignal.timeout(30_000) },
         );
         if (!retryRes.ok) break;
         const retryData = (await retryRes.json()) as {
@@ -196,7 +196,12 @@ export async function fetchAndSaveCiReport({
       await rm(tempDir, { recursive: true, force: true }).catch(() => {});
     }
   } catch (err) {
-    console.error("[fetch-ci-report] unexpected error:", err instanceof Error ? err.message : err);
+    const isTimeout = err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
+    if (isTimeout) {
+      console.warn("[fetch-ci-report] timed out waiting for GitHub artifact API");
+    } else {
+      console.error("[fetch-ci-report] unexpected error:", err instanceof Error ? err.message : err);
+    }
     return null;
   }
 }

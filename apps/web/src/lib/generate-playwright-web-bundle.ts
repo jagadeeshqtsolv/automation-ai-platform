@@ -47,7 +47,7 @@ function buildPreconditionsRule(authFile?: string): string {
   return `PRECONDITIONS: For each entry in testCase.preconditions generate a test.step('Before — {preconditionText}', async () => { <code> }) placed BEFORE the plan steps. Map each precondition to real Playwright code using these rules — NEVER leave the body empty: (1) URL/reachability e.g. 'Application URL is reachable' or contains 'http' → \`await page.goto('/'); await expect(page).not.toHaveTitle(/404|Error|Not Found/i);\` ${loginRule} (3) Homepage/landing page e.g. 'User is on the homepage', 'home page is open' → \`await page.goto('/');\` (4) Specific page e.g. 'User is on the cart page', 'product detail page is open' → \`await page.goto('/cart');\` using the inferred route (5) Test data e.g. 'Test data: X = Y' → skip entirely, test data is already imported from test-data.json (6) Browser/app state e.g. 'Browser is open', 'App is running' → skip entirely, Playwright handles this. For any precondition that does not match a known pattern, generate \`await page.goto('/');\` as a safe default — never generate an empty body.`;
 }
 
-function buildWebPomRules(authFile?: string): string {
+function buildWebPomRules(authFile?: string, hasTestData?: boolean): string {
   return [
   "You generate Playwright **web** tests using Page Object Model (POM).",
   'Return JSON ONLY: { "pageObjectFiles": [...], "testFiles": [...] }',
@@ -62,7 +62,9 @@ function buildWebPomRules(authFile?: string): string {
   "testFiles import { test, expect } from '../support/fixtures' only.",
   "Use injected fixture parameters (loginPage, homePage) — never `new LoginPage(page)` in tests.",
   "baseURL is set in playwright.config.ts from environments/qa.json — NEVER hardcode full URLs (e.g. https://example.com/login) in test files. Always use relative paths: `await page.goto('/')` for app entry, `await page.goto('/path')` for specific routes.",
-  "Test data (search keywords, product names, user credentials, any string value used as test input) MUST be imported from `../testdata/test-data.json` — add `import testData from '../testdata/test-data.json';` (no assert clause) at the top of testFiles and reference values via testData (e.g. testData.search.keyword). Never hardcode test input strings directly in test() bodies.",
+  hasTestData
+    ? "testdata/test-data.json is pre-populated with test input values. Add `import testData from '../testdata/test-data.json';` (no assert clause) at the top of every testFile and reference values via testData.caseKey.fieldKey — never hardcode those values directly in test() bodies."
+    : "",
   "STEP NAMING — CRITICAL: Each plan step must map to EXACTLY ONE test.step(). The step title MUST be '{ActionLabel} — {targetDescription}' using these ActionLabel mappings: tap→Click, doubleTap→Double click, longPress→Click and hold, hover→Hover, fill→Fill, clear→Clear, typeText→Type, check→Check, uncheck→Uncheck, selectOption→Select, assertVisible/waitForVisible→Assert visible, assertHidden/waitForHidden→Assert hidden, assertText→Assert text, assertContainsText→Assert contains, assertValue→Assert value, assertEnabled→Assert enabled, assertDisabled→Assert disabled, assertChecked→Assert checked, assertUnchecked→Assert unchecked, assertFocused→Assert focused, assertCount→Assert count, assertCountGreaterThan→Assert count greater than, scrollIntoView→Scroll, back→Navigate back, openUrl/launchApp→Open, wait→Wait, screenshot→Screenshot, switchToFrame→Switch to iframe, switchToNewTab→Switch to tab, closeTab→Close tab. NEVER invent a custom step name. NEVER group multiple plan steps under a single test.step().",
   buildPreconditionsRule(authFile),
   "Each test() title must exactly match the plan case title field.",
@@ -77,7 +79,7 @@ function buildWebPomRules(authFile?: string): string {
   "Put all locators in pageObjectFiles under `private static readonly L` with methods (click*, fill*, expect*).",
   "Page object class assignment: if a test flow touches multiple distinct pages of the application under test (e.g. Home, Search Results, Product Detail, Cart, Checkout), create a DEDICATED page object class for each distinct page — never group locators from different pages into CommonPage. Only use CommonPage for elements that are truly global across every page (site-wide nav bar, header, footer, global toast/snackbar). If ALL steps of a test belong to a single page that has no existing page object, create one dedicated class for it.",
   "Page-to-class matching priority: (1) match an existing page class by its callable methods or module path; (2) infer from action context — search-bar/search-button → SearchPage or HomePage; search results list → SearchResultsPage; product detail/add-to-cart/buy-now → ProductPage; cart/quantity/remove → CartPage; login form/sign-in → LoginPage; checkout/payment → CheckoutPage; (3) only if an element is genuinely site-wide (top-nav, global toast) → CommonPage. Always include new classes in pageObjectFiles with their own fixture parameter.",
-].join("\n");
+].filter(Boolean).join("\n");
 }
 
 function extractJsonFromResponse(text: string): string {
@@ -117,6 +119,11 @@ export async function generatePlaywrightWebPomBundle(params: {
 }): Promise<{ bundle: PomMobilewrightBundle & { testDataFile?: { path: string; content: string } }; model: string }> {
   const { model, modelId } = await resolveAIModel(params.projectId);
   const plan = testPlanSchema.parse(params.plan);
+  const hasTestData = Boolean(
+    params.currentTestData &&
+    params.currentTestData.trim() !== "{}" &&
+    params.currentTestData.trim() !== "",
+  );
   const hasLibrary = params.pageObjects.length > 0;
   const libraryContext =
     params.environment === null
@@ -133,7 +140,7 @@ export async function generatePlaywrightWebPomBundle(params: {
 
   const { text: raw } = await generateText({
     model,
-    system: ["Expert Playwright web engineer.", buildWebPomRules(params.authFile)].join("\n"),
+    system: ["Expert Playwright web engineer.", buildWebPomRules(params.authFile, hasTestData)].join("\n"),
     temperature: 0.12,
     messages: [
       {
@@ -156,8 +163,12 @@ export async function generatePlaywrightWebPomBundle(params: {
             ? "Existing page objects are listed above. For each page object file: if ALL methods called by the test cases already exist in the catalog, omit that file from pageObjectFiles. If ANY method is missing, include the COMPLETE updated class (all existing methods + new ones) in pageObjectFiles so missing methods are added."
             : "",
           "",
-          "Current testdata/test-data.json (add any new keys the tests need — output the full updated JSON as testDataFile with path 'testdata/test-data.json'):",
-          params.currentTestData ?? "{}",
+          ...(hasTestData
+            ? [
+                "testdata/test-data.json — import these values in tests via `import testData from '../testdata/test-data.json';` and reference them as testData.caseKey.fieldKey:",
+                params.currentTestData!,
+              ]
+            : []),
         ].join("\n"),
       },
     ],

@@ -15,19 +15,19 @@ const AUTH_STEPS = [
     number: 1,
     title: "Generate page objects",
     description:
-      "Go to the Page Objects section and run page object generation. An auth file is generated automatically as part of that process.",
+      "Go to the Page Objects section and run page object generation. An SSO auth file is generated automatically as part of that process.",
   },
   {
     number: 2,
-    title: "Upload the generated auth file",
+    title: "Upload the generated SSO auth file",
     description:
       'Once generation completes, download the auth.json file and upload it using the Import button above.',
   },
   {
     number: 3,
-    title: "Auth is applied automatically",
+    title: "SSO Auth is applied automatically",
     description:
-      "If an auth file is already uploaded, it will be used automatically in all generated test plans, test cases, and test scripts — no login steps needed.",
+      "If an SSO auth file is already uploaded, it will be used automatically in all generated test plans, test cases, and test scripts — no login steps needed.",
   },
 ] as const;
 
@@ -139,7 +139,7 @@ export function ProjectAuthSettings({
 
       {/* ── Info card ────────────────────────────────────────────────── */}
       <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2">
-        <h3 className="text-sm font-semibold text-slate-900">Auth Files</h3>
+        <h3 className="text-sm font-semibold text-slate-900">SSO Auth Files</h3>
         <p className="text-xs text-slate-500">
           Import a Playwright <code className="text-slate-600">storageState</code> JSON file
           (e.g. <code className="text-slate-600">auth.json</code>). Imported files are stored
@@ -156,7 +156,7 @@ export function ProjectAuthSettings({
       <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">Imported Auth Files</h3>
+            <h3 className="text-sm font-semibold text-slate-900">Imported SSO Auth Files</h3>
             <p className="mt-0.5 text-xs text-slate-500">
               Stored under <code className="text-slate-600">.auth/</code> in your framework.
             </p>
@@ -185,7 +185,7 @@ export function ProjectAuthSettings({
           <p className="text-xs text-slate-400">Loading…</p>
         ) : files.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center">
-            <p className="text-xs text-slate-400">No auth files imported yet.</p>
+            <p className="text-xs text-slate-400">No SSO auth files imported yet.</p>
             <p className="mt-1 text-[11px] text-slate-400">
               Click <span className="font-semibold">Import .json</span> to add a Playwright storageState file.
             </p>
@@ -224,9 +224,9 @@ export function ProjectAuthSettings({
       {/* ── How to generate ──────────────────────────────────────────── */}
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
         <div className="px-5 pt-5 pb-4 border-b border-slate-100">
-          <h3 className="text-sm font-semibold text-slate-900">How to generate an auth file</h3>
+          <h3 className="text-sm font-semibold text-slate-900">How to generate an SSO auth file</h3>
           <p className="mt-0.5 text-xs text-slate-500">
-            Auth files are generated alongside page objects in the core section.
+            SSO auth files are generated alongside page objects in the core section.
           </p>
         </div>
         <ol className="divide-y divide-slate-100">

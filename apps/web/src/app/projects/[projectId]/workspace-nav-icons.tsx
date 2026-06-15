@@ -24,6 +24,7 @@ function iconTone(tab: WorkspaceTab): string {
     overview: "from-slate-100 to-slate-200 text-slate-600",
     setup: "from-violet-100 to-indigo-100 text-violet-700",
     requirements: "from-sky-100 to-blue-100 text-sky-700",
+    "test-data": "from-teal-100 to-cyan-100 text-teal-700",
     recorder: "from-rose-100 to-orange-100 text-rose-700",
     "generate-pom": "from-amber-100 to-yellow-100 text-amber-700",
     "test-plans": "from-emerald-100 to-teal-100 text-emerald-700",
@@ -42,6 +43,8 @@ function iconGlyph(tab: WorkspaceTab) {
       return <SetupIcon className={iconClass} />;
     case "requirements":
       return <RequirementsIcon className={iconClass} />;
+    case "test-data":
+      return <TestDataIcon className={iconClass} />;
     case "recorder":
       return <RecorderIcon className={iconClass} />;
     case "generate-pom":
@@ -86,6 +89,16 @@ function RequirementsIcon({ className }: IconProps) {
       <path strokeLinecap="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
       <path strokeLinecap="round" d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z" />
       <path strokeLinecap="round" d="M9 12h6M9 16h4" />
+    </svg>
+  );
+}
+
+function TestDataIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2C8.13 2 5 3.12 5 4.5v15C5 20.88 8.13 22 12 22s7-1.12 7-2.5v-15C19 3.12 15.87 2 12 2z" />
+      <path strokeLinecap="round" d="M5 8c0 1.38 3.13 2.5 7 2.5s7-1.12 7-2.5" />
+      <path strokeLinecap="round" d="M5 13c0 1.38 3.13 2.5 7 2.5s7-1.12 7-2.5" />
     </svg>
   );
 }

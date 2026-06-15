@@ -258,6 +258,17 @@ function buildHtml(params: ReportEmailParams): string {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+function isTransientSmtpError(err: unknown): boolean {
+  const code = (err as { code?: string })?.code ?? "";
+  const msg = err instanceof Error ? err.message.toLowerCase() : "";
+  return (
+    code === "ECONNECTION" ||
+    code === "ECONNRESET" ||
+    msg.includes("connection closed") ||
+    msg.includes("connection reset")
+  );
+}
+
 export async function sendReportEmail(params: ReportEmailParams): Promise<void> {
   if (!isMailConfigured()) {
     console.warn(
@@ -269,13 +280,25 @@ export async function sendReportEmail(params: ReportEmailParams): Promise<void> 
   const { to, status, projectName } = params;
   const html = buildHtml(params);
 
-  const transport = createTransport();
-  await transport.sendMail({
-    from: process.env.MAIL_FROM ?? process.env.MAIL_USERNAME,
-    to,
-    subject: `AI Automation - ${projectName} - Report - [${status.toUpperCase()}]`,
-    html,
-  });
-
-  console.log(`[report-email] Sent to ${to} (status: ${status})`);
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const transport = createTransport();
+      await transport.sendMail({
+        from: process.env.MAIL_FROM ?? process.env.MAIL_USERNAME,
+        to,
+        subject: `AI Automation - ${projectName} - Report - [${status.toUpperCase()}]`,
+        html,
+      });
+      console.log(`[report-email] Sent to ${to} (status: ${status})`);
+      return;
+    } catch (err) {
+      if (attempt === 0 && isTransientSmtpError(err)) {
+        lastErr = err;
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
 }

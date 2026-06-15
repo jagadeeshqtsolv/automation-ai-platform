@@ -6,6 +6,7 @@ export const WORKSPACE_TAB_ORDER: readonly WorkspaceTab[] = [
   "overview",
   "setup",
   "requirements",
+  "test-data",
   "recorder",
   "generate-pom",
   "test-plans",
@@ -38,6 +39,11 @@ export function buildWorkspaceNavItems(
       label: "Requirements",
       description: "Define Requirements",
       badge: stats.requirementsCount,
+    },
+    "test-data": {
+      id: "test-data",
+      label: "Test Data",
+      description: "SSO Auth files & test inputs",
     },
     recorder: {
       id: "recorder",

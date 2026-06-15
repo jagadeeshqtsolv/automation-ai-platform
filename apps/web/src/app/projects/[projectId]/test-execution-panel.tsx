@@ -364,25 +364,49 @@ export function TestExecutionPanel({
           />
         </label>
 
-        {/* Provider + Environment + Grep */}
-        <div className="grid gap-3 sm:grid-cols-3">
-          {availableProviders.length > 1 ? (
-            <label className="block text-xs font-semibold text-slate-600">
-              Execution Provider
-              <select value={selectedProvider}
-                onChange={(e) => setSelectedProvider(e.target.value as ExecutionProvider | "github-ci")}
-                disabled={disabled || running}
-                className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-xs disabled:opacity-50"
-                data-testid="execution-provider-select">
-                {availableProviders.map((p) => <option key={p.provider} value={p.provider}>{p.label}</option>)}
-              </select>
-            </label>
-          ) : (
-            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-              <span className="text-xs text-slate-500">Provider</span>
-              <span className="text-xs font-semibold text-slate-900">{providerName}</span>
-            </div>
-          )}
+        {/* Provider */}
+        <div className="space-y-1.5">
+          <p className="text-xs font-semibold text-slate-600">Execution Provider</p>
+          <div className="grid grid-cols-2 gap-2">
+            {(["github-ci", "browserstack"] as const).map((key) => {
+              const configured = availableProviders.some((p) => p.provider === key);
+              const label = key === "github-ci" ? "GitHub CI" : "BrowserStack";
+              const active = selectedProvider === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={disabled || running || !configured}
+                  onClick={() => setSelectedProvider(key as typeof selectedProvider)}
+                  data-testid={`execution-provider-${key}-btn`}
+                  className={`rounded-xl border px-3 py-2.5 text-left transition disabled:cursor-not-allowed ${
+                    active && configured
+                      ? "border-green-300 bg-green-50 ring-1 ring-green-300/40"
+                      : configured
+                        ? "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                        : "border-slate-100 bg-slate-50 opacity-50"
+                  }`}
+                >
+                  <p className={`text-xs font-semibold ${active && configured ? "text-green-700" : "text-slate-700"}`}>{label}</p>
+                  <p className="mt-0.5 text-[10px] text-slate-400">
+                    {configured ? (active ? "Selected" : "Configured") : (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onNavigate?.("setup"); }}
+                        className="text-amber-600 hover:underline"
+                      >
+                        Configure in Setup
+                      </button>
+                    )}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Environment + Grep */}
+        <div className="grid gap-3 sm:grid-cols-2">
           <label className="block text-xs font-semibold text-slate-600">
             Environment
             <select value={environmentId} disabled={disabled}
@@ -401,6 +425,7 @@ export function TestExecutionPanel({
               data-testid="execution-grep-input" />
           </label>
         </div>
+
 
         {/* Spec files */}
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm">

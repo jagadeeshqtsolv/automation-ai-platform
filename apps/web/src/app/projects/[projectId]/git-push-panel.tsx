@@ -76,6 +76,13 @@ export function GitPushPanel({
       setFiles(body.files);
       setSelected(new Set(body.files.map((f) => f.path)));
       setPrUrl(null);
+      setPreviewFile((prev) => {
+        if (prev && !body.files.some((f) => f.path === prev.path)) {
+          setPreviewDiff(null);
+          return null;
+        }
+        return prev;
+      });
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Failed to load files");
     } finally {
@@ -84,6 +91,14 @@ export function GitPushPanel({
   }, [open, projectId]);
 
   useEffect(() => { void loadFiles(); }, [loadFiles]);
+
+  // Clear diff preview when panel closes so it doesn't persist on reopen
+  useEffect(() => {
+    if (!open) {
+      setPreviewFile(null);
+      setPreviewDiff(null);
+    }
+  }, [open]);
 
   // Lock body scroll while panel is open so the workspace can't be seen scrolling behind
   useEffect(() => {
@@ -225,16 +240,16 @@ export function GitPushPanel({
         aria-hidden
       />
 
-      {/* Shell — narrow without preview, full-width split with preview */}
+      {/* Shell — fixed left pane width in both states; expands right when diff is open */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 flex flex-row bg-white shadow-xl ring-1 ring-slate-200 transition-[width] duration-200 ${
+        className={`fixed inset-y-0 left-0 z-50 flex flex-row bg-white shadow-xl ring-1 ring-slate-200 ${
           hasDiffPane ? "right-0" : "w-full max-w-sm"
         }`}
         role="dialog"
         aria-label="Push Changes"
       >
         {/* ── LEFT PANE: file list ────────────────────────────────────── */}
-        <aside className={`flex flex-col ${hasDiffPane ? "w-72 shrink-0 border-r border-slate-200" : "flex-1"}`}>
+        <aside className={`flex w-full max-w-sm shrink-0 flex-col ${hasDiffPane ? "border-r border-slate-200" : ""}`}>
 
           {/* Header */}
           <div className="border-b border-slate-200 px-4 py-3">

@@ -103,6 +103,7 @@ export function ProjectGitSettings({
       await load();
       setEditingRepo(false);
       toast.success("Repository settings saved");
+      window.dispatchEvent(new CustomEvent("git-config-saved"));
     } finally {
       setSavingRepo(false);
     }
@@ -135,6 +136,7 @@ export function ProjectGitSettings({
       setToken("");
       await load();
       toast.success("Settings saved");
+      window.dispatchEvent(new CustomEvent("git-config-saved"));
 
       // Auto-init: create/switch to the working branch from the base branch.
       const effectiveBase = baseBranch.trim() || "main";
@@ -145,11 +147,19 @@ export function ProjectGitSettings({
         try {
           const initRes = await fetch(`/api/projects/${projectId}/git-config/init`, { method: "POST" });
           const initBody = (await initRes.json()) as { ok?: boolean; error?: string };
-          setIdentityResult(
-            initRes.ok
-              ? { ok: true, message: `Branch "${branch.trim()}" is ready — checked out from ${effectiveBase}.` }
-              : { ok: false, message: initBody.error ?? "Could not initialize branch" },
-          );
+          if (initRes.ok) {
+            setIdentityResult({ ok: true, message: `Branch "${branch.trim()}" is ready — checked out from ${effectiveBase}.` });
+          } else {
+            const errMsg = initBody.error ?? "";
+            // Base branch not on remote yet — this is expected for brand-new repos.
+            // Push to base (below) will push main and auto-create the personal branch.
+            const isBaseMissing = /not found|push the base structure/i.test(errMsg);
+            setIdentityResult(
+              isBaseMissing
+                ? { ok: true, message: `Settings saved. Use "Initialize Main Branch" below to seed the repository — your branch "${branch.trim()}" will be created automatically after that.` }
+                : { ok: false, message: errMsg || "Could not initialize branch" },
+            );
+          }
         } finally {
           setInitialising(false);
         }
@@ -194,6 +204,7 @@ export function ProjectGitSettings({
       const body = (await res.json()) as { committed: boolean; branch: string };
       setPushResult(body);
       await load();
+      window.dispatchEvent(new CustomEvent("git-config-saved"));
       toast.success(
         body.committed
           ? `Pushed to "${body.branch}" — main branch is ready`

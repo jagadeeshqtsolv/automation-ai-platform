@@ -92,25 +92,36 @@ async function triggerGitHub(params: TriggerParams): Promise<TriggerResult> {
   if (!repo) return { ok: false, error: "Could not parse owner/repo from GitHub URL" };
 
   const url = `https://api.github.com/repos/${repo.owner}/${repo.repo}/actions/workflows/${encodeURIComponent(params.workflowFile)}/dispatches`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${params.ciToken}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ ref: params.branch, inputs: params.inputs }),
-  });
+  const body = JSON.stringify({ ref: params.branch, inputs: params.inputs });
+  const headers = {
+    Authorization: `Bearer ${params.ciToken}`,
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "Content-Type": "application/json",
+  };
 
-  if (res.status === 204) return { ok: true };
-
-  let msg = `GitHub API error ${res.status}`;
-  try {
-    const body = (await res.json()) as { message?: string };
-    if (body.message) msg += `: ${body.message}`;
-  } catch { /* ignore */ }
-  return { ok: false, error: msg };
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(url, { method: "POST", headers, body });
+      if (res.status === 204) return { ok: true };
+      let msg = `GitHub API error ${res.status}`;
+      try {
+        const resBody = (await res.json()) as { message?: string };
+        if (resBody.message) msg += `: ${resBody.message}`;
+      } catch { /* ignore */ }
+      return { ok: false, error: msg };
+    } catch (err) {
+      // Retry once on transient socket errors (IPv6 NAT64 glitches etc.)
+      const code = (err as { cause?: { code?: string } })?.cause?.code;
+      if (attempt === 0 && (code === "UND_ERR_SOCKET" || code === "ECONNRESET" || code === "ECONNREFUSED")) {
+        lastErr = err;
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
 }
 
 // ── GitLab CI ─────────────────────────────────────────────────────────────────

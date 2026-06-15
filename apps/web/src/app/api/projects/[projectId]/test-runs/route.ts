@@ -67,9 +67,7 @@ export async function GET(_req: Request, context: { params: Promise<{ projectId:
   const sauceKey = decryptAccessKey(doc.secrets.saucelabsAccessKeyEnc);
   const ltKey = decryptAccessKey(doc.secrets.lambdatestAccessKeyEnc);
 
-  const availableProviders: Array<{ provider: string; label: string }> = [
-    { provider: "local", label: "Local" },
-  ];
+  const availableProviders: Array<{ provider: string; label: string }> = [];
   if (doc.config.browserstack?.username && bsKey) {
     availableProviders.push({ provider: "browserstack", label: "BrowserStack" });
   }
@@ -86,11 +84,11 @@ export async function GET(_req: Request, context: { params: Promise<{ projectId:
     availableProviders.push({ provider: "github-ci", label: "GitHub CI" });
   }
 
-  // Default to github-ci in the panel when it's configured and no other cloud provider is saved
+  // Default to github-ci when configured; otherwise use the first available cloud provider
   const effectiveProvider =
-    ciConfig?.hasCiToken === true && ciProvider !== null && doc.config.provider === "local"
+    ciConfig?.hasCiToken === true && ciProvider !== null
       ? "github-ci"
-      : doc.config.provider;
+      : availableProviders[0]?.provider ?? doc.config.provider;
 
   return NextResponse.json({
     specs,

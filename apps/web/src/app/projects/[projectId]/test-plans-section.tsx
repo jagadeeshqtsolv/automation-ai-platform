@@ -168,6 +168,8 @@ function TestCaseCard({
   onDelete,
   onSave,
   hideEdit = false,
+  checked,
+  onToggleCheck,
 }: {
   testCase: TestCase;
   planId: string;
@@ -179,6 +181,8 @@ function TestCaseCard({
   onDelete: (testPlanId: string, testCaseId: string, title: string) => Promise<void>;
   onSave: (testPlanId: string, testCase: TestCase) => Promise<void>;
   hideEdit?: boolean;
+  checked?: boolean;
+  onToggleCheck?: () => void;
 }) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
@@ -207,6 +211,16 @@ function TestCaseCard({
     <li className="rounded-lg border border-slate-200 bg-white shadow-xs">
       {/* Card header row */}
       <div className="flex items-center gap-2 px-3 py-2.5">
+        {onToggleCheck !== undefined && (
+          <input
+            type="checkbox"
+            checked={checked ?? false}
+            onChange={onToggleCheck}
+            disabled={busy !== null}
+            className="h-3.5 w-3.5 shrink-0 rounded border-slate-300 accent-emerald-600 disabled:opacity-50"
+            onClick={(e) => e.stopPropagation()}
+          />
+        )}
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -928,9 +942,33 @@ function SuiteBlock({
 }) {
   const [addingCase, setAddingCase] = useState(false);
   const [newCaseDraft, setNewCaseDraft] = useState<TestCase | null>(null);
+  const [selectedCases, setSelectedCases] = useState<Set<string>>(new Set());
+  const [generatingSelected, setGeneratingSelected] = useState(false);
   const codegen = plan.generatedCodes[0];
   const creating = busy === addCaseBusyKey(plan.id);
   const existingCaseIds = data.cases.map((c) => c.id);
+
+  function toggleCaseSelection(caseId: string) {
+    setSelectedCases((prev) => {
+      const next = new Set(prev);
+      if (next.has(caseId)) next.delete(caseId); else next.add(caseId);
+      return next;
+    });
+  }
+
+  async function generateSelected() {
+    const ids = Array.from(selectedCases);
+    if (ids.length === 0) return;
+    setGeneratingSelected(true);
+    try {
+      for (const caseId of ids) {
+        await onGenerateCode(plan.id, caseId);
+      }
+      setSelectedCases(new Set());
+    } finally {
+      setGeneratingSelected(false);
+    }
+  }
 
   function startAddCase() {
     setNewCaseDraft(newTestCaseDraft(existingCaseIds, platformType));
@@ -967,6 +1005,18 @@ function SuiteBlock({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
               Edit
+            </button>
+          )}
+          {selectedCases.size > 0 && (
+            <button
+              type="button"
+              disabled={busy !== null || generatingSelected}
+              onClick={() => void generateSelected()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {generatingSelected ? (
+                <><span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current/20 border-t-current" />Generating…</>
+              ) : `Generate selected (${selectedCases.size})`}
             </button>
           )}
           <button
@@ -1024,6 +1074,8 @@ function SuiteBlock({
             onDelete={onDeleteCase}
             onSave={onUpdateCase}
             hideEdit
+            checked={selectedCases.has(testCase.id)}
+            onToggleCheck={() => toggleCaseSelection(testCase.id)}
           />
         ))}
       </ul>
@@ -1108,12 +1160,15 @@ export function TestPlanEditor({
   );
   const [addingCase, setAddingCase] = useState(false);
   const [newCaseDraft, setNewCaseDraft] = useState<TestCase | null>(null);
+  const [selectedCases, setSelectedCases] = useState<Set<string>>(new Set());
+  const [generatingSelected, setGeneratingSelected] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     setSelectedPlanId(initialPlanId ?? allPlans[0]?.plan.id ?? null);
     setAddingCase(false);
     setNewCaseDraft(null);
+    setSelectedCases(new Set());
   }, [isOpen, initialPlanId]);
 
   const selected = allPlans.find((s) => s.plan.id === selectedPlanId) ?? null;
@@ -1132,6 +1187,29 @@ export function TestPlanEditor({
     await onCreateCase(selected.plan.id, saved);
     setAddingCase(false);
     setNewCaseDraft(null);
+  }
+
+  function toggleCaseSelection(caseId: string) {
+    setSelectedCases((prev) => {
+      const next = new Set(prev);
+      if (next.has(caseId)) next.delete(caseId); else next.add(caseId);
+      return next;
+    });
+  }
+
+  async function generateSelected() {
+    if (!selected) return;
+    const ids = Array.from(selectedCases);
+    if (ids.length === 0) return;
+    setGeneratingSelected(true);
+    try {
+      for (const caseId of ids) {
+        await onGenerateCode(selected.plan.id, caseId);
+      }
+      setSelectedCases(new Set());
+    } finally {
+      setGeneratingSelected(false);
+    }
   }
 
   if (!isOpen) return null;
@@ -1221,6 +1299,18 @@ export function TestPlanEditor({
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
+                      {selectedCases.size > 0 && (
+                        <button
+                          type="button"
+                          disabled={busy !== null || generatingSelected}
+                          onClick={() => void generateSelected()}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-100 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {generatingSelected ? (
+                            <><span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current/20 border-t-current" />Generating…</>
+                          ) : `Generate selected (${selectedCases.size})`}
+                        </button>
+                      )}
                       <button
                         type="button"
                         disabled={busy !== null || selected.data.cases.length === 0}
@@ -1273,6 +1363,8 @@ export function TestPlanEditor({
                           onGenerate={onGenerateCode}
                           onDelete={onDeleteCase}
                           onSave={onUpdateCase}
+                          checked={selectedCases.has(testCase.id)}
+                          onToggleCheck={() => toggleCaseSelection(testCase.id)}
                         />
                       ))}
                     </ul>

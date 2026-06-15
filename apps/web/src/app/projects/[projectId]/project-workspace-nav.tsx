@@ -9,6 +9,7 @@ export type WorkspaceTab =
   | "overview"
   | "setup"
   | "requirements"
+  | "test-data"
   | "recorder"
   | "generate-pom"
   | "test-plans"

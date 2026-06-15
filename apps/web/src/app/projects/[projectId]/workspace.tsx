@@ -347,6 +347,16 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
             />
           ) : null}
 
+          {activeTab === "test-data" ? (
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-800">Test Data</h2>
+                <p className="text-sm text-slate-500">Manage SSO authentication files and other test inputs.</p>
+              </div>
+              <ProjectAuthSettings projectId={projectId} disabled={busy !== null} />
+            </div>
+          ) : null}
+
           {activeTab === "recorder" && project.platformType === "mobile" ? (
             <DeviceRecorderPanel
               projectId={projectId}
@@ -630,7 +640,7 @@ function RefreshIcon() {
   );
 }
 
-type SetupTab = "ai" | "execution" | "git" | "environments" | "jira" | "auth";
+type SetupTab = "ai" | "execution" | "git" | "environments" | "jira";
 
 const SETUP_TABS: { id: SetupTab; label: string }[] = [
   { id: "ai", label: "AI" },
@@ -638,7 +648,6 @@ const SETUP_TABS: { id: SetupTab; label: string }[] = [
   { id: "git", label: "Git" },
   { id: "jira", label: "Jira" },
   { id: "execution", label: "Execution" },
-  { id: "auth", label: "Auth" },
 ];
 
 function ProjectSetupSection(props: {
@@ -834,10 +843,6 @@ function ProjectSetupSection(props: {
             {!isOwner && <MemberReadOnlyNotice tab="Jira" />}
             <ProjectJiraSettings projectId={projectId} disabled={busy !== null || !isOwner} />
           </>
-        )}
-
-        {setupTab === "auth" && (
-          <ProjectAuthSettings projectId={projectId} disabled={busy !== null} />
         )}
 
         {setupTab === "environments" && <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
